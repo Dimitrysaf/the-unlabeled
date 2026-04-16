@@ -1,14 +1,15 @@
 import $ from 'jquery';
-import { initLayout, updateContent } from './components/Layout.js';
+import { initLayout } from './components/Layout.js';
+import { renderError } from './components/ErrorPage.js';
+import './style.css';
 
-$(document).ready(function() {
+$(document).ready(function () {
     initLayout();
-    
-    // Testing the "Slot"
-    updateContent(`
-        <div class="ui segment">
-            <h2>System Standby</h2>
-            <p>The footer is now locked to the bottom via the Layout component's internal styles.</p>
-        </div>
-    `);
+
+    const path = window.location.pathname;
+
+    if (path === '/' || path === '/index.html') {
+    } else {
+        renderError('404');
+    }
 });

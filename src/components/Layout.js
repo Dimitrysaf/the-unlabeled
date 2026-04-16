@@ -4,14 +4,14 @@ import { renderLogo } from './Logo.js';
 export function initLayout() {
     const app = document.querySelector('#app');
 
-    // Menu items array for easy management
+    // Menu items array
     const menuItems = [
         { label: 'Latest', link: '#' },
         { label: 'Politics', link: '#' },
         { label: 'Random Logic', link: '#' }
     ];
 
-    // Generate HTML for Sidebar and Desktop Menu from the array
+    // Generate HTML
     const sidebarHtml = menuItems.map(item => `<a class="item" href="${item.link}">${item.label}</a>`).join('');
     const desktopHtml = menuItems.map(item => `<a class="item hide-on-mobile" href="${item.link}">${item.label}</a>`).join('');
 
