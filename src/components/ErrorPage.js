@@ -1,11 +1,11 @@
-// src/components/ErrorPage.js
+// ErrorPage.js
 import { updateContent } from './Layout.js';
 
 export function renderError(code = 'Unknown') {
     const errorMessages = {
-        '404': 'Page Not Found',
-        '500': 'Internal Server Error',
-        '505': 'HTTP Version Not Supported'
+        '404': 'Page not found. Return to the homepage?',
+        '500': 'Internal server error. Try again later.',
+        '505': 'The HTTP version is not supported.'
     };
 
     const message = errorMessages[code] || 'An unknown error occurred';
@@ -18,11 +18,11 @@ export function renderError(code = 'Unknown') {
                     <div class="content" style="margin-top: 20px;">
                         Error ${code}
                         <div class="sub header" style="font-size: 1.5rem; margin-top: 10px;">
-                            ${message}.
+                            ${message}
                         </div>
                     </div>
                 </h1>
-                <div class="ui hidden divider"></div>
+                <br/>
                 <button class="ui primary large button" onclick="window.location.href='/'">
                     <i class="home icon"></i>Home
                 </button>

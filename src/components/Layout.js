@@ -1,4 +1,4 @@
-// src/components/Layout.js
+// Layout.js
 import { renderLogo } from './Logo.js';
 
 export function initLayout() {
@@ -23,6 +23,7 @@ export function initLayout() {
 
     app.innerHTML = `
         <div class="ui vertical sidebar menu" id="mobile-sidebar">
+        
             ${sidebarHtml}
         </div>
 
