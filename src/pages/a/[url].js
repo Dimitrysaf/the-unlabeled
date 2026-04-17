@@ -21,16 +21,35 @@ function buildTagsHtml(tags = []) {
 
 function buildMetaHtml(author = {}, date = '') {
     const authorHtml = author.name
-        ? `<div class="item"><i class="user alternate icon"></i>${author.name}</div>`
+        ? `<div class="item" style="display: inline-flex; align-items: flex-end; gap: 0.4em;"><i class="user alternate icon"></i>${author.name}</div>`
         : '';
 
     const dateHtml = date
-        ? `<div class="item"><i class="calendar alternate outline icon"></i>${date}</div>`
+        ? `<div class="item" style="display: inline-flex; align-items: flex-end; gap: 0.4em;"><i class="calendar alternate outline icon"></i>${date}</div>`
         : '';
 
     return authorHtml || dateHtml
-        ? `<div class="ui horizontal list">${authorHtml}${dateHtml}</div>`
+        ? `<div class="ui horizontal list" style="display: flex; flex-wrap: wrap; gap: 0.75em; width: 100%; color: rgba(0,0,0,0.45); font-size: 0.85em; align-items: flex-end; margin: 0.5rem 0 0 0;">${authorHtml}${dateHtml}</div>`
         : '';
+}
+
+function buildShareHtml() {
+    return `
+        <div style="max-width: 240px; margin: 0;">
+            <div class="ui hidden divider"></div>
+            <div class="link example">
+                <div class="ui floating dropdown icon button">
+                    <i class="share icon"></i>
+                    <i class="dropdown icon"></i>
+                    <div class="menu">
+                        <a class="item" href="#twitter"><i class="twitter icon"></i> Twitter</a>
+                        <a class="item" href="#facebook"><i class="facebook square icon"></i> Facebook</a>
+                        <a class="item" href="#email"><i class="at icon"></i> E-mail</a>
+                        <a class="item" href="#link"><i class="linkify icon"></i> Link</a>
+                    </div>
+                </div>
+            </div>
+        </div>`;
 }
 
 function buildImageHtml(image = '', title = '') {
@@ -67,17 +86,21 @@ function buildPageHtml(article) {
     return `
         <div class="ui container">
             ${buildImageHtml(image, title)}
-            <div class="ui hidden divider"></div>
-            ${buildBreadcrumbHtml(title)}
-            <div class="ui hidden divider"></div>
-            ${buildTagsHtml(tags)}
-            <div class="ui hidden divider"></div>
-            <h2 class="ui header">
+            <div style="margin: 0.3rem 0;"></div>
+            <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-start; gap: 1rem;">
+                <div style="flex: 1 1 0; min-width: 0;">
+                    ${buildBreadcrumbHtml(title)}
+                </div>
+                <div style="flex: 0 0 auto;">
+                    ${buildShareHtml()}
+                </div>
+            </div>
+            <div style="margin: 0.3rem 0;"></div>
+            <h2 class="ui header" style="margin: 0.3rem 0;">
                 ${title}
-                ${subtitle ? `<div class="sub header">${subtitle}</div>` : ''}
+                ${buildMetaHtml(author, date)}
+                ${subtitle ? `<div class="sub header" style="margin: 0 0 2rem;">${subtitle}</div>` : ''}
             </h2>
-            <div class="ui hidden divider"></div>
-            ${buildMetaHtml(author, date)}
             ${buildBodyHtml(body)}
         </div>`;
 }
@@ -99,4 +122,10 @@ export function renderArticlePage(slug) {
     const pageHtml = article ? buildPageHtml(article) : renderNotFound(slug);
 
     updateContent(pageHtml);
+
+    if (article && window.$ && window.$('.link.example .dropdown').dropdown) {
+        window.$('.link.example .dropdown').dropdown({
+            action: 'hide'
+        });
+    }
 }

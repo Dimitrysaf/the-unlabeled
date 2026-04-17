@@ -72,6 +72,18 @@ export function initLayout() {
         <style>
             @media only screen and (max-width: 767px) {
                 .hide-on-mobile { display: none !important; }
+                #content-slot > .ui.container {
+                    width: auto !important;
+                    margin: 0 !important;
+                    padding-left: 0 !important;
+                    padding-right: 0 !important;
+                }
+                #content-slot > .ui.container > * {
+                    margin-left: 0 !important;
+                    margin-right: 0 !important;
+                    padding-left: 0 !important;
+                    padding-right: 0 !important;
+                }
             }
             @media only screen and (min-width: 768px) {
                 #sidebar-trigger { display: none !important; }
