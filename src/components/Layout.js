@@ -23,7 +23,10 @@ export function initLayout() {
 
     app.innerHTML = `
         <div class="ui vertical sidebar menu" id="mobile-sidebar">
-        
+            <a class="item" id="sidebar-close">
+                <i class="close icon"></i>
+                Close
+            </a>
             ${sidebarHtml}
         </div>
 
@@ -80,6 +83,10 @@ export function initLayout() {
 
     $('#sidebar-trigger').on('click', function () {
         $('#mobile-sidebar').sidebar('setting', 'transition', 'overlay').sidebar('toggle');
+    });
+
+    $('#sidebar-close').on('click', function () {
+        $('#mobile-sidebar').sidebar('hide');
     });
 }
 
