@@ -1,4 +1,5 @@
 import { updateContent } from '../../components/Layout.js';
+import { renderError } from '../../components/ErrorPage.js';
 import { sampleArticleContent } from '../../data/articleContent.test.js';
 
 function buildBodyHtml(body = []) {
@@ -105,25 +106,19 @@ function buildPageHtml(article) {
         </div>`;
 }
 
-function renderNotFound(slug) {
-    return `
-        <div class="ui placeholder segment">
-            <h2 class="ui center aligned icon header">
-                <i class="circular ban icon"></i>
-                Article not found: ${slug}
-            </h2>
-        </div>`;
-}
-
 export function renderArticlePage(slug) {
     const normalizedSlug = slug?.toLowerCase?.().trim();
     const article = sampleArticleContent.slug === normalizedSlug ? sampleArticleContent : null;
 
-    const pageHtml = article ? buildPageHtml(article) : renderNotFound(slug);
+    if (!article) {
+        renderError('404');
+        return;
+    }
 
+    const pageHtml = buildPageHtml(article);
     updateContent(pageHtml);
 
-    if (article && window.$ && window.$('.link.example .dropdown').dropdown) {
+    if (window.$ && window.$('.link.example .dropdown').dropdown) {
         window.$('.link.example .dropdown').dropdown({
             action: 'hide'
         });
