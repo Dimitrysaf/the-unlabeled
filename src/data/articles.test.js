@@ -6,7 +6,7 @@ export const sampleArticles = [
         tags: [{ label: 'Politics' }, { label: 'Featured', color: 'teal' }],
         author: { name: 'A. Papadopoulos', avatar: 'https://i.pravatar.cc/40?img=1' },
         date: 'Apr 15, 2026',
-        link: '#'
+        link: '/a/quiet-collapse'
     },
     {
         title: 'Open-source AI is rewriting the rules',

@@ -3,7 +3,7 @@ import { updateContent } from './components/Layout.js';
 import { renderGrid } from './components/Grid.js';
 import { sampleArticles } from './data/articles.test.js';
 
-const articles = [];
+const articles = sampleArticles;
 
 export function renderHome() {
     const heroHtml = `
