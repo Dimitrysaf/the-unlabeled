@@ -15,64 +15,59 @@ const partyColors = {
     'DPK': '#424242'
 };
 
-/**
- * Κύρια συνάρτηση απόδοσης της σελίδας
- */
 export function renderElectoralCalc() {
     const pageHtml = `
         <style>
-            .chart-container {
-                position: relative;
-                height: 450px;
-                width: 100%;
-                margin-top: 1.5rem;
-                border: 1px solid rgba(34, 36, 38, .15);
-                border-radius: 0.28rem;
-                background: white;
-                cursor: grab;
-                touch-action: none; /* Βελτιώνει το drag σε κινητά */
-            }
-            .chart-container:active { cursor: grabbing; }
-            
             .scrollable-container {
                 overflow-x: auto;
                 margin-top: 1.5rem;
                 border: 1px solid rgba(34, 36, 38, .15);
                 border-radius: 0.28rem;
             }
-            .ui.table.scrolling-table { width: 100%; white-space: nowrap; border: none; }
-            .party-header { background: #f9fafb; font-weight: bold; padding: 12px 8px; }
-            .election-row { background-color: #f0f7ff !important; font-weight: bold; color: #1d4e89; }
-            
-            .chart-info {
-                margin-top: 10px;
-                font-size: 0.85rem;
-                color: #666;
-                display: flex;
-                gap: 15px;
+            .ui.table.scrolling-table {
+                width: 100%;
+                white-space: nowrap;
+                border: none;
             }
+            .party-header {
+                background: #f9fafb;
+                font-weight: bold;
+                padding: 12px 8px;
+            }
+            .left-aligned-header {
+                text-align: left;
+                margin-bottom: 1rem;
+            }
+            /* Styling για το Chart Area */
+            .chart-wrapper {
+                position: relative;
+                height: 400px;
+                width: 100%;
+                margin-bottom: 2rem;
+                border: 1px solid rgba(34, 36, 38, .15);
+                border-radius: 0.28rem;
+                background: white;
+                touch-action: none; /* Απαραίτητο για να μην κάνει scroll η σελίδα αντί για το chart */
+                user-select: none;
+                cursor: grab;
+            }
+            .chart-wrapper:active { cursor: grabbing; }
         </style>
 
         <div class="ui container" style="margin-top: 2rem; margin-bottom: 5rem;">
-            <h2 class="ui header">
+            <h2 class="ui header left-aligned-header">
                 <div class="content">
                     Εκλογικό Μοντέλο 2027
-                    <div class="sub header">Ανάλυση τάσεων και αποτελεσμάτων από το polls.csv</div>
+                    <div class="sub header">Βάσει δεδομένων από το polls.csv</div>
                 </div>
             </h2>
 
-            <div class="chart-container">
+            <div class="chart-wrapper">
                 <canvas id="pollsChart"></canvas>
-            </div>
-            
-            <div class="chart-info">
-                <span>🖱️ <b>Drag:</b> Μετακίνηση δεξιά-αριστερά</span>
-                <span>⌨️ <b>Shift + Wheel:</b> Ζουμ στο χρόνο</span>
-                <span>👆 <b>Double Click:</b> Reset</span>
             </div>
 
             <div id="polls-loading" class="ui active inverted dimmer">
-                <div class="ui text loader">Επεξεργασία δεδομένων...</div>
+                <div class="ui text loader">Επεξεργασία...</div>
             </div>
 
             <div id="polls-table-wrapper" class="scrollable-container" style="display:none;">
@@ -82,13 +77,13 @@ export function renderElectoralCalc() {
                 </table>
             </div>
 
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 1.5rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
                 <div style="font-size: 0.9rem;">
                     Πηγή: <a href="https://en.wikipedia.org/wiki/Opinion_polling_for_the_next_Greek_parliamentary_election" target="_blank">Wikipedia</a>
                 </div>
-                <button class="ui tiny button" id="download-btn">
-                    <i class="download icon"></i> Λήψη CSV
-                </button>
+                <a id="download-btn" style="cursor: pointer;">
+                    Λήψη CSV
+                </a>
             </div>
         </div>`;
 
@@ -100,39 +95,35 @@ export function renderElectoralCalc() {
     });
 }
 
-/**
- * Δημιουργία του διαδραστικού γραφήματος
- */
 function createChart(headers, rows) {
-    const canvas = document.getElementById('pollsChart');
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
+    const ctx = document.getElementById('pollsChart').getContext('2d');
+    
+    // Register το plugin - Αν είναι μέσω CDN βρίσκεται στο window['chartjs-plugin-zoom']
+    const zoomPlugin = window['chartjs-plugin-zoom'];
+    if (zoomPlugin) {
+        Chart.register(zoomPlugin);
+    }
 
     const partyIndices = headers.reduce((acc, h, i) => {
         if (partyColors[h]) acc.push({ name: h, index: i });
         return acc;
     }, []);
 
-    // Αντιστροφή για χρονολογική σειρά (παλιά -> νέα)
     const reversedRows = [...rows].reverse();
-    const dates = reversedRows.map(r => r[3]); // Midpoint column
+    const dates = reversedRows.map(r => r[3]);
 
     const datasets = partyIndices.map(p => ({
         label: p.name,
-        data: reversedRows.map(r => {
-            const val = parseFloat(r[p.index]);
-            return isNaN(val) ? null : val;
-        }),
+        data: reversedRows.map(r => parseFloat(r[p.index]) || null),
         borderColor: partyColors[p.name],
         backgroundColor: partyColors[p.name],
-        borderWidth: 2.5,
+        borderWidth: 2,
         pointRadius: 0,
-        pointHitRadius: 20,
         tension: 0.4,
         spanGaps: true
     }));
 
-    const chart = new Chart(ctx, {
+    new Chart(ctx, {
         type: 'line',
         data: { labels: dates, datasets: datasets },
         options: {
@@ -140,91 +131,75 @@ function createChart(headers, rows) {
             maintainAspectRatio: false,
             interaction: { mode: 'index', intersect: false },
             plugins: {
-                legend: {
-                    position: 'bottom',
-                    labels: { usePointStyle: true, boxWidth: 8, padding: 15 }
-                },
                 zoom: {
                     pan: {
                         enabled: true,
                         mode: 'x',
-                        threshold: 10
+                        modifierKey: null,
                     },
                     zoom: {
                         wheel: {
                             enabled: true,
-                            modifierKey: 'shift'
+                            modifierKey: 'shift',
                         },
                         pinch: { enabled: true },
-                        mode: 'x'
+                        mode: 'x',
                     }
                 }
             },
             scales: {
-                x: {
-                    ticks: { maxRotation: 0, autoSkip: true, maxTicksLimit: 10 },
-                    grid: { display: false }
+                x: { 
+                    ticks: { autoSkip: true, maxTicksLimit: 10 } 
                 },
-                y: {
-                    grid: { color: 'rgba(0,0,0,0.05)' },
-                    ticks: { callback: (val) => val + '%' }
+                y: { 
+                    beginAtZero: false 
                 }
-            },
-            onClick: (e) => {
-                // Reset zoom on double click
-                if (e.native.detail === 2) chart.resetZoom();
             }
         }
     });
 }
 
-/**
- * Φόρτωση και επεξεργασία του CSV
- */
 function loadPolls() {
     fetch('/polls.csv')
         .then(res => res.text())
         .then(text => {
             const { headers, rows } = parseCSV(text);
 
-            // 1. Κατασκευή Header Πίνακα
+            // HEADERS: Χρώμα ΜΟΝΟ στο bottom border
             const theadHtml = `<tr>${headers.map(h => {
                 const color = partyColors[h];
                 const borderStyle = color ? `border-bottom: 5px solid ${color} !important;` : '';
                 return `<th class="party-header" style="${borderStyle}">${h}</th>`;
             }).join('')}</tr>`;
+
             document.getElementById('polls-thead').innerHTML = theadHtml;
 
-            // 2. Κατασκευή Body Πίνακα (με Breakpoints)
+            // BODY: Καθαρά κελιά + Breakpoints styling
             const tbodyHtml = rows.map(row => {
-                // Έλεγχος αν είναι σειρά εκλογών (ιστορικό ορόσημο)
                 const isElection = row[0].toLowerCase().includes('election');
-                const rowClass = isElection ? 'class="election-row"' : '';
-
-                return `<tr ${rowClass}>${row.map((cell, index) => {
+                const rowStyle = isElection ? 'background: #f0f7ff; font-weight: bold;' : '';
+                
+                return `<tr style="${rowStyle}">${row.map((cell, index) => {
                     const isPartyCol = !!partyColors[headers[index]];
                     const align = isPartyCol ? 'text-align: center; font-weight: 500;' : 'text-align: left;';
                     return `<td style="${align}">${cell}</td>`;
                 }).join('')}</tr>`;
             }).join('');
+
             document.getElementById('polls-tbody').innerHTML = tbodyHtml;
 
-            // 3. Δημιουργία Γραφήματος
+            // Initialize Chart
             createChart(headers, rows);
 
             document.getElementById('polls-loading').style.display = 'none';
             document.getElementById('polls-table-wrapper').style.display = 'block';
         })
         .catch(err => {
-            console.error('CSV Load Error:', err);
-            document.getElementById('polls-loading').innerHTML =
-                '<div class="ui error message">Αδυναμία φόρτωσης δεδομένων (polls.csv)</div>';
+            console.error(err);
+            document.getElementById('polls-loading').innerHTML = '<div class="ui error message">Σφάλμα αρχείου</div>';
         });
 }
 
-/**
- * Helper: CSV Parser
- */
 function parseCSV(text) {
     const lines = text.trim().split('\n').map(l => l.replace(/\r$/, ''));
     const headers = lines[0].split(',').map(h => h.trim().replace(/^"|"$/g, ''));
