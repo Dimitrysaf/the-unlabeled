@@ -16,21 +16,6 @@ const partyColors = {
     'DPK': '#424242'
 };
 
-const partyFomanticColor = {
-    'ND': 'blue',
-    'SYRIZA': 'red',
-    'PASOK': 'green',
-    'KKE': 'orange',
-    'SP': 'yellow',
-    'EL': 'teal',
-    'NIKI': 'brown',
-    'PE': 'purple',
-    'M25': 'pink',
-    'FL': 'teal',
-    'NA': 'red',
-    'DPK': 'black'
-};
-
 let predictionChartInstance = null;
 
 let _pollRows = [];
@@ -452,6 +437,8 @@ function renderPrediction() {
     renderPredictionChart(predicted, base);
 }
 
+
+
 function allocateGreekSeats(predicted) {
     const TOTAL_SEATS = 300;
     const THRESHOLD = 3;
@@ -555,7 +542,7 @@ function renderPredictionCards(predicted, base, seats) {
         const diff = pct - basePct;
         const vol = ((_volatility[party] || 0) * 100).toFixed(0);
         const seat = seats[party] || 0;
-        const fmColor = partyFomanticColor[party] || 'grey';
+        const fmColor = partyColors[party] || 'grey';
         const hexColor = partyColors[party] || '#888';
 
         const diffSign = diff >= 0 ? '+' : '−';
