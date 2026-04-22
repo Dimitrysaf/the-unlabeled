@@ -71,10 +71,41 @@ export function renderElectoralCalc() {
             #prediction-cards.ui.cards {
                 display: flex !important;
                 flex-wrap: wrap !important;
+                justify-content: center;
             }
             #prediction-cards.ui.cards > .card {
                 width: 170px !important;
                 flex-grow: 0 !important;
+            }
+            
+            /* Parliament Styling */
+            .parliament-container {
+                margin-top: 3rem;
+                padding: 2rem;
+                background: #fdfdfd;
+                border: 1px solid rgba(34,36,38,.15);
+                border-radius: 12px;
+            }
+            .parliament-wrapper {
+                text-align: center;
+                padding: 2rem;
+                border-radius: 1rem;
+                transition: all 0.5s ease-in-out;
+                background: transparent;
+            }
+            .parliament-svg circle {
+                transition: transform 0.2s, fill 0.3s;
+                transform-origin: center;
+            }
+            .parliament-svg circle:hover {
+                transform: scale(1.6);
+                cursor: pointer;
+            }
+            /* Gold Glow for Majority */
+            .majority-glow {
+                box-shadow: 0 0 40px 10px rgba(255, 215, 0, 0.5);
+                border: 2px solid rgba(255, 215, 0, 0.8);
+                background: rgba(255, 248, 200, 0.15);
             }
         </style>
 
@@ -111,7 +142,6 @@ export function renderElectoralCalc() {
                 </a>
             </div>
 
-            <!-- ===== PREDICTION SECTION ===== -->
             <div id="prediction-section" style="display:none; margin-top:3rem;">
                 <div class="ui divider"></div>
 
@@ -156,22 +186,21 @@ export function renderElectoralCalc() {
                     </div>
                 </div>
 
-                <!-- Cards: stackable + custom CSS above handles wrapping -->
                 <div class="ui stackable cards" id="prediction-cards"></div>
+
+                <div id="parliament-container" class="parliament-container" style="display:none;"></div>
 
                 <div id="prediction-chart-wrapper">
                     <canvas id="predictionChart"></canvas>
                 </div>
 
                 <div class="ui info message" style="margin-top:1rem; font-size:0.85rem;">
-                    <div class="header">Μεθοδολογία</div>
+                    <div class="header">Μεθοδολογία & Εκλογικός Νόμος</div>
                     <p>
-                        Σταθμισμένος μέσος επιλεγμένων δημοσκοπήσεων (πιο πρόσφατες = 2× βάρος).
-                        Ποινή αποχής: <em>abstention × (0.5 + 0.5 × volatility_index)</em>,
-                        όπου <em>volatility = (max−min) / mean</em> κανονικοποιημένο 0–1.
-                        Η ND Bias Correction υπολογίζεται από τη μέση διαφορά
-                        <em>αποτέλεσμα_εκλογών − μέσος_δημοσκοπήσεων</em> για κάθε εκλογή στο CSV.
-                        Τελική κανονικοποίηση στο 100%. Κατώφλι εισόδου: 3%. Έδρες: approximation 300.
+                        <strong>Μοντέλο:</strong> Σταθμισμένος μέσος (2x βάρος στις πιο πρόσφατες). 
+                        Ποινή αποχής: <em>abstention × (0.5 + 0.5 × volatility_index)</em>. Η ND Bias Correction υπολογίζεται ιστορικά.
+                        <br><br>
+                        <strong>Κατανομή Εδρών (Ενισχυμένη Αναλογική):</strong> Εφαρμογή του ισχύοντος Ν. 4654/2020. Κατώφλι εισόδου στη Βουλή 3%. Το πρώτο κόμμα λαμβάνει κλιμακωτό μπόνους (20 έδρες με 25%, +1 έδρα για κάθε επιπλέον 0.5%, με μέγιστο όριο τις 50 έδρες). Οι υπόλοιπες έδρες κατανέμονται αναλογικά στα κόμματα άνω του 3% (Μέθοδος Largest Remainder).
                     </p>
                 </div>
 
@@ -189,7 +218,7 @@ export function renderElectoralCalc() {
 
 
 // ─────────────────────────────────────────────
-// POLLS LOADING & TABLE
+// DATA LOADING
 // ─────────────────────────────────────────────
 
 function loadPolls() {
@@ -232,7 +261,7 @@ function loadPolls() {
 
 
 // ─────────────────────────────────────────────
-// POLLS LINE CHART
+// CHARTS & LOGIC
 // ─────────────────────────────────────────────
 
 function createPollsChart(headers, rows) {
@@ -268,11 +297,7 @@ function createPollsChart(headers, rows) {
             plugins: {
                 zoom: {
                     pan: { enabled: true, mode: 'x', modifierKey: null },
-                    zoom: {
-                        wheel: { enabled: true, modifierKey: 'shift' },
-                        pinch: { enabled: true },
-                        mode: 'x'
-                    }
+                    zoom: { wheel: { enabled: true, modifierKey: 'shift' }, pinch: { enabled: true }, mode: 'x' }
                 }
             },
             scales: {
@@ -282,11 +307,6 @@ function createPollsChart(headers, rows) {
         }
     });
 }
-
-
-// ─────────────────────────────────────────────
-// PREDICTION ENGINE
-// ─────────────────────────────────────────────
 
 function initPredictions(headers, rows) {
     _partyIndices = headers.reduce((acc, h, i) => {
@@ -303,83 +323,49 @@ function initPredictions(headers, rows) {
     document.getElementById('nd-bias-label').textContent = `(${sign}${_ndBias.toFixed(2)}%)`;
 
     $('#abstention-slider').slider({
-        min: 20,
-        max: 65,
-        start: 35,
-        step: 1,
-        smooth: true,
+        min: 20, max: 65, start: 35, step: 1, smooth: true,
         onChange: function (value) {
             document.getElementById('abstention-value').textContent = value;
             renderPrediction();
         }
     });
 
-    $('#polls-count-dropdown').dropdown({
-        onChange: function () {
-            renderPrediction();
-        }
-    });
-
-    $('#nd-correction-checkbox').checkbox({
-        onChange: function () {
-            renderPrediction();
-        }
-    });
+    $('#polls-count-dropdown').dropdown({ onChange: () => renderPrediction() });
+    $('#nd-correction-checkbox').checkbox({ onChange: () => renderPrediction() });
 
     renderPrediction();
 }
 
-
 function computeNDBias(electionRows, pollRows, partyIndices, party) {
     const idx = partyIndices[party];
     if (idx === undefined || electionRows.length === 0) return 0;
-
     const biases = [];
     for (const elRow of electionRows) {
         const result = parseFloat(elRow[idx]);
         if (isNaN(result)) continue;
-
         const elDate = elRow[3];
         const priorPolls = pollRows.filter(r => r[3] <= elDate).slice(-10);
         if (priorPolls.length === 0) continue;
-
-        const avg = priorPolls.reduce((sum, r) => {
-            const v = parseFloat(r[idx]);
-            return sum + (isNaN(v) ? 0 : v);
-        }, 0) / priorPolls.length;
-
+        const avg = priorPolls.reduce((sum, r) => sum + (parseFloat(r[idx]) || 0), 0) / priorPolls.length;
         biases.push(result - avg);
     }
-
-    return biases.length > 0
-        ? biases.reduce((a, b) => a + b, 0) / biases.length
-        : 0;
+    return biases.length > 0 ? biases.reduce((a, b) => a + b, 0) / biases.length : 0;
 }
-
 
 function computeVolatility(pollRows, partyIndices) {
     const raw = {};
     for (const [party, idx] of Object.entries(partyIndices)) {
-        const vals = pollRows
-            .map(r => parseFloat(r[idx]))
-            .filter(v => !isNaN(v) && v > 0);
-
+        const vals = pollRows.map(r => parseFloat(r[idx])).filter(v => !isNaN(v) && v > 0);
         if (vals.length < 2) { raw[party] = 0; continue; }
-
-        const min = Math.min(...vals);
-        const max = Math.max(...vals);
+        const min = Math.min(...vals), max = Math.max(...vals);
         const mean = vals.reduce((a, b) => a + b, 0) / vals.length;
         raw[party] = mean > 0 ? (max - min) / mean : 0;
     }
-
     const maxVol = Math.max(...Object.values(raw));
     const result = {};
-    for (const p of Object.keys(raw)) {
-        result[p] = maxVol > 0 ? raw[p] / maxVol : 0;
-    }
+    for (const p of Object.keys(raw)) result[p] = maxVol > 0 ? raw[p] / maxVol : 0;
     return result;
 }
-
 
 function renderPrediction() {
     const abstentionRate = ($('#abstention-slider').slider('get value') || 35) / 100;
@@ -398,9 +384,7 @@ function renderPrediction() {
         totalWeight += w;
         for (const [party, idx] of Object.entries(_partyIndices)) {
             const v = parseFloat(row[idx]);
-            if (!isNaN(v) && v > 0) {
-                weightedSum[party] = (weightedSum[party] || 0) + v * w;
-            }
+            if (!isNaN(v) && v > 0) weightedSum[party] = (weightedSum[party] || 0) + v * w;
         }
     });
 
@@ -424,55 +408,48 @@ function renderPrediction() {
         predicted[p] = sumAfter > 0 ? (afterAbstention[p] / sumAfter) * 100 : 0;
     }
 
-    const TOTAL_SEATS = 300;
-    const THRESHOLD = 3.0;
-    const above = Object.entries(predicted).filter(([, v]) => v >= THRESHOLD);
-    const sumAbove = above.reduce((s, [, v]) => s + v, 0);
-    const seats = {};
-    for (const [party, share] of above) {
-        seats[party] = Math.round((share / sumAbove) * TOTAL_SEATS);
-    }
-
+    const seats = allocateGreekSeats(predicted);
     renderPredictionCards(predicted, base, seats);
     renderPredictionChart(predicted, base);
+    renderParliament(seats);
 }
 
-
+// ─────────────────────────────────────────────
+// GREEK ELECTORAL LAW & PARLIAMENT RENDERER
+// ─────────────────────────────────────────────
 
 function allocateGreekSeats(predicted) {
     const TOTAL_SEATS = 300;
-    const THRESHOLD = 3;
+    const THRESHOLD = 3.0;
 
-    // 1. Filter parties above threshold
+    // 1. Filter parties above 3% threshold
     const eligible = Object.entries(predicted)
-        .filter(([, v]) => v >= THRESHOLD);
+        .filter(([, v]) => v >= THRESHOLD)
+        .sort((a, b) => b[1] - a[1]);
 
     if (eligible.length === 0) return {};
 
-    // 2. Find winner
-    const winner = [...eligible].sort((a, b) => b[1] - a[1])[0];
-    const winnerParty = winner[0];
-    const winnerPct = winner[1];
+    // 2. Find winner for bonus calculation
+    const winnerParty = eligible[0][0];
+    const winnerPct = eligible[0][1];
 
-    // 3. Compute bonus seats
+    // 3. Compute staggered bonus seats (N. 4654/2020)
     let bonus = 0;
-    if (winnerPct >= 25) {
-        bonus = 20 + Math.floor((winnerPct - 25) / 0.5);
-        bonus = Math.min(bonus, 50);
+    if (winnerPct >= 25.0) {
+        bonus = 20 + Math.floor((winnerPct - 25.0) / 0.5);
+        bonus = Math.min(bonus, 50); // Hard cap at 50 bonus seats
     }
 
     const remainingSeats = TOTAL_SEATS - bonus;
 
-    // 4. Normalize eligible votes
+    // 4. Normalize eligible votes to 100%
     const totalPct = eligible.reduce((s, [, v]) => s + v, 0);
-
     const quotas = {};
     const seats = {};
 
     eligible.forEach(([party, pct]) => {
         const share = pct / totalPct;
         const exactSeats = share * remainingSeats;
-
         quotas[party] = exactSeats;
         seats[party] = Math.floor(exactSeats);
     });
@@ -489,53 +466,90 @@ function allocateGreekSeats(predicted) {
         seats[remainders[i][0]]++;
     }
 
-    // 6. Add bonus to winner
+    // 6. Add bonus seats back to the winner
     seats[winnerParty] += bonus;
 
     return seats;
 }
 
 function renderParliament(seats) {
-    const container = document.getElementById('parliament');
+    const container = document.getElementById('parliament-container');
     if (!container) return;
+    container.style.display = 'block';
 
-    const seatList = [];
+    const TOTAL_SEATS = 300;
+    const sortedParties = Object.entries(seats).sort((a, b) => b[1] - a[1]);
 
-    Object.entries(seats)
-        .sort(([,a],[,b]) => b - a)
-        .forEach(([party, count]) => {
-            for (let i = 0; i < count; i++) {
-                seatList.push(party);
-            }
-        });
+    // Check if any party has an absolute majority (>= 151)
+    const hasMajority = sortedParties.some(([, count]) => count >= 151);
+    const glowClass = hasMajority ? 'majority-glow' : '';
+
+    // Create a flat array mapping every single seat to a party
+    let seatList = [];
+    sortedParties.forEach(([party, count]) => {
+        for (let i = 0; i < count; i++) seatList.push(party);
+    });
+
+    // Configuration for the 6 concentric arcs forming the semi-circle
+    const arcs = [
+        { r: 100, count: 33 },
+        { r: 125, count: 40 },
+        { r: 150, count: 47 },
+        { r: 175, count: 53 },
+        { r: 200, count: 60 },
+        { r: 225, count: 67 }
+    ];
+
+    let svgHtml = `<svg viewBox="0 0 500 240" class="parliament-svg" style="width:100%; max-width:600px; height:auto; overflow:visible;">`;
+    let seatIndex = 0;
+    const cx = 250;
+    const cy = 230; // Push down slightly to align the bottom row
+
+    for (let arc of arcs) {
+        for (let i = 0; i < arc.count; i++) {
+            if (seatIndex >= TOTAL_SEATS) break;
+
+            // Distribute angles from PI (left) to 0 (right)
+            const angle = Math.PI - (i * (Math.PI / (arc.count - 1)));
+            const x = cx + arc.r * Math.cos(angle);
+            const y = cy - arc.r * Math.sin(angle);
+
+            const party = seatList[seatIndex];
+            const color = partyColors[party] || '#ccc';
+
+            // Add SVG circle
+            svgHtml += `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="5" fill="${color}" title="${party}: Seat ${seatIndex + 1}" />`;
+            seatIndex++;
+        }
+    }
+    svgHtml += `</svg>`;
+
+    // Generate Legend beneath the semi-circle
+    const legendHtml = sortedParties.map(([p, s]) => `
+        <div style="display:inline-flex; align-items:center; margin: 0.5rem 1rem; font-size:1.1rem;">
+            <span style="display:inline-block; width:14px; height:14px; background:${partyColors[p] || '#ccc'}; border-radius:50%; margin-right:6px;"></span>
+            <strong style="color:${partyColors[p] || '#333'}">${p}:</strong>
+            <span style="margin-left:6px; font-weight:bold;">${s}</span>
+        </div>
+    `).join('');
 
     container.innerHTML = `
-        <div class="parliament-grid">
-            ${seatList.map(party => `
-                <div 
-                    class="seat"
-                    title="${party}"
-                    style="background:${partyColors[party] || '#ccc'}"
-                ></div>
-            `).join('')}
+        <h3 class="ui header center aligned">
+            Σύνθεση Βουλής
+            ${hasMajority ? '<div class="sub header" style="color:#d4af37; font-weight:bold; margin-top:0.5rem;"><i class="star icon"></i> Αυτοδυναμία</div>' : ''}
+        </h3>
+        <div class="parliament-wrapper ${glowClass}">
+            ${svgHtml}
         </div>
-
-        <div style="margin-top:1rem; text-align:center;">
-            ${Object.entries(seats).map(([p, s]) => `
-                <span style="margin:0 8px; color:${partyColors[p]}; font-weight:bold;">
-                    ${p}: ${s}
-                </span>
-            `).join('')}
+        <div style="text-align:center; margin-top: 1.5rem; display:flex; flex-wrap:wrap; justify-content:center;">
+            ${legendHtml}
         </div>
     `;
 }
 
 function renderPredictionCards(predicted, base, seats) {
     const container = document.getElementById('prediction-cards');
-
-    const sorted = Object.entries(predicted)
-        .sort(([, a], [, b]) => b - a)
-        .filter(([, v]) => v >= 1.0);
+    const sorted = Object.entries(predicted).sort(([, a], [, b]) => b - a).filter(([, v]) => v >= 1.0);
 
     container.innerHTML = sorted.map(([party, pct]) => {
         const basePct = base[party] || 0;
@@ -550,7 +564,7 @@ function renderPredictionCards(predicted, base, seats) {
         const diffClass = diff >= 0 ? 'green' : 'red';
 
         return `
-        <div class="${fmColor} card">
+        <div class="card" style="border-top: 4px solid ${hexColor};">
             <div class="content">
                 <div class="header" style="font-size:1.5rem; color:${hexColor};">
                     ${pct.toFixed(1)}%
@@ -567,19 +581,15 @@ function renderPredictionCards(predicted, base, seats) {
                         </span>
                     </div>
                     <div>Αστάθεια: <strong>${vol}%</strong></div>
-                    ${seat > 0 ? `<div>Έδρες: <strong>~${seat}</strong></div>` : ''}
+                    ${seat > 0 ? `<div>Έδρες: <strong style="color:${hexColor}">${seat}</strong></div>` : ''}
                 </div>
             </div>
         </div>`;
     }).join('');
 }
 
-
 function renderPredictionChart(predicted, base) {
-    const sorted = Object.entries(predicted)
-        .sort(([, a], [, b]) => b - a)
-        .filter(([, v]) => v >= 1.0);
-
+    const sorted = Object.entries(predicted).sort(([, a], [, b]) => b - a).filter(([, v]) => v >= 1.0);
     const labels = sorted.map(([p]) => p);
     const predData = sorted.map(([, v]) => parseFloat(v.toFixed(2)));
     const baseData = sorted.map(([p]) => parseFloat((base[p] || 0).toFixed(2)));
@@ -616,22 +626,14 @@ function renderPredictionChart(predicted, base) {
             maintainAspectRatio: false,
             plugins: {
                 legend: { position: 'top' },
-                tooltip: {
-                    callbacks: {
-                        label: ctx => ` ${ctx.dataset.label}: ${ctx.parsed.y.toFixed(2)}%`
-                    }
-                }
+                tooltip: { callbacks: { label: ctx => ` ${ctx.dataset.label}: ${ctx.parsed.y.toFixed(2)}%` } }
             },
             scales: {
-                y: {
-                    beginAtZero: true,
-                    ticks: { callback: v => v + '%' }
-                }
+                y: { beginAtZero: true, ticks: { callback: v => v + '%' } }
             }
         }
     });
 }
-
 
 // ─────────────────────────────────────────────
 // CSV PARSER
