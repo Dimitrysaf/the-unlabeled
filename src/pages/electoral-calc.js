@@ -94,11 +94,6 @@ export function renderElectoralCalc() {
                 background: transparent;
             }
             .parliament-svg circle {
-                transition: transform 0.2s, fill 0.3s;
-                transform-origin: center;
-            }
-            .parliament-svg circle:hover {
-                transform: scale(1.6);
                 cursor: pointer;
             }
             /* Gold Glow for Majority */
@@ -490,20 +485,20 @@ function renderParliament(seats) {
         for (let i = 0; i < count; i++) seatList.push(party);
     });
 
-    // Configuration for the 6 concentric arcs forming the semi-circle
+    // Modified configuration for tighter, slightly larger dots uniformly distributed
     const arcs = [
-        { r: 100, count: 33 },
-        { r: 125, count: 40 },
-        { r: 150, count: 47 },
-        { r: 175, count: 53 },
-        { r: 200, count: 60 },
-        { r: 225, count: 67 }
+        { r: 130, count: 34 },
+        { r: 155, count: 40 },
+        { r: 180, count: 47 },
+        { r: 205, count: 53 },
+        { r: 230, count: 60 },
+        { r: 255, count: 66 }
     ];
 
-    let svgHtml = `<svg viewBox="0 0 500 240" class="parliament-svg" style="width:100%; max-width:600px; height:auto; overflow:visible;">`;
+    let svgHtml = `<svg viewBox="0 0 540 280" class="parliament-svg" style="width:100%; max-width:600px; height:auto; overflow:visible;">`;
     let seatIndex = 0;
-    const cx = 250;
-    const cy = 230; // Push down slightly to align the bottom row
+    const cx = 270;
+    const cy = 265; // Adjusted down for the new larger radii
 
     for (let arc of arcs) {
         for (let i = 0; i < arc.count; i++) {
@@ -517,8 +512,8 @@ function renderParliament(seats) {
             const party = seatList[seatIndex];
             const color = partyColors[party] || '#ccc';
 
-            // Add SVG circle
-            svgHtml += `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="5" fill="${color}" title="${party}: Seat ${seatIndex + 1}" />`;
+            // Increased radius (r=6) for larger dots
+            svgHtml += `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="6" fill="${color}" title="${party}: Seat ${seatIndex + 1}" />`;
             seatIndex++;
         }
     }
