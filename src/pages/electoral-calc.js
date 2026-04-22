@@ -16,7 +16,29 @@ const partyColors = {
     'DPK': '#424242'
 };
 
+// Χαρτογράφηση σε Fomantic UI χρώματα για τις κάρτες
+const partyFomanticColor = {
+    'ND': 'blue',
+    'SYRIZA': 'red',
+    'PASOK': 'green',
+    'KKE': 'orange',
+    'SP': 'yellow',
+    'EL': 'teal',
+    'NIKI': 'brown',
+    'PE': 'purple',
+    'M25': 'pink',
+    'FL': 'teal',
+    'NA': 'red',
+    'DPK': 'black'
+};
+
 let predictionChartInstance = null;
+
+// Module-level state — προσβάσιμο από τα Fomantic UI callbacks
+let _pollRows = [];
+let _partyIndices = {};
+let _volatility = {};
+let _ndBias = 0;
 
 export function renderElectoralCalc() {
     const pageHtml = `
@@ -54,37 +76,20 @@ export function renderElectoralCalc() {
                 cursor: grab;
             }
             .chart-wrapper:active { cursor: grabbing; }
-
-            /* Prediction Cards */
-            .prediction-card {
+            #prediction-chart-wrapper {
+                position: relative;
+                height: 320px;
+                width: 100%;
+                margin-top: 1.5rem;
+                border: 1px solid rgba(34,36,38,.15);
+                border-radius: 0.28rem;
                 background: white;
-                border: 1px solid #e0e0e0;
-                border-radius: 8px;
-                padding: 14px 18px;
-                min-width: 140px;
-                flex: 1;
-                max-width: 200px;
-                box-shadow: 0 1px 4px rgba(0,0,0,0.06);
             }
-            .prediction-card .party-name {
-                font-weight: bold;
-                font-size: 1rem;
-            }
-            .prediction-card .party-pct {
-                font-size: 1.6rem;
-                font-weight: 700;
-                margin: 6px 0;
-            }
-            .prediction-card .party-meta {
-                font-size: 0.78rem;
-                color: #888;
-                margin-top: 2px;
-            }
-            .diff-up   { color: #27ae60; }
-            .diff-down { color: #e74c3c; }
         </style>
 
         <div class="ui container" style="margin-top: 2rem; margin-bottom: 5rem;">
+
+            <!-- ===== ΤΙΤΛΟΣ ===== -->
             <h2 class="ui header left-aligned-header">
                 <div class="content">
                     Εκλογικό Μοντέλο 2027
@@ -92,16 +97,17 @@ export function renderElectoralCalc() {
                 </div>
             </h2>
 
-            <!-- ===== POLLS CHART ===== -->
+            <!-- ===== LINE CHART ===== -->
             <div class="chart-wrapper">
                 <canvas id="pollsChart"></canvas>
             </div>
 
-            <!-- ===== LOADING / TABLE ===== -->
+            <!-- ===== LOADING ===== -->
             <div id="polls-loading" class="ui active inverted dimmer">
                 <div class="ui text loader">Επεξεργασία...</div>
             </div>
 
+            <!-- ===== ΠΙΝΑΚΑΣ ΔΗΜΟΣΚΟΠΗΣΕΩΝ ===== -->
             <div id="polls-table-wrapper" class="scrollable-container" style="display:none;">
                 <table class="ui celled unstackable striped table scrolling-table" id="polls-table">
                     <thead id="polls-thead"></thead>
@@ -109,74 +115,88 @@ export function renderElectoralCalc() {
                 </table>
             </div>
 
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 0.75rem;">
-                <div style="font-size: 0.9rem;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-top:0.75rem;">
+                <div style="font-size:0.9rem;">
                     Πηγή: <a href="https://en.wikipedia.org/wiki/Opinion_polling_for_the_next_Greek_parliamentary_election" target="_blank">Wikipedia</a>
                 </div>
-                <a id="download-btn" style="cursor: pointer;">Λήψη CSV</a>
+                <a id="download-btn" class="ui tiny basic button" style="cursor:pointer;">
+                    <i class="download icon"></i> Λήψη CSV
+                </a>
             </div>
 
             <!-- ===== PREDICTION SECTION ===== -->
-            <div id="prediction-section" style="display:none; margin-top: 3rem;">
+            <div id="prediction-section" style="display:none; margin-top:3rem;">
                 <div class="ui divider"></div>
 
-                <h3 class="ui header" style="margin-bottom: 0.5rem;">
+                <h3 class="ui header">
                     Πρόβλεψη Εκλογών 2027
                     <div class="sub header">Σταθμισμένος μέσος + μοντέλο αποχής + ND bias correction</div>
                 </h3>
 
-                <!-- Controls -->
-                <div style="display: flex; gap: 2rem; flex-wrap: wrap; align-items: flex-end; margin: 1.25rem 0;">
-                    <div>
-                        <label style="display:block; font-weight:600; margin-bottom:4px;">
-                            Αποχή: <strong id="abstention-value">35</strong>%
-                        </label>
-                        <input type="range" id="abstention-slider" min="20" max="65" value="35" step="1"
-                               style="width: 200px; cursor: pointer;">
-                    </div>
+                <!-- ── Controls ── -->
+                <div class="ui form" style="margin: 1.5rem 0;">
+                    <div class="fields" style="align-items:flex-end; flex-wrap:wrap; gap:1.5rem 2rem;">
 
-                    <div>
-                        <label style="display:block; font-weight:600; margin-bottom:4px;">Βάση δημοσκοπήσεων</label>
-                        <select id="polls-count-select" style="padding: 6px 10px; border-radius: 4px; border: 1px solid #ccc;">
-                            <option value="5">Τελευταίες 5</option>
-                            <option value="10" selected>Τελευταίες 10</option>
-                            <option value="20">Τελευταίες 20</option>
-                            <option value="all">Όλες</option>
-                        </select>
-                    </div>
+                        <!-- Slider Αποχής -->
+                        <div class="field" style="min-width:220px;">
+                            <label>Αποχή: <strong id="abstention-value">35</strong>%</label>
+                            <div class="ui ticked slider" id="abstention-slider"></div>
+                        </div>
 
-                    <div style="display: flex; align-items: center; gap: 8px;">
-                        <input type="checkbox" id="nd-correction-toggle" checked style="cursor:pointer; width:16px; height:16px;">
-                        <label for="nd-correction-toggle" style="cursor:pointer; font-weight:600;">
-                            ND Bias Correction
-                            <span id="nd-bias-label" style="color: #1d4e89; font-weight: bold;"></span>
-                        </label>
+                        <!-- Dropdown -->
+                        <div class="field">
+                            <label>Βάση δημοσκοπήσεων</label>
+                            <div class="ui selection dropdown" id="polls-count-dropdown">
+                                <input type="hidden" name="polls-count" value="10">
+                                <i class="dropdown icon"></i>
+                                <div class="default text">Τελευταίες 10</div>
+                                <div class="scrollhint menu">
+                                    <div class="item" data-value="5">Τελευταίες 5</div>
+                                    <div class="item" data-value="10">Τελευταίες 10</div>
+                                    <div class="item" data-value="20">Τελευταίες 20</div>
+                                    <div class="item" data-value="all">Όλες</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Toggle Checkbox -->
+                        <div class="field" style="padding-bottom:6px;">
+                            <div class="ui toggle checkbox" id="nd-correction-checkbox">
+                                <input type="checkbox" name="nd-correction" checked>
+                                <label>
+                                    ND Bias Correction
+                                    <span id="nd-bias-label" style="color:#1d4e89; font-weight:bold; margin-left:4px;"></span>
+                                </label>
+                            </div>
+                        </div>
+
                     </div>
                 </div>
 
-                <!-- Prediction Cards -->
-                <div id="prediction-cards" style="display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 1.5rem;"></div>
+                <!-- ── Prediction Cards ── -->
+                <div class="ui five cards" id="prediction-cards"></div>
 
-                <!-- Prediction Bar Chart -->
-                <div style="position: relative; height: 320px; width: 100%;
-                            border: 1px solid rgba(34,36,38,.15); border-radius: 0.28rem; background: white;">
+                <!-- ── Prediction Bar Chart ── -->
+                <div id="prediction-chart-wrapper">
                     <canvas id="predictionChart"></canvas>
                 </div>
 
-                <!-- Methodology note -->
-                <div style="margin-top: 1rem; padding: 1rem; background: #f9fafb;
-                            border: 1px solid #e0e0e0; border-radius: 4px; font-size: 0.82rem; color: #555; line-height: 1.6;">
-                    <strong>Μεθοδολογία:</strong>
-                    Σταθμισμένος μέσος (πιο πρόσφατες δημοσκοπήσεις = 2× βάρος).
-                    Ποινή αποχής ανά κόμμα: <em>abstention × (0.5 + 0.5 × volatility_index)</em>,
-                    όπου <em>volatility = (max−min) / mean</em> κανονικοποιημένο 0–1.
-                    Η ND Bias Correction υπολογίζεται αυτόματα από τη μέση διαφορά
-                    <em>αποτέλεσμα_εκλογών − μέσος_δημοσκοπήσεων</em> για κάθε εκλογή στο CSV.
-                    Τελική κανονικοποίηση στο 100%. Κατώφλι εισόδου: 3%. Έδρες: approximation 300.
+                <!-- ── Methodology ── -->
+                <div class="ui info message" style="margin-top:1rem; font-size:0.85rem;">
+                    <div class="header">Μεθοδολογία</div>
+                    <p>
+                        Σταθμισμένος μέσος επιλεγμένων δημοσκοπήσεων (πιο πρόσφατες = 2× βάρος).
+                        Ποινή αποχής: <em>abstention × (0.5 + 0.5 × volatility_index)</em>,
+                        όπου <em>volatility = (max−min) / mean</em> κανονικοποιημένο 0–1.
+                        Η ND Bias Correction υπολογίζεται από τη μέση διαφορά
+                        <em>αποτέλεσμα_εκλογών − μέσος_δημοσκοπήσεων</em> για κάθε εκλογή στο CSV.
+                        Τελική κανονικοποίηση στο 100%. Κατώφλι εισόδου: 3%. Έδρες: approximation 300.
+                    </p>
                 </div>
-            </div>
 
-        </div>`;
+            </div><!-- /prediction-section -->
+
+        </div><!-- /container -->`;
 
     updateContent(pageHtml);
     loadPolls();
@@ -197,27 +217,27 @@ function loadPolls() {
         .then(text => {
             const { headers, rows } = parseCSV(text);
 
-            // THEAD
+            // THEAD — χρώμα μόνο στο bottom border για κόμματα
             const theadHtml = `<tr>${headers.map(h => {
                 const color = partyColors[h];
-                const borderStyle = color ? `border-bottom: 5px solid ${color} !important;` : '';
-                return `<th class="party-header" style="${borderStyle}">${h}</th>`;
+                const style = color ? `border-bottom: 5px solid ${color} !important;` : '';
+                return `<th class="party-header" style="${style}">${h}</th>`;
             }).join('')}</tr>`;
             document.getElementById('polls-thead').innerHTML = theadHtml;
 
             // TBODY
             const tbodyHtml = rows.map(row => {
                 const isElection = row[0].toLowerCase().includes('election');
-                const rowStyle = isElection ? 'background: #f0f7ff; font-weight: bold;' : '';
-                return `<tr style="${rowStyle}">${row.map((cell, index) => {
-                    const isPartyCol = !!partyColors[headers[index]];
-                    const align = isPartyCol ? 'text-align: center; font-weight: 500;' : 'text-align: left;';
+                const rowStyle = isElection ? 'background:#f0f7ff; font-weight:bold;' : '';
+                return `<tr style="${rowStyle}">${row.map((cell, i) => {
+                    const isParty = !!partyColors[headers[i]];
+                    const align = isParty ? 'text-align:center; font-weight:500;' : 'text-align:left;';
                     return `<td style="${align}">${cell}</td>`;
                 }).join('')}</tr>`;
             }).join('');
             document.getElementById('polls-tbody').innerHTML = tbodyHtml;
 
-            // Charts
+            // Render charts + predictions
             createPollsChart(headers, rows);
             initPredictions(headers, rows);
 
@@ -234,24 +254,22 @@ function loadPolls() {
 
 
 // ─────────────────────────────────────────────
-// POLLS LINE CHART (αρχικό)
+// POLLS LINE CHART
 // ─────────────────────────────────────────────
 
 function createPollsChart(headers, rows) {
     const ctx = document.getElementById('pollsChart').getContext('2d');
-
     const zoomPlugin = window['chartjs-plugin-zoom'];
     if (zoomPlugin) Chart.register(zoomPlugin);
 
-    const partyIndices = headers.reduce((acc, h, i) => {
+    const partyIdx = headers.reduce((acc, h, i) => {
         if (partyColors[h]) acc.push({ name: h, index: i });
         return acc;
     }, []);
-
     const reversedRows = [...rows].reverse();
     const dates = reversedRows.map(r => r[3]);
 
-    const datasets = partyIndices.map(p => ({
+    const datasets = partyIdx.map(p => ({
         label: p.name,
         data: reversedRows.map(r => parseFloat(r[p.index]) || null),
         borderColor: partyColors[p.name],
@@ -293,60 +311,64 @@ function createPollsChart(headers, rows) {
 // ─────────────────────────────────────────────
 
 function initPredictions(headers, rows) {
-    const partyIndices = headers.reduce((acc, h, i) => {
+    _partyIndices = headers.reduce((acc, h, i) => {
         if (partyColors[h]) acc[h] = i;
         return acc;
     }, {});
 
     const electionRows = rows.filter(r => r[0].toLowerCase().includes('election'));
-    const pollRows = rows.filter(r => !r[0].toLowerCase().includes('election'));
+    _pollRows = rows.filter(r => !r[0].toLowerCase().includes('election'));
+    _volatility = computeVolatility(_pollRows, _partyIndices);
+    _ndBias = computeNDBias(electionRows, _pollRows, _partyIndices, 'ND');
 
-    // ND Bias: μέση διαφορά (εκλογικό αποτέλεσμα − μέσος δημοσκοπήσεων πριν)
-    const ndBias = computeNDBias(electionRows, pollRows, partyIndices, 'ND');
-    const ndBiasLabel = document.getElementById('nd-bias-label');
-    if (ndBiasLabel) {
-        ndBiasLabel.textContent = `(${ndBias >= 0 ? '+' : ''}${ndBias.toFixed(2)}%)`;
-    }
+    const sign = _ndBias >= 0 ? '+' : '';
+    document.getElementById('nd-bias-label').textContent = `(${sign}${_ndBias.toFixed(2)}%)`;
 
-    // Volatility index ανά κόμμα (από ΟΛΑ τα polls)
-    const volatility = computeVolatility(pollRows, partyIndices);
-
-    // Αρχικό render
-    renderPrediction(pollRows, partyIndices, volatility, ndBias);
-
-    // Event listeners για controls
-    document.getElementById('abstention-slider').addEventListener('input', function () {
-        document.getElementById('abstention-value').textContent = this.value;
-        renderPrediction(pollRows, partyIndices, volatility, ndBias);
+    // ── Fomantic UI Slider ──
+    $('#abstention-slider').slider({
+        min: 20,
+        max: 65,
+        start: 35,
+        step: 1,
+        smooth: true,
+        onChange: function (value) {
+            document.getElementById('abstention-value').textContent = value;
+            renderPrediction();
+        }
     });
-    document.getElementById('polls-count-select').addEventListener('change', () => {
-        renderPrediction(pollRows, partyIndices, volatility, ndBias);
+
+    // ── Fomantic UI Dropdown ──
+    $('#polls-count-dropdown').dropdown({
+        onChange: function () {
+            renderPrediction();
+        }
     });
-    document.getElementById('nd-correction-toggle').addEventListener('change', () => {
-        renderPrediction(pollRows, partyIndices, volatility, ndBias);
+
+    // ── Fomantic UI Toggle Checkbox ──
+    $('#nd-correction-checkbox').checkbox({
+        onChange: function () {
+            renderPrediction();
+        }
     });
+
+    renderPrediction();
 }
 
 
 /**
- * ND Bias: για κάθε εκλογή στο CSV, βρίσκει τις 10 προηγούμενες δημοσκοπήσεις
- * και υπολογίζει τη μέση διαφορά (αποτέλεσμα − μέσος δημοσκοπήσεων).
+ * ND Bias: μέση διαφορά (εκλογικό αποτέλεσμα − μέσος 10 δημοσκοπήσεων πριν)
  */
 function computeNDBias(electionRows, pollRows, partyIndices, party) {
     const idx = partyIndices[party];
     if (idx === undefined || electionRows.length === 0) return 0;
 
     const biases = [];
-
     for (const elRow of electionRows) {
         const result = parseFloat(elRow[idx]);
         if (isNaN(result)) continue;
 
-        const elDate = elRow[3]; // Midpoint
-        const priorPolls = pollRows
-            .filter(r => r[3] <= elDate)
-            .slice(-10);
-
+        const elDate = elRow[3];
+        const priorPolls = pollRows.filter(r => r[3] <= elDate).slice(-10);
         if (priorPolls.length === 0) continue;
 
         const avg = priorPolls.reduce((sum, r) => {
@@ -365,11 +387,9 @@ function computeNDBias(electionRows, pollRows, partyIndices, party) {
 
 /**
  * Volatility Index = (max − min) / mean, κανονικοποιημένο 0–1
- * Υψηλή τιμή = οι ψηφοφόροι του κόμματος είναι αναποφάσιστοι → μεγαλύτερη αποχή
  */
 function computeVolatility(pollRows, partyIndices) {
     const raw = {};
-
     for (const [party, idx] of Object.entries(partyIndices)) {
         const vals = pollRows
             .map(r => parseFloat(r[idx]))
@@ -383,7 +403,6 @@ function computeVolatility(pollRows, partyIndices) {
         raw[party] = mean > 0 ? (max - min) / mean : 0;
     }
 
-    // Κανονικοποίηση 0–1 σχετικά με το πιο volatile κόμμα
     const maxVol = Math.max(...Object.values(raw));
     const result = {};
     for (const p of Object.keys(raw)) {
@@ -394,26 +413,25 @@ function computeVolatility(pollRows, partyIndices) {
 
 
 /**
- * Κύριος υπολογισμός + render (καλείται κάθε φορά που αλλάζει control)
+ * Κύριος υπολογισμός — καλείται σε κάθε αλλαγή control
  */
-function renderPrediction(pollRows, partyIndices, volatility, ndBias) {
-    const abstentionRate = parseFloat(document.getElementById('abstention-slider').value) / 100;
-    const pollsCountVal = document.getElementById('polls-count-select').value;
-    const useNDCorrection = document.getElementById('nd-correction-toggle').checked;
+function renderPrediction() {
+    const abstentionRate = ($('#abstention-slider').slider('get value') || 35) / 100;
+    const pollsCountVal = $('input[name="polls-count"]').val() || '10';
+    const useNDCorrection = $('#nd-correction-checkbox').checkbox('is checked');
 
-    // Επιλογή τελευταίων N δημοσκοπήσεων
-    const N = pollsCountVal === 'all' ? pollRows.length : parseInt(pollsCountVal);
-    const recentPolls = pollRows.slice(-N);
+    const N = pollsCountVal === 'all' ? _pollRows.length : parseInt(pollsCountVal);
+    const recentPolls = _pollRows.slice(-N);
     const total = recentPolls.length;
 
-    // ── ΒΗΜΑ 1: Σταθμισμένος μέσος (νεότερες = 2× βάρος) ──
+    // ── Βήμα 1: Σταθμισμένος μέσος (νεότερες = 2× βάρος) ──
     const weightedSum = {};
     let totalWeight = 0;
 
     recentPolls.forEach((row, i) => {
-        const w = 1 + (i / Math.max(total - 1, 1)); // 1.0 → 2.0
+        const w = 1 + (i / Math.max(total - 1, 1));
         totalWeight += w;
-        for (const [party, idx] of Object.entries(partyIndices)) {
+        for (const [party, idx] of Object.entries(_partyIndices)) {
             const v = parseFloat(row[idx]);
             if (!isNaN(v) && v > 0) {
                 weightedSum[party] = (weightedSum[party] || 0) + v * w;
@@ -422,34 +440,30 @@ function renderPrediction(pollRows, partyIndices, volatility, ndBias) {
     });
 
     const base = {};
-    for (const p of Object.keys(weightedSum)) {
-        base[p] = weightedSum[p] / totalWeight;
-    }
+    for (const p of Object.keys(weightedSum)) base[p] = weightedSum[p] / totalWeight;
 
-    // ── ΒΗΜΑ 2: Ποινή Αποχής ──
-    // penalty_i = abstention × (0.5 + 0.5 × volatility_i) × base_i
-    // Λογική: όλα τα κόμματα έχουν κάποια αποχή (×0.5),
-    // αλλά τα volatile έχουν έως 2× περισσότερη.
+    // ── Βήμα 2: Ποινή Αποχής ──
+    // Κόμματα με υψηλό volatility χάνουν περισσότερους ψηφοφόρους
     const afterAbstention = {};
     for (const [party, b] of Object.entries(base)) {
-        const vol = volatility[party] || 0;
+        const vol = _volatility[party] || 0;
         const penalty = abstentionRate * (0.5 + 0.5 * vol) * b;
         afterAbstention[party] = Math.max(0, b - penalty);
     }
 
-    // ── ΒΗΜΑ 3: ND Bias Correction ──
+    // ── Βήμα 3: ND Bias Correction ──
     if (useNDCorrection && afterAbstention['ND'] !== undefined) {
-        afterAbstention['ND'] = Math.max(0, afterAbstention['ND'] + ndBias);
+        afterAbstention['ND'] = Math.max(0, afterAbstention['ND'] + _ndBias);
     }
 
-    // ── ΒΗΜΑ 4: Κανονικοποίηση στο 100% ──
+    // ── Βήμα 4: Κανονικοποίηση στο 100% ──
     const sumAfter = Object.values(afterAbstention).reduce((a, b) => a + b, 0);
     const predicted = {};
     for (const p of Object.keys(afterAbstention)) {
         predicted[p] = sumAfter > 0 ? (afterAbstention[p] / sumAfter) * 100 : 0;
     }
 
-    // ── ΒΗΜΑ 5: Εκτίμηση εδρών (approximation, 300 έδρες, κατώφλι 3%) ──
+    // ── Βήμα 5: Εκτίμηση εδρών (approximation, κατώφλι 3%, 300 έδρες) ──
     const TOTAL_SEATS = 300;
     const THRESHOLD = 3.0;
     const above = Object.entries(predicted).filter(([, v]) => v >= THRESHOLD);
@@ -459,13 +473,12 @@ function renderPrediction(pollRows, partyIndices, volatility, ndBias) {
         seats[party] = Math.round((share / sumAbove) * TOTAL_SEATS);
     }
 
-    // Render
-    renderPredictionCards(predicted, base, volatility, seats);
+    renderPredictionCards(predicted, base, seats);
     renderPredictionChart(predicted, base);
 }
 
 
-function renderPredictionCards(predicted, base, volatility, seats) {
+function renderPredictionCards(predicted, base, seats) {
     const container = document.getElementById('prediction-cards');
 
     const sorted = Object.entries(predicted)
@@ -475,22 +488,35 @@ function renderPredictionCards(predicted, base, volatility, seats) {
     container.innerHTML = sorted.map(([party, pct]) => {
         const basePct = base[party] || 0;
         const diff = pct - basePct;
-        const vol = ((volatility[party] || 0) * 100).toFixed(0);
+        const vol = ((_volatility[party] || 0) * 100).toFixed(0);
         const seat = seats[party] || 0;
-        const color = partyColors[party] || '#888';
+        const fmColor = partyFomanticColor[party] || 'grey';
+        const hexColor = partyColors[party] || '#888';
 
-        const diffHtml = diff >= 0
-            ? `<span class="diff-up">▲ +${Math.abs(diff).toFixed(1)}%</span>`
-            : `<span class="diff-down">▼ −${Math.abs(diff).toFixed(1)}%</span>`;
+        const diffSign = diff >= 0 ? '+' : '−';
+        const diffIcon = diff >= 0 ? '▲' : '▼';
+        const diffClass = diff >= 0 ? 'green' : 'red';
 
         return `
-        <div class="prediction-card" style="border-top: 5px solid ${color};">
-            <div class="party-name" style="color:${color};">${party}</div>
-            <div class="party-pct">${pct.toFixed(1)}%</div>
-            <div class="party-meta">Polls avg: ${basePct.toFixed(1)}% ${diffHtml}</div>
-            <div class="party-meta">
-                Αστάθεια: ${vol}%
-                ${seat > 0 ? `&nbsp;·&nbsp; ~${seat} έδρες` : ''}
+        <div class="${fmColor} card">
+            <div class="content">
+                <div class="header" style="font-size:1.5rem; color:${hexColor};">
+                    ${pct.toFixed(1)}%
+                </div>
+                <div class="meta" style="font-size:1rem; font-weight:700; margin-top:2px;">
+                    ${party}
+                </div>
+                <div class="ui divider" style="margin:6px 0;"></div>
+                <div class="description" style="font-size:0.8rem; line-height:1.6;">
+                    <div>
+                        Polls: <strong>${basePct.toFixed(1)}%</strong>
+                        <span class="ui ${diffClass} text" style="margin-left:4px;">
+                            ${diffIcon} ${diffSign}${Math.abs(diff).toFixed(1)}%
+                        </span>
+                    </div>
+                    <div>Αστάθεια: <strong>${vol}%</strong></div>
+                    ${seat > 0 ? `<div>Έδρες: <strong>~${seat}</strong></div>` : ''}
+                </div>
             </div>
         </div>`;
     }).join('');
