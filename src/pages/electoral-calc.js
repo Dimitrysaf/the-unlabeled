@@ -16,7 +16,6 @@ const partyColors = {
     'DPK': '#424242'
 };
 
-// Χαρτογράφηση σε Fomantic UI χρώματα για τις κάρτες
 const partyFomanticColor = {
     'ND': 'blue',
     'SYRIZA': 'red',
@@ -34,7 +33,6 @@ const partyFomanticColor = {
 
 let predictionChartInstance = null;
 
-// Module-level state — προσβάσιμο από τα Fomantic UI callbacks
 let _pollRows = [];
 let _partyIndices = {};
 let _volatility = {};
@@ -85,11 +83,18 @@ export function renderElectoralCalc() {
                 border-radius: 0.28rem;
                 background: white;
             }
+            #prediction-cards.ui.cards {
+                display: flex !important;
+                flex-wrap: wrap !important;
+            }
+            #prediction-cards.ui.cards > .card {
+                width: 170px !important;
+                flex-grow: 0 !important;
+            }
         </style>
 
         <div class="ui container" style="margin-top: 2rem; margin-bottom: 5rem;">
 
-            <!-- ===== ΤΙΤΛΟΣ ===== -->
             <h2 class="ui header left-aligned-header">
                 <div class="content">
                     Εκλογικό Μοντέλο 2027
@@ -97,17 +102,14 @@ export function renderElectoralCalc() {
                 </div>
             </h2>
 
-            <!-- ===== LINE CHART ===== -->
             <div class="chart-wrapper">
                 <canvas id="pollsChart"></canvas>
             </div>
 
-            <!-- ===== LOADING ===== -->
             <div id="polls-loading" class="ui active inverted dimmer">
                 <div class="ui text loader">Επεξεργασία...</div>
             </div>
 
-            <!-- ===== ΠΙΝΑΚΑΣ ΔΗΜΟΣΚΟΠΗΣΕΩΝ ===== -->
             <div id="polls-table-wrapper" class="scrollable-container" style="display:none;">
                 <table class="ui celled unstackable striped table scrolling-table" id="polls-table">
                     <thead id="polls-thead"></thead>
@@ -133,17 +135,14 @@ export function renderElectoralCalc() {
                     <div class="sub header">Σταθμισμένος μέσος + μοντέλο αποχής + ND bias correction</div>
                 </h3>
 
-                <!-- ── Controls ── -->
                 <div class="ui form" style="margin: 1.5rem 0;">
                     <div class="fields" style="align-items:flex-end; flex-wrap:wrap; gap:1.5rem 2rem;">
 
-                        <!-- Slider Αποχής -->
                         <div class="field" style="min-width:220px;">
                             <label>Αποχή: <strong id="abstention-value">35</strong>%</label>
                             <div class="ui ticked slider" id="abstention-slider"></div>
                         </div>
 
-                        <!-- Dropdown -->
                         <div class="field">
                             <label>Βάση δημοσκοπήσεων</label>
                             <div class="ui selection dropdown" id="polls-count-dropdown">
@@ -159,9 +158,8 @@ export function renderElectoralCalc() {
                             </div>
                         </div>
 
-                        <!-- Toggle Checkbox -->
                         <div class="field" style="padding-bottom:6px;">
-                            <div class="ui toggle checkbox" id="nd-correction-checkbox">
+                            <div class="ui checkbox" id="nd-correction-checkbox">
                                 <input type="checkbox" name="nd-correction" checked>
                                 <label>
                                     ND Bias Correction
@@ -173,15 +171,13 @@ export function renderElectoralCalc() {
                     </div>
                 </div>
 
-                <!-- ── Prediction Cards ── -->
-                <div class="ui five cards" id="prediction-cards"></div>
+                <!-- Cards: stackable + custom CSS above handles wrapping -->
+                <div class="ui stackable cards" id="prediction-cards"></div>
 
-                <!-- ── Prediction Bar Chart ── -->
                 <div id="prediction-chart-wrapper">
                     <canvas id="predictionChart"></canvas>
                 </div>
 
-                <!-- ── Methodology ── -->
                 <div class="ui info message" style="margin-top:1rem; font-size:0.85rem;">
                     <div class="header">Μεθοδολογία</div>
                     <p>
@@ -194,9 +190,9 @@ export function renderElectoralCalc() {
                     </p>
                 </div>
 
-            </div><!-- /prediction-section -->
+            </div>
 
-        </div><!-- /container -->`;
+        </div>`;
 
     updateContent(pageHtml);
     loadPolls();
@@ -217,7 +213,6 @@ function loadPolls() {
         .then(text => {
             const { headers, rows } = parseCSV(text);
 
-            // THEAD — χρώμα μόνο στο bottom border για κόμματα
             const theadHtml = `<tr>${headers.map(h => {
                 const color = partyColors[h];
                 const style = color ? `border-bottom: 5px solid ${color} !important;` : '';
@@ -225,7 +220,6 @@ function loadPolls() {
             }).join('')}</tr>`;
             document.getElementById('polls-thead').innerHTML = theadHtml;
 
-            // TBODY
             const tbodyHtml = rows.map(row => {
                 const isElection = row[0].toLowerCase().includes('election');
                 const rowStyle = isElection ? 'background:#f0f7ff; font-weight:bold;' : '';
@@ -237,7 +231,6 @@ function loadPolls() {
             }).join('');
             document.getElementById('polls-tbody').innerHTML = tbodyHtml;
 
-            // Render charts + predictions
             createPollsChart(headers, rows);
             initPredictions(headers, rows);
 
@@ -324,7 +317,6 @@ function initPredictions(headers, rows) {
     const sign = _ndBias >= 0 ? '+' : '';
     document.getElementById('nd-bias-label').textContent = `(${sign}${_ndBias.toFixed(2)}%)`;
 
-    // ── Fomantic UI Slider ──
     $('#abstention-slider').slider({
         min: 20,
         max: 65,
@@ -337,14 +329,12 @@ function initPredictions(headers, rows) {
         }
     });
 
-    // ── Fomantic UI Dropdown ──
     $('#polls-count-dropdown').dropdown({
         onChange: function () {
             renderPrediction();
         }
     });
 
-    // ── Fomantic UI Toggle Checkbox ──
     $('#nd-correction-checkbox').checkbox({
         onChange: function () {
             renderPrediction();
@@ -355,9 +345,6 @@ function initPredictions(headers, rows) {
 }
 
 
-/**
- * ND Bias: μέση διαφορά (εκλογικό αποτέλεσμα − μέσος 10 δημοσκοπήσεων πριν)
- */
 function computeNDBias(electionRows, pollRows, partyIndices, party) {
     const idx = partyIndices[party];
     if (idx === undefined || electionRows.length === 0) return 0;
@@ -385,9 +372,6 @@ function computeNDBias(electionRows, pollRows, partyIndices, party) {
 }
 
 
-/**
- * Volatility Index = (max − min) / mean, κανονικοποιημένο 0–1
- */
 function computeVolatility(pollRows, partyIndices) {
     const raw = {};
     for (const [party, idx] of Object.entries(partyIndices)) {
@@ -412,9 +396,6 @@ function computeVolatility(pollRows, partyIndices) {
 }
 
 
-/**
- * Κύριος υπολογισμός — καλείται σε κάθε αλλαγή control
- */
 function renderPrediction() {
     const abstentionRate = ($('#abstention-slider').slider('get value') || 35) / 100;
     const pollsCountVal = $('input[name="polls-count"]').val() || '10';
@@ -424,7 +405,6 @@ function renderPrediction() {
     const recentPolls = _pollRows.slice(-N);
     const total = recentPolls.length;
 
-    // ── Βήμα 1: Σταθμισμένος μέσος (νεότερες = 2× βάρος) ──
     const weightedSum = {};
     let totalWeight = 0;
 
@@ -442,8 +422,6 @@ function renderPrediction() {
     const base = {};
     for (const p of Object.keys(weightedSum)) base[p] = weightedSum[p] / totalWeight;
 
-    // ── Βήμα 2: Ποινή Αποχής ──
-    // Κόμματα με υψηλό volatility χάνουν περισσότερους ψηφοφόρους
     const afterAbstention = {};
     for (const [party, b] of Object.entries(base)) {
         const vol = _volatility[party] || 0;
@@ -451,19 +429,16 @@ function renderPrediction() {
         afterAbstention[party] = Math.max(0, b - penalty);
     }
 
-    // ── Βήμα 3: ND Bias Correction ──
     if (useNDCorrection && afterAbstention['ND'] !== undefined) {
         afterAbstention['ND'] = Math.max(0, afterAbstention['ND'] + _ndBias);
     }
 
-    // ── Βήμα 4: Κανονικοποίηση στο 100% ──
     const sumAfter = Object.values(afterAbstention).reduce((a, b) => a + b, 0);
     const predicted = {};
     for (const p of Object.keys(afterAbstention)) {
         predicted[p] = sumAfter > 0 ? (afterAbstention[p] / sumAfter) * 100 : 0;
     }
 
-    // ── Βήμα 5: Εκτίμηση εδρών (approximation, κατώφλι 3%, 300 έδρες) ──
     const TOTAL_SEATS = 300;
     const THRESHOLD = 3.0;
     const above = Object.entries(predicted).filter(([, v]) => v >= THRESHOLD);
@@ -477,6 +452,96 @@ function renderPrediction() {
     renderPredictionChart(predicted, base);
 }
 
+function allocateGreekSeats(predicted) {
+    const TOTAL_SEATS = 300;
+    const THRESHOLD = 3;
+
+    // 1. Filter parties above threshold
+    const eligible = Object.entries(predicted)
+        .filter(([, v]) => v >= THRESHOLD);
+
+    if (eligible.length === 0) return {};
+
+    // 2. Find winner
+    const winner = [...eligible].sort((a, b) => b[1] - a[1])[0];
+    const winnerParty = winner[0];
+    const winnerPct = winner[1];
+
+    // 3. Compute bonus seats
+    let bonus = 0;
+    if (winnerPct >= 25) {
+        bonus = 20 + Math.floor((winnerPct - 25) / 0.5);
+        bonus = Math.min(bonus, 50);
+    }
+
+    const remainingSeats = TOTAL_SEATS - bonus;
+
+    // 4. Normalize eligible votes
+    const totalPct = eligible.reduce((s, [, v]) => s + v, 0);
+
+    const quotas = {};
+    const seats = {};
+
+    eligible.forEach(([party, pct]) => {
+        const share = pct / totalPct;
+        const exactSeats = share * remainingSeats;
+
+        quotas[party] = exactSeats;
+        seats[party] = Math.floor(exactSeats);
+    });
+
+    // 5. Distribute leftover seats (largest remainder method)
+    let allocated = Object.values(seats).reduce((a, b) => a + b, 0);
+    let remaining = remainingSeats - allocated;
+
+    const remainders = Object.entries(quotas)
+        .map(([p, q]) => [p, q - Math.floor(q)])
+        .sort((a, b) => b[1] - a[1]);
+
+    for (let i = 0; i < remaining; i++) {
+        seats[remainders[i][0]]++;
+    }
+
+    // 6. Add bonus to winner
+    seats[winnerParty] += bonus;
+
+    return seats;
+}
+
+function renderParliament(seats) {
+    const container = document.getElementById('parliament');
+    if (!container) return;
+
+    const seatList = [];
+
+    Object.entries(seats)
+        .sort(([,a],[,b]) => b - a)
+        .forEach(([party, count]) => {
+            for (let i = 0; i < count; i++) {
+                seatList.push(party);
+            }
+        });
+
+    container.innerHTML = `
+        <div class="parliament-grid">
+            ${seatList.map(party => `
+                <div 
+                    class="seat"
+                    title="${party}"
+                    style="background:${partyColors[party] || '#ccc'}"
+                ></div>
+            `).join('')}
+        </div>
+
+        <div style="margin-top:1rem; text-align:center;">
+            ${Object.entries(seats).map(([p, s]) => `
+                <span style="margin:0 8px; color:${partyColors[p]}; font-weight:bold;">
+                    ${p}: ${s}
+                </span>
+            `).join('')}
+        </div>
+    `;
+}
 
 function renderPredictionCards(predicted, base, seats) {
     const container = document.getElementById('prediction-cards');
