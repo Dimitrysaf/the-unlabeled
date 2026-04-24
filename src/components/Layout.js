@@ -1,110 +1,104 @@
-// Layout.js
 import { renderLogo } from './Logo.js';
+
+const menuItems = [
+    { label: 'Latest',       link: '#' },
+    { label: 'Politics',     link: '#' },
+    { label: 'Random Logic', link: '#' },
+];
 
 export function initLayout() {
     const app = document.querySelector('#app');
 
-    // Menu items array
-    const menuItems = [
-        { label: 'Latest', link: '#' },
-        { label: 'Politics', link: '#' },
-        { label: 'Random Logic', link: '#' }
-    ];
-
-    // Generate HTML
-    const sidebarHtml = menuItems.map(item => `<a class="item" href="${item.link}">${item.label}</a>`).join('');
-    const desktopHtml = menuItems.map(item => `<a class="item hide-on-mobile" href="${item.link}">${item.label}</a>`).join('');
-
-    Object.assign(app.style, {
-        display: 'flex',
-        flexDirection: 'column',
-        minHeight: '100vh'
-    });
+    const navLinksHtml    = menuItems.map(item => `<a class="nav-link" href="${item.link}">${item.label}</a>`).join('');
+    const sidebarLinksHtml = menuItems.map(item => `<a class="sidebar-nav-link" href="${item.link}">${item.label}</a>`).join('');
 
     app.innerHTML = `
-        <div class="ui vertical sidebar menu" id="mobile-sidebar">
-            <a class="item" id="sidebar-close">
-                <i class="close icon"></i>
-                Close
-            </a>
-            ${sidebarHtml}
-        </div>
+        <div class="sidebar-overlay" id="sidebar-overlay"></div>
 
-        <div class="pusher" style="display: flex; flex-direction: column; min-height: 100vh; flex: 1;">
-            
-            <nav id="navbar" class="ui attached menu" style="flex-shrink: 0;">
-                <div class="ui container">
-                    <a class="item" id="sidebar-trigger">
-                        <i class="hamburger icon"></i>
-                    </a>
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <span class="sidebar-title">MENU</span>
+                <button class="sidebar-close" id="sidebar-close" aria-label="Close menu">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            <nav class="sidebar-nav">
+                ${sidebarLinksHtml}
+            </nav>
+        </aside>
+
+        <nav class="navbar">
+            <div class="container">
+                <div class="navbar-inner">
+                    <button class="hamburger-btn" id="hamburger-btn" aria-label="Open menu">
+                        <i class="fa-solid fa-bars"></i>
+                    </button>
 
                     <div id="main-logo-slot"></div>
-                    
-                    ${desktopHtml}
 
-                    <div class="right menu">
-                        <div class="item">
-                            <div class="ui transparent icon input">
-                                <input type="text" placeholder="Search...">
-                                <i class="search link icon"></i>
-                            </div>
+                    <div class="nav-links">
+                        ${navLinksHtml}
+                    </div>
+
+                    <div class="nav-search">
+                        <div style="position: relative;">
+                            <input class="search-input" type="text" placeholder="Search…" aria-label="Search">
+                            <i class="fa-solid fa-magnifying-glass search-icon"></i>
                         </div>
                     </div>
                 </div>
-            </nav>
+            </div>
+        </nav>
 
-            <main id="content-slot" style="flex: 1 0 auto;">
-            </main>
+        <main class="content-area" id="content-slot"></main>
 
-            <footer class="ui vertical segment" style="flex-shrink: 0; margin-top: auto; border-top: 1px solid rgba(34,36,38,.1); padding: 1em 0;">
-                <div class="ui container">
-                    <div style="display: flex; justify-content: space-between; align-items: center; color: rgba(0,0,0,0.5); font-size: 0.9em;">
-                        <span>© 2026 THE UNLABELED</span>
-                        <div class="ui horizontal list">
-                            <a class="item" href="#">Privacy</a>
-                            <a class="item" href="#">Terms</a>
-                        </div>
+        <footer class="footer">
+            <div class="container">
+                <div class="footer-inner">
+                    <span class="footer-copy">© 2026 THE UNLABELED</span>
+                    <div class="footer-links">
+                        <a class="footer-link" href="#">Privacy</a>
+                        <a class="footer-link" href="#">Terms</a>
                     </div>
                 </div>
-            </footer>
-        </div>
-
-        <style>
-            @media only screen and (max-width: 767px) {
-                .hide-on-mobile { display: none !important; }
-                #content-slot > .ui.container {
-                    width: auto !important;
-                    margin: 0 !important;
-                    padding-left: 0 !important;
-                    padding-right: 0 !important;
-                }
-                #content-slot > .ui.container > * {
-                    margin-left: 0 !important;
-                    margin-right: 0 !important;
-                    padding-left: 0 !important;
-                    padding-right: 0 !important;
-                }
-            }
-            @media only screen and (min-width: 768px) {
-                #sidebar-trigger { display: none !important; }
-            }
-        </style>
+            </div>
+        </footer>
     `;
 
     renderLogo('#main-logo-slot');
+    initSidebar();
+}
 
-    $('#sidebar-trigger').on('click', function () {
-        $('#mobile-sidebar').sidebar('setting', 'transition', 'overlay').sidebar('toggle');
-    });
+function initSidebar() {
+    const sidebar = document.getElementById('sidebar');
+    const overlay = document.getElementById('sidebar-overlay');
+    const hamburger = document.getElementById('hamburger-btn');
+    const closeBtn  = document.getElementById('sidebar-close');
 
-    $('#sidebar-close').on('click', function () {
-        $('#mobile-sidebar').sidebar('hide');
+    function open() {
+        sidebar.classList.add('is-open');
+        overlay.classList.add('is-visible');
+        document.body.style.overflow = 'hidden';
+    }
+
+    function close() {
+        sidebar.classList.remove('is-open');
+        overlay.classList.remove('is-visible');
+        document.body.style.overflow = '';
+    }
+
+    hamburger.addEventListener('click', open);
+    closeBtn.addEventListener('click', close);
+    overlay.addEventListener('click', close);
+
+    document.addEventListener('keydown', e => {
+        if (e.key === 'Escape') close();
     });
 }
 
-export function updateContent(htmlContent) {
-    const slot = document.querySelector('#content-slot');
+export function updateContent(html) {
+    const slot = document.getElementById('content-slot');
     if (slot) {
-        slot.innerHTML = `<div class="ui container" style="padding: 2em 0;">${htmlContent}</div>`;
+        slot.innerHTML = `<div class="container">${html}</div>`;
     }
 }

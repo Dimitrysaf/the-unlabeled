@@ -2,125 +2,118 @@ import { updateContent } from '../../components/Layout.js';
 import { renderError } from '../../components/ErrorPage.js';
 import { sampleArticleContent } from '../../data/articleContent.test.js';
 
-function buildBodyHtml(body = []) {
-    return body
-        .map(paragraph => `<p>${paragraph}</p>`)
-        .join('');
+function buildBreadcrumb(title) {
+    return `
+        <nav class="breadcrumb" aria-label="Breadcrumb">
+            <a href="/">Home</a>
+            <span class="breadcrumb-sep">/</span>
+            <a href="/">Articles</a>
+            <span class="breadcrumb-sep">/</span>
+            <span class="breadcrumb-current">${title}</span>
+        </nav>`;
 }
 
-function buildTagsHtml(tags = []) {
-    if (!tags.length) return '';
-
+function buildShare() {
     return `
-        <div class="ui labels">
-            ${tags.map(({ label, color }) => {
-                const colorClass = color ? `${color} ` : '';
-                return `<a class="ui basic ${colorClass}tag label">${label}</a>`;
-            }).join('')}
+        <div class="share-wrapper">
+            <button class="share-btn" id="share-btn" aria-haspopup="true" aria-expanded="false">
+                <i class="fa-solid fa-share-nodes"></i>
+                Share
+                <i class="fa-solid fa-chevron-down" style="font-size:0.7em;"></i>
+            </button>
+            <div class="share-menu" id="share-menu" role="menu">
+                <a class="share-menu-item" href="#twitter">
+                    <i class="fa-brands fa-x-twitter"></i> Twitter / X
+                </a>
+                <a class="share-menu-item" href="#facebook">
+                    <i class="fa-brands fa-facebook"></i> Facebook
+                </a>
+                <a class="share-menu-item" href="#email">
+                    <i class="fa-solid fa-at"></i> E-mail
+                </a>
+                <a class="share-menu-item" href="#link">
+                    <i class="fa-solid fa-link"></i> Copy link
+                </a>
+            </div>
         </div>`;
 }
 
-function buildMetaHtml(author = {}, date = '') {
-    const authorHtml = author.name
-        ? `<div class="item" style="display: inline-flex; align-items: flex-end; gap: 0.4em;"><i class="user alternate icon"></i>${author.name}</div>`
+function buildMeta(author, date) {
+    const authorHtml = author?.name
+        ? `<span class="article-meta-item">
+               <i class="fa-regular fa-user"></i> ${author.name}
+           </span>`
         : '';
-
     const dateHtml = date
-        ? `<div class="item" style="display: inline-flex; align-items: flex-end; gap: 0.4em;"><i class="calendar alternate outline icon"></i>${date}</div>`
+        ? `<span class="article-meta-item">
+               <i class="fa-regular fa-calendar"></i> ${date}
+           </span>`
+        : '';
+    return (authorHtml || dateHtml)
+        ? `<div class="article-meta">${authorHtml}${dateHtml}</div>`
+        : '';
+}
+
+function buildTags(tags = []) {
+    if (!tags.length) return '';
+    return `
+        <div class="article-tags">
+            ${tags.map(({ label }) => `<span class="tag">${label}</span>`).join('')}
+        </div>`;
+}
+
+function buildBody(body = []) {
+    return `<div class="article-body">${body.map(p => `<p>${p}</p>`).join('')}</div>`;
+}
+
+function buildPage(article) {
+    const { title = 'Untitled', subtitle = '', image = '', tags = [], author = {}, date = '', body = [] } = article;
+
+    const imageHtml = image
+        ? `<img class="article-image" src="${image}" alt="${title}">`
         : '';
 
-    return authorHtml || dateHtml
-        ? `<div class="ui horizontal list" style="display: flex; flex-wrap: wrap; gap: 0.75em; width: 100%; color: rgba(0,0,0,0.45); font-size: 0.85em; align-items: flex-end; margin: 0.5rem 0 0 0;">${authorHtml}${dateHtml}</div>`
-        : '';
+    return `
+        ${imageHtml}
+        <div class="article-meta-row">
+            <div>${buildBreadcrumb(title)}</div>
+            <div>${buildShare()}</div>
+        </div>
+        <h1 class="article-title">${title}</h1>
+        ${subtitle ? `<p class="article-subtitle">${subtitle}</p>` : ''}
+        ${buildMeta(author, date)}
+        ${buildTags(tags)}
+        <hr class="divider">
+        ${buildBody(body)}
+    `;
 }
 
-function buildShareHtml() {
-    return `
-        <div style="max-width: 240px; margin: 0;">
-            <div class="ui hidden divider"></div>
-            <div class="link example">
-                <div class="ui floating dropdown icon button">
-                    <i class="share icon"></i>
-                    <i class="dropdown icon"></i>
-                    <div class="menu">
-                        <a class="item" href="#twitter"><i class="twitter icon"></i> Twitter</a>
-                        <a class="item" href="#facebook"><i class="facebook square icon"></i> Facebook</a>
-                        <a class="item" href="#email"><i class="at icon"></i> E-mail</a>
-                        <a class="item" href="#link"><i class="linkify icon"></i> Link</a>
-                    </div>
-                </div>
-            </div>
-        </div>`;
-}
+function initShare() {
+    const btn  = document.getElementById('share-btn');
+    const menu = document.getElementById('share-menu');
+    if (!btn || !menu) return;
 
-function buildImageHtml(image = '', title = '') {
-    if (!image) return '';
+    btn.addEventListener('click', e => {
+        e.stopPropagation();
+        const isOpen = menu.classList.toggle('is-open');
+        btn.setAttribute('aria-expanded', isOpen);
+    });
 
-    return `
-        <div class="ui fluid image">
-            <img src="${image}" alt="${title}">
-        </div>`;
-}
-
-function buildBreadcrumbHtml(title = '') {
-    return `
-        <div class="ui breadcrumb">
-            <a class="section" href="/">Home</a>
-            <div class="divider"> / </div>
-            <a class="section" href="/">Articles</a>
-            <div class="divider"> / </div>
-            <div class="active section">${title}</div>
-        </div>`;
-}
-
-function buildPageHtml(article) {
-    const {
-        title = 'Untitled article',
-        subtitle = '',
-        image = '',
-        tags = [],
-        author = {},
-        date = '',
-        body = []
-    } = article;
-
-    return `
-        <div class="ui container">
-            ${buildImageHtml(image, title)}
-            <div style="margin: 0.3rem 0;"></div>
-            <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-start; gap: 1rem;">
-                <div style="flex: 1 1 0; min-width: 0;">
-                    ${buildBreadcrumbHtml(title)}
-                </div>
-                <div style="flex: 0 0 auto;">
-                    ${buildShareHtml()}
-                </div>
-            </div>
-            <div style="margin: 0.3rem 0;"></div>
-            <h2 class="ui header" style="margin: 0.3rem 0;">
-                ${title}
-                ${buildMetaHtml(author, date)}
-                ${subtitle ? `<div class="sub header" style="margin: 0 0 2rem;">${subtitle}</div>` : ''}
-            </h2>
-            ${buildBodyHtml(body)}
-        </div>`;
+    document.addEventListener('click', () => {
+        menu.classList.remove('is-open');
+        btn.setAttribute('aria-expanded', 'false');
+    });
 }
 
 export function renderArticlePage(slug) {
-    const normalizedSlug = slug?.toLowerCase?.().trim();
-    const article = sampleArticleContent.slug === normalizedSlug ? sampleArticleContent : null;
+    const normalized = slug?.toLowerCase?.().trim();
+    const article = sampleArticleContent.slug === normalized ? sampleArticleContent : null;
 
     if (!article) {
         renderError('404');
         return;
     }
 
-    const pageHtml = buildPageHtml(article);
-    updateContent(pageHtml);
-
-    if (window.$ && window.$('.link.example .dropdown').dropdown) {
-        window.$('.link.example .dropdown').dropdown({
-            action: 'hide'
-        });
-    }
+    updateContent(buildPage(article));
+    initShare();
 }

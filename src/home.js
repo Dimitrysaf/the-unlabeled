@@ -1,26 +1,19 @@
-// home.js
 import { updateContent } from './components/Layout.js';
 import { renderGrid } from './components/Grid.js';
 import { sampleArticles } from './data/articles.test.js';
 
-const articles = sampleArticles;
-
 export function renderHome() {
     const heroHtml = `
-        <div>
-            <h1 class="ui header">
-                Latest stories
-                <div class="sub header">No labels. No agenda. Just the logic.</div>
-            </h1>
-            <div class="ui divider"></div>
+        <div class="page-header">
+            <h1 class="page-title">Latest stories</h1>
+            <p class="page-subtitle">No labels. No agenda. Just the logic.</p>
+            <hr class="divider">
         </div>
     `;
 
-    const placeholderHtml = renderGrid([], { columns: 3, loading: true });
-    updateContent(heroHtml + placeholderHtml);
+    updateContent(heroHtml + renderGrid([], { columns: 3, loading: true }));
 
     setTimeout(() => {
-        const gridHtml = renderGrid(articles, { columns: 3 });
-        updateContent(heroHtml + gridHtml);
+        updateContent(heroHtml + renderGrid(sampleArticles, { columns: 3 }));
     }, 150);
 }

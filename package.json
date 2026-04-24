@@ -11,9 +11,5 @@
   "devDependencies": {
     "vercel": "^51.6.1",
     "vite": "^8.0.4"
-  },
-  "dependencies": {
-    "fomantic-ui-css": "^2.9.4",
-    "jquery": "^4.0.0"
   }
 }
