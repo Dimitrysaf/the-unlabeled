@@ -17,8 +17,22 @@ function buildBreadcrumb(title) {
 function buildShare() {
     return `
         <div class="share-wrapper">
-            <button class="govuk-button govuk-button--secondary" id="share-btn" style="margin-bottom:0;">
-                <i class="fa-solid fa-share-nodes" aria-hidden="true"></i> Share
+            <button class="govuk-button govuk-button--secondary" style="min-width:130px;"
+                onclick="
+                    var b=this, old=b.innerHTML, t=document.createElement('textarea');
+                    t.value=window.location.href;
+                    document.body.appendChild(t);
+                    t.select();
+                    try {
+                        document.execCommand('copy');
+                        b.innerHTML = 'Copied!';
+                    } catch(e) {
+                        console.error(e);
+                    }
+                    document.body.removeChild(t);
+                    setTimeout(function(){ b.innerHTML=old; }, 2000);
+                ">
+                Copy link
             </button>
         </div>`;
 }
