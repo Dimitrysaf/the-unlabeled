@@ -27,12 +27,9 @@ export function initLayout() {
     }).join('');
 
     app.innerHTML = `
-        <header class="govuk-header" role="banner" data-module="govuk-header">
-            <div class="govuk-header__container govuk-width-container">
-                <div class="govuk-header__logo">
-                    ${renderLogo()}
-                </div>
-
+        <header style="background: #f3f2f1; color: #0b0c0c; padding: 12px 0; border-bottom: 1px solid #d4d2cf;">
+            <div class="govuk-width-container">
+                ${renderLogo()}
             </div>
         </header>
 
@@ -79,20 +76,40 @@ export function initLayout() {
     _initServiceNavFallback();
 }
 
-// Fallback toggle for when the govuk-frontend CDN JS hasn't initialised yet
+const MOBILE_MQ = window.matchMedia('(max-width: 640px)');
+
 function _initServiceNavFallback() {
     const btn = document.querySelector('.govuk-js-service-navigation-toggle');
     const list = document.getElementById('service-navigation');
     if (!btn || !list) return;
 
-    btn.removeAttribute('hidden');
-    btn.setAttribute('aria-expanded', 'false');
+    function applyViewport(e) {
+        if (e.matches) {
+            btn.removeAttribute('hidden');
+            list.setAttribute('hidden', '');
+            btn.setAttribute('aria-expanded', 'false');
+            btn.textContent = 'Menu';
+        } else {
+            btn.setAttribute('hidden', '');
+            list.removeAttribute('hidden');
+        }
+    }
 
     btn.addEventListener('click', () => {
-        const open = list.classList.toggle('govuk-service-navigation__list--open');
-        btn.setAttribute('aria-expanded', String(open));
-        btn.textContent = open ? 'Close menu' : 'Menu';
+        const isExpanded = btn.getAttribute('aria-expanded') === 'true';
+        if (isExpanded) {
+            list.setAttribute('hidden', '');
+            btn.setAttribute('aria-expanded', 'false');
+            btn.textContent = 'Menu';
+        } else {
+            list.removeAttribute('hidden');
+            btn.setAttribute('aria-expanded', 'true');
+            btn.textContent = 'Close menu';
+        }
     });
+
+    MOBILE_MQ.addEventListener('change', applyViewport);
+    applyViewport(MOBILE_MQ);
 }
 
 export function updateContent(html) {

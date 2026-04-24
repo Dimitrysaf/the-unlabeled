@@ -38,19 +38,12 @@ body {
   line-height: 1;
 }
 
-.tul-logo__the {
-  color: #ffffff;
-}
-
-.tul-logo__underscore {
-  color: #ffffff;
-  opacity: 0.5;
+.tul-logo__the, .tul-logo__underscore, .tul-logo__unlabeled {
+  color: #0b0c0c;
 }
 
 .tul-logo__bang {
-  color: #ffdd00;
-  font-size: 1.75rem;
-  line-height: 0.85;
+  color: #d4351c;
 }
 
 /* ── News list & card ── */
