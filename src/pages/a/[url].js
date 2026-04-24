@@ -4,66 +4,69 @@ import { sampleArticleContent } from '../../data/articleContent.test.js';
 
 function buildBreadcrumb(title) {
     return `
-        <nav class="breadcrumb" aria-label="Breadcrumb">
-            <a href="/">Home</a>
-            <span class="breadcrumb-sep">/</span>
-            <a href="/">Articles</a>
-            <span class="breadcrumb-sep">/</span>
-            <span class="breadcrumb-current">${title}</span>
+        <nav class="govuk-breadcrumbs govuk-!-margin-bottom-4" aria-label="Breadcrumb">
+            <ol class="govuk-breadcrumbs__list">
+                <li class="govuk-breadcrumbs__list-item">
+                    <a class="govuk-breadcrumbs__link" href="/">Home</a>
+                </li>
+                <li class="govuk-breadcrumbs__list-item">
+                    <a class="govuk-breadcrumbs__link" href="/">Articles</a>
+                </li>
+                <li class="govuk-breadcrumbs__list-item" aria-current="page">${title}</li>
+            </ol>
         </nav>`;
 }
 
 function buildShare() {
     return `
         <div class="share-wrapper">
-            <button class="share-btn" id="share-btn" aria-haspopup="true" aria-expanded="false">
-                <i class="fa-solid fa-share-nodes"></i>
-                Share
-                <i class="fa-solid fa-chevron-down" style="font-size:0.7em;"></i>
+            <button class="govuk-button govuk-button--secondary" id="share-btn"
+                aria-haspopup="true" aria-expanded="false" style="margin-bottom:0;">
+                <i class="fa-solid fa-share-nodes" aria-hidden="true"></i> Share
             </button>
             <div class="share-menu" id="share-menu" role="menu">
-                <a class="share-menu-item" href="#twitter">
-                    <i class="fa-brands fa-x-twitter"></i> Twitter / X
+                <a class="share-menu-item" href="#twitter" role="menuitem">
+                    <i class="fa-brands fa-x-twitter" aria-hidden="true"></i> Twitter / X
                 </a>
-                <a class="share-menu-item" href="#facebook">
-                    <i class="fa-brands fa-facebook"></i> Facebook
+                <a class="share-menu-item" href="#facebook" role="menuitem">
+                    <i class="fa-brands fa-facebook" aria-hidden="true"></i> Facebook
                 </a>
-                <a class="share-menu-item" href="#email">
-                    <i class="fa-solid fa-at"></i> E-mail
+                <a class="share-menu-item" href="#email" role="menuitem">
+                    <i class="fa-solid fa-at" aria-hidden="true"></i> Email
                 </a>
-                <a class="share-menu-item" href="#link">
-                    <i class="fa-solid fa-link"></i> Copy link
+                <a class="share-menu-item" href="#link" role="menuitem">
+                    <i class="fa-solid fa-link" aria-hidden="true"></i> Copy link
                 </a>
             </div>
         </div>`;
 }
 
-function buildMeta(author, date) {
-    const authorHtml = author?.name
-        ? `<span class="article-meta-item">
-               <i class="fa-regular fa-user"></i> ${author.name}
-           </span>`
-        : '';
-    const dateHtml = date
-        ? `<span class="article-meta-item">
-               <i class="fa-regular fa-calendar"></i> ${date}
-           </span>`
-        : '';
-    return (authorHtml || dateHtml)
-        ? `<div class="article-meta">${authorHtml}${dateHtml}</div>`
-        : '';
-}
-
 function buildTags(tags = []) {
     if (!tags.length) return '';
     return `
-        <div class="article-tags">
-            ${tags.map(({ label }) => `<span class="tag">${label}</span>`).join('')}
-        </div>`;
+        <p class="govuk-!-margin-bottom-4">
+            ${tags.map(({ label }) =>
+        `<strong class="govuk-tag govuk-tag--blue govuk-!-margin-right-1">${label}</strong>`
+    ).join('')}
+        </p>`;
+}
+
+function buildMeta(author, date) {
+    const parts = [];
+    if (author?.name) parts.push(`<i class="fa-regular fa-user" aria-hidden="true"></i> ${author.name}`);
+    if (date) parts.push(`<i class="fa-regular fa-calendar" aria-hidden="true"></i> ${date}`);
+    if (!parts.length) return '';
+    return `
+        <p class="govuk-body-s govuk-!-colour-secondary govuk-!-margin-bottom-4" style="display:flex; gap:1.5rem; flex-wrap:wrap;">
+            ${parts.map(p => `<span>${p}</span>`).join('')}
+        </p>`;
 }
 
 function buildBody(body = []) {
-    return `<div class="article-body">${body.map(p => `<p>${p}</p>`).join('')}</div>`;
+    return `
+        <div class="article-body">
+            ${body.map((p, i) => `<p class="govuk-body"${i === 0 ? ' style="font-size:1.1rem;"' : ''}>${p}</p>`).join('')}
+        </div>`;
 }
 
 function buildPage(article) {
@@ -74,29 +77,30 @@ function buildPage(article) {
         : '';
 
     return `
+        ${buildBreadcrumb(title)}
         ${imageHtml}
         <div class="article-meta-row">
-            <div>${buildBreadcrumb(title)}</div>
+            <div style="flex:1;"></div>
             <div>${buildShare()}</div>
         </div>
-        <h1 class="article-title">${title}</h1>
-        ${subtitle ? `<p class="article-subtitle">${subtitle}</p>` : ''}
+        <h1 class="govuk-heading-xl govuk-!-margin-bottom-2">${title}</h1>
+        ${subtitle ? `<p class="govuk-body-l govuk-!-colour-secondary govuk-!-margin-bottom-4">${subtitle}</p>` : ''}
+        <hr class="govuk-section-break govuk-section-break--m govuk-section-break--visible">
         ${buildMeta(author, date)}
         ${buildTags(tags)}
-        <hr class="divider">
         ${buildBody(body)}
     `;
 }
 
 function initShare() {
-    const btn  = document.getElementById('share-btn');
+    const btn = document.getElementById('share-btn');
     const menu = document.getElementById('share-menu');
     if (!btn || !menu) return;
 
     btn.addEventListener('click', e => {
         e.stopPropagation();
-        const isOpen = menu.classList.toggle('is-open');
-        btn.setAttribute('aria-expanded', isOpen);
+        const open = menu.classList.toggle('is-open');
+        btn.setAttribute('aria-expanded', String(open));
     });
 
     document.addEventListener('click', () => {

@@ -4,10 +4,9 @@ import { sampleArticles } from './data/articles.test.js';
 
 export function renderHome() {
     const heroHtml = `
-        <div class="page-header">
-            <h1 class="page-title">Latest stories</h1>
-            <p class="page-subtitle">No labels. No agenda. Just the logic.</p>
-            <hr class="divider">
+        <div class="govuk-!-margin-bottom-6">
+            <h1 class="govuk-heading-xl">Latest stories</h1>
+            <hr class="govuk-section-break govuk-section-break--m govuk-section-break--visible">
         </div>
     `;
 

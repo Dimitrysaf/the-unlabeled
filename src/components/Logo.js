@@ -1,15 +1,8 @@
-export function renderLogo(selector) {
-    const container = document.querySelector(selector);
-    if (!container) return;
-
-    container.innerHTML = `
-        <a class="nav-brand" href="/" aria-label="The Unlabeled — Home">
-            THE_<span class="logo-bang">!</span><i class="fa-solid fa-tag logo-tag"></i>
-        </a>
-    `;
-
-    container.querySelector('.nav-brand').addEventListener('click', e => {
-        e.preventDefault();
-        window.location.href = '/';
-    });
+export function renderLogo() {
+    return `
+        <a href="/" class="govuk-header__link govuk-header__link--homepage" aria-label="The Unlabeled — Home">
+            <span class="tul-logo">
+                <span class="tul-logo__the">THE</span><span class="tul-logo__underscore">_</span><span class="tul-logo__bang">!</span>
+            </span>
+        </a>`;
 }

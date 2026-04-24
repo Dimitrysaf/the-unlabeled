@@ -1,27 +1,36 @@
 <!DOCTYPE html>
-<html lang="el">
-
+<html lang="el" class="govuk-template govuk-template--rebranded">
+    
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>The Unlabeled</title>
 
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link rel="stylesheet"
-        href="https://fonts.googleapis.com/css2?family=GFS+Didot&family=Source+Serif+4:ital,opsz,wght@0,8..60,300..900;1,8..60,300..900&display=swap">
+    <!-- GOV.UK Frontend CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/govuk-frontend@5.9.0/dist/govuk/govuk-frontend.min.css">
 
+    <!-- Icons (Font Awesome — kept for chart labels & share icons) -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 
+    <!-- Project-specific overrides on top of GOV.UK -->
     <link rel="stylesheet" href="/src/style.css">
 
+    <!-- Charts -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom"></script>
 </head>
 
-<body>
+<body class="govuk-template__body">
+    <a href="#main-content" class="govuk-skip-link" data-module="govuk-skip-link">Skip to main content</a>
     <div id="app"></div>
     <script type="module" src="/src/main.js"></script>
+    <!-- Initialise GOV.UK Frontend modules (header toggle, skip link, etc.) -->
+    <script type="module">
+        import { initAll } from 'https://cdn.jsdelivr.net/npm/govuk-frontend@5.9.0/dist/govuk/govuk-frontend.min.js';
+        document.addEventListener('DOMContentLoaded', () => {
+            try { initAll(); } catch (e) { console.warn('govuk-frontend init:', e); }
+        });
+    </script>
 </body>
 
 </html>

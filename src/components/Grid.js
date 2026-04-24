@@ -1,81 +1,46 @@
-const GRID_COLS = { 1: 'card-grid--1', 2: 'card-grid--2', 3: 'card-grid--3', 4: 'card-grid--4' };
-
-function buildTagsHtml(tags = []) {
-    if (!tags.length) return '';
-    const items = tags.map(({ label }) => `<span class="tag">${label}</span>`).join('');
-    return `<div class="card__tags">${items}</div>`;
-}
-
-function buildCard({ title, excerpt, image, tags = [], author, date, link = '#' }) {
-    const imageHtml = image
-        ? `<img class="card__image" src="${image}" alt="${title}">`
-        : '';
-
-    const tagsHtml = buildTagsHtml(tags);
-
-    const excerptHtml = excerpt
-        ? `<p class="card__excerpt">${excerpt}</p>`
-        : '';
-
-    const hasFooter = author?.name || date;
-    const footerHtml = hasFooter ? `
-        <div class="card__footer">
-            ${author?.name ? `
-                <span class="card__author">
-                    <i class="fa-regular fa-user"></i>
-                    <span>${author.name}</span>
-                </span>` : ''}
-            ${date ? `
-                <span class="card__date">
-                    <i class="fa-regular fa-calendar"></i>
-                    ${date}
-                </span>` : ''}
-        </div>` : '';
+function buildCard({ title, excerpt, image, tags = [], author, date, link = '#' }, isHero = false) {
+    const category = tags[0]?.label ?? '';
+    const meta = [author?.name, date].filter(Boolean).join(' · ');
+    const heroClass = isHero ? ' news-card--hero' : '';
 
     return `
-        <article class="card">
-            ${imageHtml}
-            <div class="card__body">
-                ${tagsHtml}
-                <h2 class="card__title">
-                    <a href="${link}">${title}</a>
-                </h2>
-                ${excerptHtml}
+        <article class="news-card${heroClass}">
+            <div class="news-card__img-col">
+                ${image ? `<img class="news-card__img" src="${image}" alt="">` : ''}
             </div>
-            ${footerHtml}
+            <div class="news-card__body">
+                <div class="news-card__meta-top">
+                    ${category ? `<span class="news-card__category">${category}</span>` : ''}
+                    ${meta ? `<span class="news-card__meta">${meta}</span>` : ''}
+                </div>
+                <h2 class="govuk-heading-m news-card__title">
+                    <a href="${link}" class="govuk-link govuk-link--no-visited-state">${title}</a>
+                </h2>
+                ${excerpt ? `<p class="govuk-body-s news-card__excerpt">${excerpt}</p>` : ''}
+            </div>
         </article>`;
 }
 
-function buildSkeleton(columns) {
-    return Array(columns).fill(0).map(() => `
-        <div class="skeleton-card">
-            <div class="skeleton-img"></div>
-            <div class="skeleton-body">
-                <div class="skeleton-line"></div>
-                <div class="skeleton-line skeleton-line--short"></div>
-                <div class="skeleton-line skeleton-line--shorter"></div>
+function buildSkeletons(n = 3) {
+    return Array(n).fill(0).map(() => `
+        <div class="news-card news-card--skeleton">
+            <div class="news-card__img-col">
+                <div class="skeleton-img" style="height:100%;min-height:160px;"></div>
             </div>
-            <div class="skeleton-footer">
-                <div class="skeleton-line skeleton-line--short"></div>
+            <div class="news-card__body">
+                <div class="skeleton-line" style="width:30%;"></div>
+                <div class="skeleton-line" style="width:80%;margin-top:.75rem;height:1.3em;"></div>
+                <div class="skeleton-line skeleton-line--short" style="height:1.3em;"></div>
+                <div class="skeleton-line skeleton-line--shorter" style="margin-top:.75rem;"></div>
             </div>
         </div>`).join('');
 }
 
 export function renderGrid(articles = [], config = {}) {
-    const { columns = 3, emptyMessage = 'No articles found.', loading = false } = config;
-    const colClass = GRID_COLS[columns] || 'card-grid--3';
+    const { loading = false } = config;
+    if (loading) return `<div class="news-list">${buildSkeletons(3)}</div>`;
+    if (!articles.length) return `<div class="empty-state"><p class="govuk-body">No articles found.</p></div>`;
 
-    if (loading) {
-        return `<div class="card-grid ${colClass}">${buildSkeleton(columns)}</div>`;
-    }
-
-    if (!articles.length) {
-        return `
-            <div class="empty-state">
-                <div class="empty-state-icon"><i class="fa-regular fa-file"></i></div>
-                <p class="empty-state-text">${emptyMessage}</p>
-            </div>`;
-    }
-
-    return `<div class="card-grid ${colClass}">${articles.map(buildCard).join('')}</div>`;
+    const cards = articles.map((article, i) => buildCard(article, i === 0));
+    return `<div class="news-list">${cards.join('')}</div>`;
 }
