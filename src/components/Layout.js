@@ -1,10 +1,8 @@
 import { renderLogo } from './Logo.js';
 
 const menuItems = [
-    { label: 'Latest', link: '/' },
-    { label: 'Politics', link: '#' },
-    { label: 'Random Logic', link: '#' },
-    { label: 'Electoral Calc', link: '/electoral-calc' },
+    { label: 'Home', link: '/' },
+    { label: 'Electoral Calculator', link: '/electoral-calc' },
 ];
 
 export function initLayout() {

@@ -4,13 +4,10 @@ import { sampleArticleContent } from '../../data/articleContent.test.js';
 
 function buildBreadcrumb(title) {
     return `
-        <nav class="govuk-breadcrumbs govuk-!-margin-bottom-4" aria-label="Breadcrumb">
+        <nav class="govuk-breadcrumbs govuk-breadcrumbs--collapse-on-mobile govuk-!-margin-bottom-4" aria-label="Breadcrumb">
             <ol class="govuk-breadcrumbs__list">
                 <li class="govuk-breadcrumbs__list-item">
                     <a class="govuk-breadcrumbs__link" href="/">Home</a>
-                </li>
-                <li class="govuk-breadcrumbs__list-item">
-                    <a class="govuk-breadcrumbs__link" href="/">Articles</a>
                 </li>
                 <li class="govuk-breadcrumbs__list-item" aria-current="page">${title}</li>
             </ol>
@@ -20,24 +17,9 @@ function buildBreadcrumb(title) {
 function buildShare() {
     return `
         <div class="share-wrapper">
-            <button class="govuk-button govuk-button--secondary" id="share-btn"
-                aria-haspopup="true" aria-expanded="false" style="margin-bottom:0;">
+            <button class="govuk-button govuk-button--secondary" id="share-btn" style="margin-bottom:0;">
                 <i class="fa-solid fa-share-nodes" aria-hidden="true"></i> Share
             </button>
-            <div class="share-menu" id="share-menu" role="menu">
-                <a class="share-menu-item" href="#twitter" role="menuitem">
-                    <i class="fa-brands fa-x-twitter" aria-hidden="true"></i> Twitter / X
-                </a>
-                <a class="share-menu-item" href="#facebook" role="menuitem">
-                    <i class="fa-brands fa-facebook" aria-hidden="true"></i> Facebook
-                </a>
-                <a class="share-menu-item" href="#email" role="menuitem">
-                    <i class="fa-solid fa-at" aria-hidden="true"></i> Email
-                </a>
-                <a class="share-menu-item" href="#link" role="menuitem">
-                    <i class="fa-solid fa-link" aria-hidden="true"></i> Copy link
-                </a>
-            </div>
         </div>`;
 }
 
@@ -77,11 +59,11 @@ function buildPage(article) {
         : '';
 
     return `
-        ${buildBreadcrumb(title)}
         ${imageHtml}
+        
         <div class="article-meta-row">
-            <div style="flex:1;"></div>
-            <div>${buildShare()}</div>
+            <div style="flex:1;">${buildBreadcrumb(title)}</div>
+            <div style="flex:0;">${buildShare()}</div>
         </div>
         <h1 class="govuk-heading-xl govuk-!-margin-bottom-2">${title}</h1>
         ${subtitle ? `<p class="govuk-body-l govuk-!-colour-secondary govuk-!-margin-bottom-4">${subtitle}</p>` : ''}
