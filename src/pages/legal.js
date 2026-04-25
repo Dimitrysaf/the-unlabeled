@@ -2,7 +2,7 @@ import { updateContent } from '../components/Layout.js';
 
 export function renderLegal() {
     updateContent(`
-        <div class="govuk-!-padding-top-6 govuk-!-padding-bottom-9">
+        <div class="govuk-!-padding-bottom-9">
             <div class="govuk-grid-row">
                 <div class="govuk-grid-column-two-thirds">
 
