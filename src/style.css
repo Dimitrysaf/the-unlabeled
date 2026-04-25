@@ -38,7 +38,9 @@ body {
   line-height: 1;
 }
 
-.tul-logo__the, .tul-logo__underscore, .tul-logo__unlabeled {
+.tul-logo__the,
+.tul-logo__underscore,
+.tul-logo__unlabeled {
   color: #0b0c0c;
 }
 
@@ -371,7 +373,7 @@ body {
   text-align: center;
 }
 
-.parliament-wrapper.majority-glow {
+.parliament-panel.majority-glow {
   outline: 4px solid #ffdd00;
   background: rgba(255, 221, 0, 0.06);
 }
@@ -738,4 +740,114 @@ body {
     grid-column: 1 / -1;
     font-size: 0.75rem;
   }
+}
+
+/* ── Controls grid ── */
+.ec-controls-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+@media (max-width: 48em) {
+  .ec-controls-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.ec-control-group {
+  background: #f3f2f1;
+  border-left: 4px solid #0b0c0c;
+  padding: 1.25rem;
+}
+
+.ec-control-group__title {
+  margin-top: 0;
+  margin-bottom: 1rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid #b1b4b6;
+}
+
+/* ── Momentum indicator on prediction cards ── */
+.prediction-card__momentum {
+  font-size: 0.8125rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin-bottom: 0.25rem;
+}
+
+/* ── House effects table ── */
+.house-effects-cell {
+  text-align: center;
+  font-size: 0.75rem;
+}
+
+/* ── Coalition panel ── */
+.coalition-panel {
+  background: #ffffff;
+  border: 1px solid #b1b4b6;
+  padding: 1.5rem;
+  margin-top: 2rem;
+}
+
+.coalition-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  padding: 0.75rem 0;
+  border-bottom: 1px solid #f3f2f1;
+}
+
+.coalition-row:last-child {
+  border-bottom: none;
+}
+
+.coalition-parties {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  align-items: center;
+}
+
+.coalition-party-tag {
+  display: inline-block;
+  border: 2px solid;
+  padding: 0.1em 0.5em;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.coalition-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-shrink: 0;
+}
+
+.coalition-seats {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: #0b0c0c;
+  white-space: nowrap;
+}
+
+.coalition-surplus {
+  white-space: nowrap;
+}
+
+/* ── Parliament: majority glow on panel, not wrapper ── */
+.parliament-panel.majority-glow {
+  outline: 4px solid #ffdd00;
+  background: rgba(255, 221, 0, 0.06);
+}
+
+.parliament-wrapper.majority-glow {
+  outline: none;
+  background: none;
 }
