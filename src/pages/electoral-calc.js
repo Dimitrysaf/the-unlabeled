@@ -30,13 +30,11 @@ export function renderElectoralCalc() {
                 </div>
             </div>
 
-            <!-- Poll trend chart -->
+            <!-- Poll trends -->
             <div class="govuk-grid-row">
                 <div class="govuk-grid-column-full">
                     <h2 class="govuk-heading-m">Polling trends</h2>
-                    <div class="chart-wrapper">
-                        <canvas id="pollsChart"></canvas>
-                    </div>
+                    <div id="polls-trends-stats"></div>
                 </div>
             </div>
 
@@ -213,7 +211,7 @@ function loadPolls() {
                         }</tr>`;
                 }).join('');
 
-            createPollsChart(headers, rows);
+            createPollsStats(headers, rows);
             initPredictions(headers, rows);
 
             document.getElementById('polls-loading').style.display = 'none';
@@ -247,49 +245,72 @@ function loadPolls() {
 // CHARTS
 // ─────────────────────────────────────────────
 
-function createPollsChart(headers, rows) {
-    const ctx = document.getElementById('pollsChart').getContext('2d');
-    const zoomPlugin = window['chartjs-plugin-zoom'];
-    if (zoomPlugin) Chart.register(zoomPlugin);
+function createPollsStats(headers, rows) {
+    const pollRows = rows.filter(r => !r[0].toLowerCase().includes('election'));
+    if (!pollRows.length) return;
 
     const partyIdx = headers.reduce((acc, h, i) => {
-        if (partyColors[h]) acc.push({ name: h, index: i });
+        if (partyColors[h]) acc[h] = i;
         return acc;
-    }, []);
+    }, {});
 
-    const reversed = [...rows].reverse();
-    const dates = reversed.map(r => r[3]);
+    const AVG_WINDOW = 10;
+    const recent = pollRows.slice(-AVG_WINDOW);
+    const prev   = pollRows.slice(-AVG_WINDOW * 2, -AVG_WINDOW);
+    const latest = pollRows[pollRows.length - 1];
+    const latestDate = latest[3] || '';
 
-    const datasets = partyIdx.map(p => ({
-        label: p.name,
-        data: reversed.map(r => parseFloat(r[p.index]) || null),
-        borderColor: partyColors[p.name],
-        backgroundColor: partyColors[p.name],
-        borderWidth: 2,
-        pointRadius: 0,
-        tension: 0.4,
-        spanGaps: true,
-    }));
+    const parties = Object.entries(partyIdx).map(([name, idx]) => {
+        const latestVal = parseFloat(latest[idx]) || 0;
+        const recentAvg = recent.reduce((s, r) => s + (parseFloat(r[idx]) || 0), 0) / recent.length;
+        const prevAvg   = prev.length
+            ? prev.reduce((s, r) => s + (parseFloat(r[idx]) || 0), 0) / prev.length
+            : recentAvg;
+        return { name, latestVal, recentAvg, prevAvg };
+    }).filter(p => p.latestVal > 0 || p.recentAvg > 0)
+      .sort((a, b) => b.latestVal - a.latestVal);
 
-    new Chart(ctx, {
-        type: 'line',
-        data: { labels: dates, datasets },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            interaction: { mode: 'index', intersect: false },
-            plugins: {
-                zoom: {
-                    pan: { enabled: true, mode: 'x' },
-                    zoom: { wheel: { enabled: true, modifierKey: 'shift' }, pinch: { enabled: true }, mode: 'x' },
-                },
-            },
-            scales: {
-                x: { ticks: { autoSkip: true, maxTicksLimit: 10 } },
-                y: { beginAtZero: false },
-            },
-        },
-    });
+    const maxVal = Math.max(...parties.map(p => Math.max(p.latestVal, p.recentAvg)));
+
+    const rows_html = parties.map(({ name, latestVal, recentAvg, prevAvg }) => {
+        const trend = recentAvg - prevAvg;
+        const trendSign  = trend >= 0 ? '+' : '−';
+        const trendClass = trend >= 0 ? 'text-up' : 'text-down';
+        const color = partyColors[name];
+        const latestW = maxVal > 0 ? (latestVal  / maxVal) * 100 : 0;
+        const avgW    = maxVal > 0 ? (recentAvg  / maxVal) * 100 : 0;
+
+        return `
+        <div class="pred-stat-row">
+            <div class="pred-stat-label">${name}</div>
+            <div class="pred-stat-bars">
+                <div class="pred-stat-bar pred-stat-bar--forecast"
+                     style="width:${latestW.toFixed(1)}%; background:${color};"
+                     title="Latest poll: ${latestVal.toFixed(1)}%"></div>
+                <div class="pred-stat-bar pred-stat-bar--poll"
+                     style="width:${avgW.toFixed(1)}%; background:${color}33;"
+                     title="${AVG_WINDOW}-poll average: ${recentAvg.toFixed(1)}%"></div>
+            </div>
+            <div class="pred-stat-values">
+                <span class="pred-stat-forecast" style="color:${color};">${latestVal.toFixed(1)}%</span>
+                <span class="pred-stat-sep">avg</span>
+                <span class="pred-stat-poll">${recentAvg.toFixed(1)}%</span>
+                <span class="pred-stat-delta ${trendClass}">${trendSign}${Math.abs(trend).toFixed(1)}%</span>
+            </div>
+        </div>`;
+    }).join('');
+
+    const container = document.getElementById('polls-trends-stats');
+    if (!container) return;
+    container.innerHTML = `
+        <div class="pred-stat-panel">
+            <div class="pred-stat-legend">
+                <span class="pred-stat-legend-swatch pred-stat-legend-swatch--solid"></span>Latest poll
+                <span class="pred-stat-legend-swatch pred-stat-legend-swatch--faded"></span>${AVG_WINDOW}-poll average
+                ${latestDate ? `<span style="margin-left:auto; font-size:0.75rem;">Latest: ${latestDate}</span>` : ''}
+            </div>
+            ${rows_html}
+        </div>`;
 }
 
 
