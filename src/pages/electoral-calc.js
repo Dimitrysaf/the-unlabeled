@@ -252,24 +252,39 @@ function createPollsChart(headers, rows) {
     const zoomPlugin = window['chartjs-plugin-zoom'];
     if (zoomPlugin) Chart.register(zoomPlugin);
 
+    const pollRows = rows.filter(r => !r[0].toLowerCase().includes('election'));
+    const reversed = [...pollRows].reverse();
+    const dates = reversed.map(r => r[3]);
+
+    const font = { family: 'arial, sans-serif', size: 12 };
+    const mutedColor = '#505a5f';
+    const gridColor = '#f3f2f1';
+    const borderColor = '#b1b4b6';
+
     const partyIdx = headers.reduce((acc, h, i) => {
         if (partyColors[h]) acc.push({ name: h, index: i });
         return acc;
     }, []);
 
-    const reversed = [...rows].reverse();
-    const dates = reversed.map(r => r[3]);
-
-    const datasets = partyIdx.map(p => ({
-        label: p.name,
-        data: reversed.map(r => parseFloat(r[p.index]) || null),
-        borderColor: partyColors[p.name],
-        backgroundColor: partyColors[p.name],
-        borderWidth: 2,
-        pointRadius: 0,
-        tension: 0.4,
-        spanGaps: true,
-    }));
+    const datasets = partyIdx.map(p => {
+        const data = reversed.map(r => parseFloat(r[p.index]) || null);
+        // Skip parties with no data in the most recent 15 polls
+        const hasRecent = data.slice(0, 15).some(v => v !== null);
+        if (!hasRecent) return null;
+        const color = partyColors[p.name];
+        return {
+            label: p.name,
+            data,
+            borderColor: color,
+            backgroundColor: color + '22',
+            borderWidth: 2,
+            pointRadius: 0,
+            pointHoverRadius: 4,
+            tension: 0.3,
+            spanGaps: true,
+            fill: 'origin',
+        };
+    }).filter(Boolean);
 
     new Chart(ctx, {
         type: 'line',
@@ -278,15 +293,51 @@ function createPollsChart(headers, rows) {
             responsive: true,
             maintainAspectRatio: false,
             interaction: { mode: 'index', intersect: false },
+            animation: false,
             plugins: {
+                legend: {
+                    position: 'top',
+                    align: 'start',
+                    labels: {
+                        boxWidth: 12,
+                        boxHeight: 3,
+                        font,
+                        color: '#0b0c0c',
+                        padding: 16,
+                        usePointStyle: false,
+                    },
+                },
+                tooltip: {
+                    backgroundColor: '#ffffff',
+                    borderColor: '#0b0c0c',
+                    borderWidth: 1,
+                    titleColor: '#0b0c0c',
+                    bodyColor: mutedColor,
+                    titleFont: { ...font, weight: '700' },
+                    bodyFont: font,
+                    padding: 10,
+                    callbacks: {
+                        label: ctx => ` ${ctx.dataset.label}: ${ctx.parsed.y != null ? ctx.parsed.y.toFixed(1) + '%' : '—'}`,
+                    },
+                },
                 zoom: {
                     pan: { enabled: true, mode: 'x' },
                     zoom: { wheel: { enabled: true, modifierKey: 'shift' }, pinch: { enabled: true }, mode: 'x' },
                 },
+                annotation: undefined,
             },
             scales: {
-                x: { ticks: { autoSkip: true, maxTicksLimit: 10 } },
-                y: { beginAtZero: false },
+                x: {
+                    ticks: { autoSkip: true, maxTicksLimit: 10, font, color: mutedColor },
+                    grid: { color: gridColor },
+                    border: { color: borderColor },
+                },
+                y: {
+                    beginAtZero: true,
+                    ticks: { callback: v => v + '%', font, color: mutedColor },
+                    grid: { color: gridColor },
+                    border: { color: borderColor },
+                },
             },
         },
     });
