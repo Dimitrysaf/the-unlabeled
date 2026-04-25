@@ -317,6 +317,44 @@ body {
   margin-bottom: 2rem;
 }
 
+/* ── Polls table collapsible header ── */
+.polls-table-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.75rem;
+}
+
+.polls-table-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  background: none;
+  border: 2px solid #0b0c0c;
+  cursor: pointer;
+  color: #0b0c0c;
+  flex-shrink: 0;
+}
+
+.polls-table-toggle:hover {
+  background: #f3f2f1;
+}
+
+.polls-table-toggle:focus {
+  outline: 3px solid #ffdd00;
+  outline-offset: 0;
+}
+
+.polls-toggle-chevron {
+  transition: transform 0.2s ease;
+}
+
+.polls-table-toggle[aria-expanded="false"] .polls-toggle-chevron {
+  transform: rotate(-90deg);
+}
+
 /* ── Parliament visualisation ── */
 .parliament-panel {
   background: #ffffff;
@@ -420,6 +458,94 @@ body {
 
 .prediction-card__details strong {
   color: #0b0c0c;
+}
+
+/* ── Forecast vs poll stat bars ── */
+.pred-stat-panel {
+  background: #ffffff;
+  border: 1px solid #b1b4b6;
+  padding: 1.25rem 1.5rem;
+  margin: 1.5rem 0;
+}
+
+.pred-stat-legend {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.8125rem;
+  color: #505a5f;
+  margin-bottom: 1rem;
+}
+
+.pred-stat-legend-swatch {
+  display: inline-block;
+  width: 20px;
+  height: 10px;
+  border: 1px solid #b1b4b6;
+  background: #0b0c0c;
+}
+
+.pred-stat-legend-swatch--faded {
+  background: #0b0c0c33;
+  margin-left: 0.75rem;
+}
+
+.pred-stat-row {
+  display: grid;
+  grid-template-columns: 3.5rem 1fr auto;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.4rem 0;
+  border-bottom: 1px solid #f3f2f1;
+}
+
+.pred-stat-row:last-child {
+  border-bottom: none;
+}
+
+.pred-stat-label {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: #0b0c0c;
+  white-space: nowrap;
+}
+
+.pred-stat-bars {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.pred-stat-bar {
+  height: 10px;
+  border-radius: 1px;
+  min-width: 2px;
+}
+
+.pred-stat-values {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.8125rem;
+  white-space: nowrap;
+}
+
+.pred-stat-forecast {
+  font-weight: 700;
+}
+
+.pred-stat-sep {
+  color: #b1b4b6;
+  font-size: 0.75rem;
+}
+
+.pred-stat-poll {
+  color: #505a5f;
+}
+
+.pred-stat-delta {
+  font-size: 0.75rem;
+  font-weight: 700;
 }
 
 /* ── Text colour utilities ── */
@@ -604,5 +730,15 @@ body {
 
   .ec-fields>* {
     width: 100%;
+  }
+
+  .pred-stat-row {
+    grid-template-columns: 3rem 1fr;
+    grid-template-rows: auto auto;
+  }
+
+  .pred-stat-values {
+    grid-column: 1 / -1;
+    font-size: 0.75rem;
   }
 }

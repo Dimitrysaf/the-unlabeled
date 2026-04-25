@@ -15,7 +15,6 @@ const partyColors = {
     'DPK': '#424242',
 };
 
-let predictionChartInstance = null;
 let _pollRows = [], _partyIndices = {}, _volatility = {}, _ndBias = 0;
 
 export function renderElectoralCalc() {
@@ -48,21 +47,39 @@ export function renderElectoralCalc() {
             </div>
 
             <div id="polls-table-section" style="display:none;">
-                <h2 class="govuk-heading-m">Raw polling data</h2>
-                <div class="table-scroll">
-                    <table class="govuk-table govuk-table--small-text-until-tablet" id="polls-table">
-                        <thead class="govuk-table__head" id="polls-thead"></thead>
-                        <tbody class="govuk-table__body" id="polls-tbody"></tbody>
-                    </table>
-                </div>
-                <div class="table-footer">
-                    <p class="govuk-body-s govuk-!-colour-secondary">
-                        Source:
-                        <a class="govuk-link" href="https://en.wikipedia.org/wiki/Opinion_polling_for_the_next_Greek_parliamentary_election" target="_blank" rel="noopener">Wikipedia</a>
-                    </p>
-                    <button class="govuk-button govuk-button--secondary govuk-!-margin-bottom-0" id="download-btn">
-                        <i class="fa-solid fa-download" aria-hidden="true"></i> Download CSV
+                <div class="polls-table-header">
+                    <h2 class="govuk-heading-m govuk-!-margin-bottom-0">Raw polling data</h2>
+                    <button
+                        class="polls-table-toggle"
+                        id="polls-table-toggle"
+                        aria-expanded="true"
+                        aria-controls="polls-table-body"
+                        type="button"
+                    >
+                        <svg class="polls-toggle-chevron" aria-hidden="true" focusable="false"
+                             width="20" height="20" viewBox="0 0 20 20">
+                            <path d="M5 7l5 5 5-5" stroke="currentColor" stroke-width="2"
+                                  fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                        <span class="govuk-visually-hidden">Toggle raw polling data</span>
                     </button>
+                </div>
+                <div id="polls-table-body">
+                    <div class="table-scroll">
+                        <table class="govuk-table govuk-table--small-text-until-tablet" id="polls-table">
+                            <thead class="govuk-table__head" id="polls-thead"></thead>
+                            <tbody class="govuk-table__body" id="polls-tbody"></tbody>
+                        </table>
+                    </div>
+                    <div class="table-footer">
+                        <p class="govuk-body-s govuk-!-colour-secondary">
+                            Source:
+                            <a class="govuk-link" href="https://en.wikipedia.org/wiki/Opinion_polling_for_the_next_Greek_parliamentary_election" target="_blank" rel="noopener">Wikipedia</a>
+                        </p>
+                        <button class="govuk-button govuk-button--secondary govuk-!-margin-bottom-0" id="download-btn">
+                            <i class="fa-solid fa-download" aria-hidden="true"></i> Download CSV
+                        </button>
+                    </div>
                 </div>
             </div>
 
@@ -130,10 +147,8 @@ export function renderElectoralCalc() {
                 <!-- Parliament -->
                 <div id="parliament-container" style="display:none;"></div>
 
-                <!-- Prediction chart -->
-                <div class="chart-wrapper chart-wrapper--sm">
-                    <canvas id="predictionChart"></canvas>
-                </div>
+                <!-- Forecast vs poll comparison -->
+                <div id="prediction-stats"></div>
 
                 <!-- Methodology -->
                 <div class="govuk-inset-text govuk-!-margin-top-6">
@@ -204,6 +219,14 @@ function loadPolls() {
             document.getElementById('polls-loading').style.display = 'none';
             document.getElementById('polls-table-section').style.display = 'block';
             document.getElementById('prediction-section').style.display = 'block';
+
+            const toggleBtn = document.getElementById('polls-table-toggle');
+            const tableBody = document.getElementById('polls-table-body');
+            toggleBtn.addEventListener('click', () => {
+                const isExpanded = toggleBtn.getAttribute('aria-expanded') === 'true';
+                toggleBtn.setAttribute('aria-expanded', String(!isExpanded));
+                tableBody.hidden = isExpanded;
+            });
         })
         .catch(err => {
             console.error(err);
@@ -343,7 +366,7 @@ function renderPrediction() {
 
     const seats = allocateGreekSeats(predicted);
     renderPredictionCards(predicted, base, seats);
-    renderPredictionChart(predicted, base);
+    renderPredictionStats(predicted, base);
     renderParliament(seats);
 }
 
@@ -402,13 +425,16 @@ function renderParliament(seats) {
     sorted.forEach(([party, count]) => { for (let i = 0; i < count; i++) seatList.push(party); });
 
     const arcs = [
-        { r: 130, count: 34 }, { r: 155, count: 40 },
-        { r: 180, count: 47 }, { r: 205, count: 53 },
-        { r: 230, count: 60 }, { r: 255, count: 66 },
+        { r: 120, count: 34 },
+        { r: 143, count: 40 },
+        { r: 166, count: 47 },
+        { r: 189, count: 53 },
+        { r: 213, count: 60 },
+        { r: 236, count: 66 },
     ];
 
-    const cx = 270, cy = 265;
-    let svg = `<svg viewBox="0 0 540 280" class="parliament-svg" aria-label="Parliament seat diagram">`;
+    const cx = 240, cy = 240;
+    let svg = `<svg viewBox="0 0 480 240" class="parliament-svg" aria-label="Parliament seat diagram">`;
     let idx = 0;
 
     for (const arc of arcs) {
@@ -418,7 +444,7 @@ function renderParliament(seats) {
             const x = cx + arc.r * Math.cos(angle);
             const y = cy - arc.r * Math.sin(angle);
             const color = partyColors[seatList[idx]] || '#b1b4b6';
-            svg += `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="6" fill="${color}">
+            svg += `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="4.77" fill="${color}">
                 <title>${seatList[idx]}</title>
             </circle>`;
             idx++;
@@ -478,55 +504,54 @@ function renderPredictionCards(predicted, base, seats) {
     }).join('');
 }
 
-function renderPredictionChart(predicted, base) {
-    const sorted = Object.entries(predicted).sort(([, a], [, b]) => b - a).filter(([, v]) => v >= 1.0);
-    const labels = sorted.map(([p]) => p);
-    const predData = sorted.map(([, v]) => parseFloat(v.toFixed(2)));
-    const baseData = sorted.map(([p]) => parseFloat((base[p] || 0).toFixed(2)));
-    const colors = labels.map(p => partyColors[p] || '#0b0c0c');
+function renderPredictionStats(predicted, base) {
+    const sorted = Object.entries(predicted)
+        .sort(([, a], [, b]) => b - a)
+        .filter(([, v]) => v >= 1.0);
 
-    const ctx = document.getElementById('predictionChart').getContext('2d');
-    if (predictionChartInstance) predictionChartInstance.destroy();
+    const maxVal = Math.max(
+        ...sorted.map(([p, v]) => Math.max(v, base[p] || 0))
+    );
 
-    predictionChartInstance = new Chart(ctx, {
-        type: 'bar',
-        data: {
-            labels,
-            datasets: [
-                {
-                    label: '2027 Forecast',
-                    data: predData,
-                    backgroundColor: colors,
-                    borderColor: colors,
-                    borderWidth: 2,
-                    borderRadius: 2,
-                },
-                {
-                    label: 'Poll average',
-                    data: baseData,
-                    backgroundColor: colors.map(c => c + '33'),
-                    borderColor: colors,
-                    borderWidth: 2,
-                    borderRadius: 2,
-                },
-            ],
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: { position: 'top' },
-                tooltip: {
-                    callbacks: {
-                        label: ctx => ` ${ctx.dataset.label}: ${ctx.parsed.y.toFixed(2)}%`,
-                    },
-                },
-            },
-            scales: {
-                y: { beginAtZero: true, ticks: { callback: v => v + '%' } },
-            },
-        },
-    });
+    const rows = sorted.map(([party, forecast]) => {
+        const poll = base[party] || 0;
+        const delta = forecast - poll;
+        const deltaSign = delta >= 0 ? '+' : '−';
+        const deltaClass = delta >= 0 ? 'text-up' : 'text-down';
+        const color = partyColors[party] || '#0b0c0c';
+        const forecastW = maxVal > 0 ? (forecast / maxVal) * 100 : 0;
+        const pollW = maxVal > 0 ? (poll / maxVal) * 100 : 0;
+
+        return `
+        <div class="pred-stat-row">
+            <div class="pred-stat-label">${party}</div>
+            <div class="pred-stat-bars">
+                <div class="pred-stat-bar pred-stat-bar--forecast"
+                     style="width:${forecastW.toFixed(1)}%; background:${color};"
+                     title="2027 Forecast: ${forecast.toFixed(1)}%"></div>
+                <div class="pred-stat-bar pred-stat-bar--poll"
+                     style="width:${pollW.toFixed(1)}%; background:${color}33;"
+                     title="Poll average: ${poll.toFixed(1)}%"></div>
+            </div>
+            <div class="pred-stat-values">
+                <span class="pred-stat-forecast" style="color:${color};">${forecast.toFixed(1)}%</span>
+                <span class="pred-stat-sep">vs</span>
+                <span class="pred-stat-poll">${poll.toFixed(1)}%</span>
+                <span class="pred-stat-delta ${deltaClass}">${deltaSign}${Math.abs(delta).toFixed(1)}%</span>
+            </div>
+        </div>`;
+    }).join('');
+
+    const container = document.getElementById('prediction-stats');
+    if (!container) return;
+    container.innerHTML = `
+        <div class="pred-stat-panel">
+            <div class="pred-stat-legend">
+                <span class="pred-stat-legend-swatch pred-stat-legend-swatch--solid"></span>2027 Forecast
+                <span class="pred-stat-legend-swatch pred-stat-legend-swatch--faded"></span>Poll average
+            </div>
+            ${rows}
+        </div>`;
 }
 
 
