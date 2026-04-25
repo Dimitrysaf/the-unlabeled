@@ -1159,3 +1159,90 @@ body {
   flex-direction: column;
   gap: 0;
 }
+
+/* ── Print styles ── */
+@media print {
+
+  /* Hide chrome */
+  header,
+  .govuk-service-navigation,
+  .govuk-footer,
+  .article-meta-row,
+  .govuk-back-link,
+  #polls-table-toggle,
+  .polls-table-toggle,
+  .ec-controls-grid,
+  #download-btn,
+  .govuk-button,
+  .table-footer {
+    display: none !important;
+  }
+
+  /* Reset layout */
+  body,
+  #app,
+  .content-area,
+  .govuk-main-wrapper,
+  .govuk-width-container {
+    margin: 0 !important;
+    padding: 0 !important;
+    max-width: none !important;
+    width: 100% !important;
+    background: #fff !important;
+    color: #000 !important;
+  }
+
+  /* Article content */
+  .article-image {
+    max-height: 260px;
+    width: 100%;
+    object-fit: cover;
+    margin-bottom: 1rem;
+    border-bottom: 2px solid #000 !important;
+  }
+
+  .article-body {
+    max-width: none;
+  }
+
+  /* Tables — show the raw data table expanded */
+  #polls-table-body, .govuk-details {
+    display: block !important;
+  }
+
+  .table-scroll {
+    overflow: visible !important;
+  }
+
+  /* Prediction cards — stack tightly */
+  .prediction-cards {
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .prediction-card {
+    max-width: 140px;
+    flex: 1 1 120px;
+    page-break-inside: avoid;
+  }
+
+  /* Parliament panel — keep together */
+  .parliament-panel,
+  .coalition-panel,
+  .pred-stat-panel {
+    page-break-inside: avoid;
+    border: 1px solid #000 !important;
+    box-shadow: none !important;
+  }
+
+  /* Suppress animation */
+  * {
+    animation: none !important;
+    transition: none !important;
+  }
+
+  /* Page setup */
+  @page {
+    margin: 1.5cm;
+  }
+}

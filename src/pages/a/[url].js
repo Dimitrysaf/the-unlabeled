@@ -21,17 +21,24 @@ function buildBreadcrumb() {
 
 function buildShare() {
     return `
-        <a class="govuk-link" href="#"
-            onclick="
-                var a=this, old=a.textContent, t=document.createElement('textarea');
-                t.value=window.location.href;
-                document.body.appendChild(t);
-                t.select();
-                try { document.execCommand('copy'); a.textContent='Copied!'; } catch(e) {}
-                document.body.removeChild(t);
-                setTimeout(function(){ a.textContent=old; }, 2000);
-                return false;
-            ">Copy link</a>`;
+        <span class="article-actions">
+            <a class="govuk-link" href="#"
+                aria-label="Copy link to this article"
+                onclick="
+                    var a=this, old=a.innerHTML, t=document.createElement('textarea');
+                    t.value=window.location.href;
+                    document.body.appendChild(t);
+                    t.select();
+                    try { document.execCommand('copy'); a.innerHTML='Copied!'; } catch(e) {}
+                    document.body.removeChild(t);
+                    setTimeout(function(){ a.innerHTML=old; }, 2000);
+                    return false;
+                ">Copy link</a>
+            <a class="govuk-link" href="#"
+                aria-label="Print this article"
+                onclick="window.print();return false;"
+                >Print</a>
+        </span>`;
 }
 
 function buildTags(tags = []) {
