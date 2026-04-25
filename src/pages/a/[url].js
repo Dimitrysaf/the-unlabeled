@@ -15,39 +15,23 @@ const MODULE_REGISTRY = {
 // SHARED BUILDERS
 // ─────────────────────────────────────────────
 
-function buildBreadcrumb(title) {
-    return `
-        <nav class="govuk-breadcrumbs govuk-breadcrumbs--collapse-on-mobile govuk-!-margin-bottom-4" aria-label="Breadcrumb">
-            <ol class="govuk-breadcrumbs__list">
-                <li class="govuk-breadcrumbs__list-item">
-                    <a class="govuk-breadcrumbs__link" href="/">Home</a>
-                </li>
-                <li class="govuk-breadcrumbs__list-item" aria-current="page">${title}</li>
-            </ol>
-        </nav>`;
+function buildBreadcrumb() {
+    return `<a class="govuk-back-link" href="/" onclick="event.preventDefault();history.length>1?history.back():location.href='/';">Back</a>`;
 }
 
 function buildShare() {
     return `
-        <div class="share-wrapper">
-            <button class="govuk-button govuk-button--secondary" style="min-width:130px;"
-                onclick="
-                    var b=this, old=b.innerHTML, t=document.createElement('textarea');
-                    t.value=window.location.href;
-                    document.body.appendChild(t);
-                    t.select();
-                    try {
-                        document.execCommand('copy');
-                        b.innerHTML = 'Copied!';
-                    } catch(e) {
-                        console.error(e);
-                    }
-                    document.body.removeChild(t);
-                    setTimeout(function(){ b.innerHTML=old; }, 2000);
-                ">
-                Copy link
-            </button>
-        </div>`;
+        <a class="govuk-link" href="#"
+            onclick="
+                var a=this, old=a.textContent, t=document.createElement('textarea');
+                t.value=window.location.href;
+                document.body.appendChild(t);
+                t.select();
+                try { document.execCommand('copy'); a.textContent='Copied!'; } catch(e) {}
+                document.body.removeChild(t);
+                setTimeout(function(){ a.textContent=old; }, 2000);
+                return false;
+            ">Copy link</a>`;
 }
 
 function buildTags(tags = []) {
@@ -84,14 +68,14 @@ function buildPage(article, bodyHtml) {
     const { title = 'Untitled', subtitle = '', image = '', tags = [], author = {}, date = '' } = article;
 
     const imageHtml = image
-        ? `<img class="article-image" src="${image}" alt="${title}">`
+        ? `<img class="article-image" style="border-bottom: 3px solid #000;" src="${image}" alt="${title}">`
         : '';
 
     return `
         ${imageHtml}
-        <div class="article-meta-row">
-            <div style="flex:1;">${buildBreadcrumb(title)}</div>
-            <div style="flex:0;">${buildShare()}</div>
+        <div class="article-meta-row" style="align-items: center;">
+            <div style="flex:1;">${buildBreadcrumb()}</div>
+            <div>${buildShare()}</div>
         </div>
         <h1 class="govuk-heading-xl govuk-!-margin-bottom-2">${title}</h1>
         ${subtitle ? `<p class="govuk-body-l govuk-!-colour-secondary govuk-!-margin-bottom-4">${subtitle}</p>` : ''}
