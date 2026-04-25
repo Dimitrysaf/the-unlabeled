@@ -1,6 +1,6 @@
 import { updateContent } from '../components/Layout.js';
 import { renderGrid } from '../components/Grid.js';
-import { searchArticles } from '../data/~articles.js';
+import { searchArticles } from '../data/articles.js';
 
 export async function renderSearch() {
     const params = new URLSearchParams(window.location.search);

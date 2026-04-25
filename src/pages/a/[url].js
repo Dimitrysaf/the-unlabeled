@@ -1,7 +1,7 @@
 import { updateContent } from '../../components/Layout.js';
 import { renderError } from '../../components/ErrorPage.js';
-import { sampleArticleContent } from '../../data/articleContent.test.js';
-import { getArticleBySlug } from '../../data/~articles.js';
+import { sampleArticleContent } from '../../data/~articleContent.test.js';
+import { getArticleBySlug } from '../../data/articles.js';
 
 // ─────────────────────────────────────────────
 // MODULE REGISTRY

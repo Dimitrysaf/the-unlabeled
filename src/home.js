@@ -1,6 +1,6 @@
 import { updateContent } from './components/Layout.js';
 import { renderGrid } from './components/Grid.js';
-import { getArticles } from './data/~articles.js';
+import { getArticles } from './data/articles.js';
 
 export async function renderHome() {
     const heroHtml = `
