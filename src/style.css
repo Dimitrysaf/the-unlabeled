@@ -1067,3 +1067,131 @@ body {
     max-width: calc(50% - 0.5rem);
   }
 }
+
+/* ── Header inner layout (logo + search) ── */
+.header-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+/* ── Header search bar ── */
+.header-search {
+  display: flex;
+  align-items: stretch;
+  height: 36px;
+  flex-shrink: 0;
+}
+
+.header-search__input {
+  appearance: none;
+  -webkit-appearance: none;
+  border: 2px solid #0b0c0c;
+  border-right: none;
+  background: #ffffff;
+  padding: 0 0.625rem;
+  font-family: arial, sans-serif;
+  font-size: 0.875rem;
+  color: #0b0c0c;
+  width: 200px;
+  height: 100%;
+  outline: none;
+  box-sizing: border-box;
+}
+
+.header-search__input::placeholder {
+  color: #767676;
+}
+
+.header-search__input:focus {
+  outline: 3px solid #ffdd00;
+  outline-offset: 0;
+  z-index: 1;
+  position: relative;
+}
+
+/* Clear the native "x" in webkit search inputs */
+.header-search__input::-webkit-search-cancel-button {
+  -webkit-appearance: none;
+}
+
+.header-search__btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 100%;
+  background: #0b0c0c;
+  border: 2px solid #0b0c0c;
+  color: #ffffff;
+  cursor: pointer;
+  flex-shrink: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+.header-search__btn:hover {
+  background: #1d1d1d;
+  border-color: #1d1d1d;
+}
+
+.header-search__btn:focus {
+  outline: 3px solid #ffdd00;
+  outline-offset: 0;
+}
+
+@media (max-width: 40em) {
+  .header-search__input {
+    width: 120px;
+    font-size: 0.8125rem;
+  }
+}
+
+@media (max-width: 28em) {
+  .header-search__input {
+    width: 90px;
+  }
+}
+
+/* ── Search results page ── */
+.search-results {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.search-result {
+  border-bottom: 1px solid #b1b4b6;
+  padding: 1.25rem 0;
+}
+
+.search-result:first-child {
+  border-top: 1px solid #b1b4b6;
+}
+
+.search-result__inner {
+  display: flex;
+  gap: 1.25rem;
+  align-items: flex-start;
+}
+
+.search-result__img {
+  flex-shrink: 0;
+  width: 120px;
+  height: 80px;
+  object-fit: cover;
+  display: block;
+}
+
+.search-result__body {
+  flex: 1;
+  min-width: 0;
+}
+
+@media (max-width: 40em) {
+  .search-result__img {
+    width: 80px;
+    height: 56px;
+  }
+}

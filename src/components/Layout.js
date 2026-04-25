@@ -27,7 +27,27 @@ export function initLayout() {
     app.innerHTML = `
         <header style="background: #f3f2f1; color: #0b0c0c; padding: 12px 0; border-bottom: 1px solid #d4d2cf;">
             <div class="govuk-width-container">
-                ${renderLogo()}
+                <div class="header-inner">
+                    ${renderLogo()}
+                    <form class="header-search" role="search" id="header-search-form" action="/search">
+                        <label class="govuk-visually-hidden" for="site-search">Search articles</label>
+                        <input
+                            class="header-search__input"
+                            type="search"
+                            id="site-search"
+                            name="q"
+                            placeholder="Search…"
+                            autocomplete="off"
+                            value="${new URLSearchParams(window.location.search).get('q') || ''}"
+                        >
+                        <button class="header-search__btn" type="submit" aria-label="Search">
+                            <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true" focusable="false">
+                                <circle cx="7.5" cy="7.5" r="5.5" stroke="currentColor" stroke-width="2"/>
+                                <line x1="11.7" y1="11.7" x2="16" y2="16" stroke="currentColor" stroke-width="2" stroke-linecap="square"/>
+                            </svg>
+                        </button>
+                    </form>
+                </div>
             </div>
         </header>
 
@@ -68,7 +88,20 @@ export function initLayout() {
         </footer>
     `;
 
+    _initSearchForm();
     _initServiceNavFallback();
+}
+
+function _initSearchForm() {
+    const form = document.getElementById('header-search-form');
+    if (!form) return;
+    form.addEventListener('submit', e => {
+        e.preventDefault();
+        const q = form.querySelector('input[name="q"]').value.trim();
+        if (q) {
+            window.location.href = '/search?q=' + encodeURIComponent(q);
+        }
+    });
 }
 
 const MOBILE_MQ = window.matchMedia('(max-width: 640px)');

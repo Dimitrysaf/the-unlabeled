@@ -4,6 +4,7 @@ import { renderError } from './components/ErrorPage.js';
 import { renderArticlePage } from './pages/a/[url].js';
 import { renderAbout } from './pages/about.js';
 import { renderLegal } from './pages/legal.js';
+import { renderSearch } from './pages/search.js';
 
 document.addEventListener('DOMContentLoaded', async () => {
     initLayout();
@@ -15,6 +16,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     } else if (path.startsWith('/a/')) {
         const slug = path.replace('/a/', '').replace(/\/+$/, '');
         await renderArticlePage(slug);
+    } else if (path === '/search') {
+        renderSearch();
     } else if (path === '/about') {
         renderAbout();
     } else if (path === '/legal') {
