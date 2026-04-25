@@ -851,3 +851,219 @@ body {
   outline: none;
   background: none;
 }
+
+/* ── Electoral calc skeleton loader ─────────────────────────────────────── */
+
+/* Remove the old ec-loader styles — these replace them */
+.ec-loader {
+  display: none;
+}
+
+.ec-skeleton {
+  padding: 0 0 2.5rem;
+}
+
+/* ── Fake chart ── */
+.ec-skeleton__chart {
+  position: relative;
+  width: 100%;
+  height: 300px;
+  border: 1px solid #b1b4b6;
+  background: #fff;
+  margin-bottom: 0.5rem;
+  overflow: hidden;
+  display: flex;
+}
+
+.ec-skeleton__chart-yaxis {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 0.75rem 0.5rem 0.75rem 0.75rem;
+  flex-shrink: 0;
+  gap: 0;
+}
+
+.ec-skeleton__chart-yaxis span {
+  display: block;
+  width: 24px;
+  height: 9px;
+  border-radius: 2px;
+  background: linear-gradient(90deg, #f3f2f1 25%, #e6e6e6 50%, #f3f2f1 75%);
+  background-size: 200% 100%;
+  animation: govuk-shimmer 1.6s ease-in-out infinite;
+}
+
+.ec-skeleton__chart-body {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Shimmer wash over the chart body */
+.ec-skeleton__chart-body::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.55) 50%, transparent 100%);
+  background-size: 200% 100%;
+  animation: govuk-shimmer 1.8s ease-in-out infinite;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.ec-skeleton__chart-svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+/* ── Fake legend ── */
+.ec-skeleton__legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 1rem;
+  margin-bottom: 2rem;
+  align-items: center;
+}
+
+.ec-skeleton__legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+/* Coloured line stub — uses the actual party colour passed via --c */
+.ec-skeleton__legend-item::before {
+  content: '';
+  display: inline-block;
+  width: 18px;
+  height: 2.5px;
+  background: var(--c, #b1b4b6);
+  opacity: 0.35;
+  flex-shrink: 0;
+}
+
+/* Shimmer label pill */
+.ec-skeleton__legend-item::after {
+  content: '';
+  display: inline-block;
+  width: 30px;
+  height: 11px;
+  border-radius: 2px;
+  background: linear-gradient(90deg, #f3f2f1 25%, #e6e6e6 50%, #f3f2f1 75%);
+  background-size: 200% 100%;
+  animation: govuk-shimmer 1.6s ease-in-out infinite;
+}
+
+/* Stagger legend shimmer */
+.ec-skeleton__legend-item:nth-child(2)::after {
+  animation-delay: 0.08s;
+}
+
+.ec-skeleton__legend-item:nth-child(3)::after {
+  animation-delay: 0.16s;
+}
+
+.ec-skeleton__legend-item:nth-child(4)::after {
+  animation-delay: 0.24s;
+}
+
+.ec-skeleton__legend-item:nth-child(5)::after {
+  animation-delay: 0.32s;
+}
+
+.ec-skeleton__legend-item:nth-child(6)::after {
+  animation-delay: 0.40s;
+}
+
+.ec-skeleton__legend-item:nth-child(7)::after {
+  animation-delay: 0.48s;
+}
+
+.ec-skeleton__legend-item:nth-child(8)::after {
+  animation-delay: 0.56s;
+}
+
+/* ── Fake prediction cards ── */
+.ec-skeleton__cards {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-bottom: 0.5rem;
+}
+
+.ec-skeleton__card {
+  flex: 1 1 130px;
+  max-width: 180px;
+  height: 148px;
+  border: 1px solid #b1b4b6;
+  border-top: 5px solid #dde0e4;
+  background: linear-gradient(90deg, #f8f8f8 25%, #efefef 50%, #f8f8f8 75%);
+  background-size: 200% 100%;
+  animation: govuk-shimmer 1.6s ease-in-out infinite;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Inner detail lines on each card */
+.ec-skeleton__card::before,
+.ec-skeleton__card::after {
+  content: '';
+  position: absolute;
+  left: 1rem;
+  right: 1rem;
+  height: 10px;
+  border-radius: 2px;
+  background: rgba(0, 0, 0, 0.06);
+}
+
+.ec-skeleton__card::before {
+  top: 1rem;
+  width: 40%;
+}
+
+.ec-skeleton__card::after {
+  top: 2.5rem;
+  width: 60%;
+}
+
+/* Stagger card shimmer */
+.ec-skeleton__card:nth-child(2) {
+  animation-delay: 0.07s;
+}
+
+.ec-skeleton__card:nth-child(3) {
+  animation-delay: 0.14s;
+}
+
+.ec-skeleton__card:nth-child(4) {
+  animation-delay: 0.21s;
+}
+
+.ec-skeleton__card:nth-child(5) {
+  animation-delay: 0.28s;
+}
+
+.ec-skeleton__card:nth-child(6) {
+  animation-delay: 0.35s;
+}
+
+.ec-skeleton__card:nth-child(7) {
+  animation-delay: 0.42s;
+}
+
+.ec-skeleton__card:nth-child(8) {
+  animation-delay: 0.49s;
+}
+
+@media (max-width: 40em) {
+  .ec-skeleton__chart {
+    height: 220px;
+  }
+
+  .ec-skeleton__card {
+    max-width: calc(50% - 0.5rem);
+  }
+}

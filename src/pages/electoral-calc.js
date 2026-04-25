@@ -20,13 +20,300 @@ let _houseEffects = {}, _longRunAvg = {};
 
 
 // ─────────────────────────────────────────────
-// TEMPLATE
+// TEMPLATE  (pure HTML — no updateContent call)
+// ─────────────────────────────────────────────
+
+export function getCalcHTML() {
+    const skeletonLegend = [
+        { c: '#1d4e89' }, 
+        { c: '#00a14b' },
+        { c: '#ff4b4b' },
+        { c: '#ed1c24' }, 
+        { c: '#0d3b66' }, 
+        { c: '#8a2be2' }, 
+        { c: '#e20074' }, 
+        { c: '#0097a7' },
+    ].map(p => `<span class="ec-skeleton__legend-item" style="--c:${p.c}"></span>`).join('');
+
+    // Fake chart polylines — static ghost of what the real chart will look like.
+    const fakeLines = [
+        { pts: '0,215 60,190 130,170 200,182 280,145 360,130 440,138 520,115 620,105 720,98 824,88', c: '#1d4e89', o: 0.22 },
+        { pts: '0,148 60,155 130,140 200,152 280,158 360,145 440,150 520,143 620,148 720,140 824,145', c: '#00a14b', o: 0.18 },
+        { pts: '0,185 60,175 130,190 200,178 280,188 360,175 440,180 520,172 620,177 720,168 824,174', c: '#ff4b4b', o: 0.18 },
+        { pts: '0,228 60,222 130,230 200,220 280,226 360,218 440,224 520,215 620,222 720,214 824,220', c: '#ed1c24', o: 0.14 },
+        { pts: '0,240 60,235 130,242 200,234 280,238 360,230 440,236 520,228 620,234 720,226 824,232', c: '#0d3b66', o: 0.12 },
+    ].map(l =>
+        `<polyline points="${l.pts}" fill="none" stroke="${l.c}" stroke-width="2.5" opacity="${l.o}" stroke-linejoin="round" stroke-linecap="round"/>`
+    ).join('');
+
+    const gridLines = [60, 120, 180, 240].map(y =>
+        `<line x1="44" y1="${y}" x2="836" y2="${y}" stroke="#f0f0f0" stroke-width="1"/>`
+    ).join('');
+
+    const yLabels = ['40%', '30%', '20%', '10%'].map((lbl, i) =>
+        `<text x="38" y="${60 + i * 60 + 4}" text-anchor="end" font-size="11" fill="#d4d4d4" font-family="arial,sans-serif">${lbl}</text>`
+    ).join('');
+
+    return `
+        <div class="govuk-grid-row govuk-!-margin-top-4">
+            <div class="govuk-grid-column-full">
+                <h2 class="govuk-heading-m">Polling trends</h2>
+                <div class="chart-wrapper" id="pollsChart"></div>
+            </div>
+        </div>
+
+        <div id="polls-loading" class="ec-skeleton" role="status" aria-label="Loading polling data">
+
+            <div class="ec-skeleton__chart">
+                <div class="ec-skeleton__chart-yaxis">
+                    <span></span><span></span><span></span><span></span><span></span>
+                </div>
+                <div class="ec-skeleton__chart-body">
+                    <svg class="ec-skeleton__chart-svg" viewBox="0 0 880 300"
+                         preserveAspectRatio="none" aria-hidden="true">
+                        ${gridLines}
+                        ${yLabels}
+                        ${fakeLines}
+                    </svg>
+                </div>
+            </div>
+
+            <div class="ec-skeleton__legend" aria-hidden="true">
+                ${skeletonLegend}
+            </div>
+
+            <div class="ec-skeleton__cards" aria-hidden="true">
+                <div class="ec-skeleton__card"></div>
+                <div class="ec-skeleton__card"></div>
+                <div class="ec-skeleton__card"></div>
+                <div class="ec-skeleton__card"></div>
+                <div class="ec-skeleton__card"></div>
+                <div class="ec-skeleton__card"></div>
+                <div class="ec-skeleton__card"></div>
+                <div class="ec-skeleton__card"></div>
+            </div>
+
+        </div>
+
+        <div id="polls-table-section" style="display:none;">
+            <div class="polls-table-header">
+                <h2 class="govuk-heading-m govuk-!-margin-bottom-0">Raw polling data</h2>
+                <button class="polls-table-toggle" id="polls-table-toggle"
+                    aria-expanded="false" aria-controls="polls-table-body" type="button">
+                    <svg class="polls-toggle-chevron" aria-hidden="true" focusable="false"
+                         width="20" height="20" viewBox="0 0 20 20">
+                        <path d="M5 7l5 5 5-5" stroke="currentColor" stroke-width="2"
+                              fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    <span class="govuk-visually-hidden">Toggle raw polling data</span>
+                </button>
+            </div>
+            <div id="polls-table-body" hidden>
+                <div class="table-scroll">
+                    <table class="govuk-table govuk-table--small-text-until-tablet">
+                        <thead class="govuk-table__head" id="polls-thead"></thead>
+                        <tbody class="govuk-table__body" id="polls-tbody"></tbody>
+                    </table>
+                </div>
+                <div class="table-footer">
+                    <p class="govuk-body-s govuk-!-colour-secondary">
+                        Source: <a class="govuk-link"
+                            href="https://en.wikipedia.org/wiki/Opinion_polling_for_the_next_Greek_parliamentary_election"
+                            target="_blank" rel="noopener">Wikipedia</a>
+                    </p>
+                    <button class="govuk-button govuk-button--secondary govuk-!-margin-bottom-0" id="download-btn">
+                        <i class="fa-solid fa-download" aria-hidden="true"></i> Download CSV
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div id="prediction-section" style="display:none;">
+            <hr class="section-rule">
+            <h2 class="govuk-heading-l">2027 election forecast</h2>
+            <p class="govuk-body govuk-!-colour-secondary">
+                Multi-variable model: weighted polling average, abstention, house effects,
+                momentum, mean reversion, threshold risk and historical bias correction.
+            </p>
+
+            <div class="ec-controls-grid">
+
+                <div class="ec-control-group">
+                    <h3 class="govuk-heading-s ec-control-group__title">Turnout &amp; base</h3>
+
+                    <div class="govuk-form-group">
+                        <label class="govuk-label govuk-label--s" for="abstention-slider">
+                            Abstention rate: <strong id="abstention-value">35</strong>%
+                        </label>
+                        <input class="govuk-range" type="range" id="abstention-slider"
+                            min="20" max="65" value="35" step="1">
+                        <div class="govuk-hint">Expected non-voters on election day.</div>
+                    </div>
+
+                    <div class="govuk-form-group">
+                        <label class="govuk-label govuk-label--s" for="polls-count-select">Poll base</label>
+                        <select class="govuk-select" id="polls-count-select">
+                            <option value="5">Last 5 polls</option>
+                            <option value="10" selected>Last 10 polls</option>
+                            <option value="20">Last 20 polls</option>
+                            <option value="all">All polls</option>
+                        </select>
+                    </div>
+
+                    <div class="govuk-form-group govuk-checkboxes govuk-checkboxes--small">
+                        <div class="govuk-checkboxes__item">
+                            <input class="govuk-checkboxes__input" id="sample-weight-checkbox" type="checkbox" checked>
+                            <label class="govuk-label govuk-checkboxes__label" for="sample-weight-checkbox">
+                                Sample size weighting
+                            </label>
+                            <div class="govuk-hint govuk-checkboxes__hint">
+                                Weight polls by √n — larger samples count more.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="ec-control-group">
+                    <h3 class="govuk-heading-s ec-control-group__title">Bias corrections</h3>
+
+                    <div class="govuk-form-group govuk-checkboxes govuk-checkboxes--small">
+                        <div class="govuk-checkboxes__item">
+                            <input class="govuk-checkboxes__input" id="nd-correction-checkbox" type="checkbox" checked>
+                            <label class="govuk-label govuk-checkboxes__label" for="nd-correction-checkbox">
+                                ND historical bias
+                                <strong id="nd-bias-label" style="color:#1d4e89;margin-left:4px;"></strong>
+                            </label>
+                            <div class="govuk-hint govuk-checkboxes__hint">
+                                Corrects ND's systematic gap between polls and election results.
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="govuk-form-group govuk-checkboxes govuk-checkboxes--small">
+                        <div class="govuk-checkboxes__item">
+                            <input class="govuk-checkboxes__input" id="house-effects-checkbox" type="checkbox" checked>
+                            <label class="govuk-label govuk-checkboxes__label" for="house-effects-checkbox">
+                                House effects correction
+                            </label>
+                            <div class="govuk-hint govuk-checkboxes__hint">
+                                Adjusts for each firm's systematic over/underestimation per party.
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="govuk-form-group govuk-checkboxes govuk-checkboxes--small">
+                        <div class="govuk-checkboxes__item">
+                            <input class="govuk-checkboxes__input" id="lead-compression-checkbox" type="checkbox" checked>
+                            <label class="govuk-label govuk-checkboxes__label" for="lead-compression-checkbox">
+                                Lead compression
+                            </label>
+                            <div class="govuk-hint govuk-checkboxes__hint">
+                                Large leads shrink on election day due to tactical voting.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="ec-control-group">
+                    <h3 class="govuk-heading-s ec-control-group__title">Trend modelling</h3>
+
+                    <div class="govuk-form-group">
+                        <label class="govuk-label govuk-label--s" for="momentum-slider">
+                            Momentum factor: <strong id="momentum-value">50</strong>%
+                        </label>
+                        <input class="govuk-range" type="range" id="momentum-slider"
+                            min="0" max="100" value="50" step="5">
+                        <div class="govuk-hint">Weight given to each party's current polling trend.</div>
+                    </div>
+
+                    <div class="govuk-form-group">
+                        <label class="govuk-label govuk-label--s" for="reversion-slider">
+                            Mean reversion: <strong id="reversion-value">20</strong>%
+                        </label>
+                        <input class="govuk-range" type="range" id="reversion-slider"
+                            min="0" max="60" value="20" step="5">
+                        <div class="govuk-hint">Pull toward each party's long-run polling average.</div>
+                    </div>
+
+                    <div class="govuk-form-group govuk-checkboxes govuk-checkboxes--small">
+                        <div class="govuk-checkboxes__item">
+                            <input class="govuk-checkboxes__input" id="threshold-risk-checkbox" type="checkbox" checked>
+                            <label class="govuk-label govuk-checkboxes__label" for="threshold-risk-checkbox">
+                                Threshold risk redistribution
+                            </label>
+                            <div class="govuk-hint govuk-checkboxes__hint">
+                                Parties near 3% may fail; redistribute their expected lost votes.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <details class="govuk-details">
+                <summary class="govuk-details__summary">
+                    <span class="govuk-details__summary-text">House effects by polling firm</span>
+                </summary>
+                <div class="govuk-details__text" id="house-effects-table"></div>
+            </details>
+
+            <h3 class="govuk-heading-m govuk-!-margin-bottom-2">Forecast by party</h3>
+            <div class="prediction-cards" id="prediction-cards"></div>
+
+            <div id="parliament-container" style="display:none;"></div>
+            <div id="coalition-container" style="display:none;"></div>
+            <div id="prediction-stats"></div>
+
+            <details class="govuk-details govuk-!-margin-top-6">
+                <summary class="govuk-details__summary">
+                    <span class="govuk-details__summary-text">Methodology &amp; electoral law</span>
+                </summary>
+                <div class="govuk-details__text">
+                    <h3 class="govuk-heading-s">Model variables</h3>
+                    <ul class="govuk-list govuk-list--bullet govuk-body-s">
+                        <li><strong>Recency weighting:</strong> More recent polls receive up to 2× weight.</li>
+                        <li><strong>Sample size weighting:</strong> Each poll weighted by √n of its sample size.</li>
+                        <li><strong>House effects:</strong> Per-firm systematic deviation from the cross-firm mean, subtracted at poll level. Requires ≥3 polls per firm.</li>
+                        <li><strong>ND historical bias:</strong> ND's average underestimation in polls vs. actual election results across past elections.</li>
+                        <li><strong>Abstention penalty:</strong> abstention × (0.5 + 0.5 × volatility) applied per party.</li>
+                        <li><strong>Momentum:</strong> Linear regression slope over the selected poll window, scaled by the momentum factor.</li>
+                        <li><strong>Trend acceleration:</strong> Comparison of recent vs. earlier momentum, shown as an indicator on each forecast card.</li>
+                        <li><strong>Mean reversion:</strong> Partial pull toward each party's long-run polling average.</li>
+                        <li><strong>Lead compression:</strong> Leads above 10pp are partially compressed — 15% of the excess is redistributed to 2nd and 3rd place.</li>
+                        <li><strong>Threshold risk redistribution:</strong> Parties polling 3–7% face a failure probability based on volatility and distance from the threshold. Expected lost votes redistribute to parties safely above it.</li>
+                    </ul>
+                    <h3 class="govuk-heading-s">Seat allocation (Law 4654/2020)</h3>
+                    <p class="govuk-body-s govuk-!-margin-bottom-0">
+                        3% threshold. Tiered first-place bonus: 20 seats at 25%, +1 per 0.5pp, capped at 50.
+                        Remainder by Largest Remainder method.
+                    </p>
+                </div>
+            </details>
+
+        </div>
+    `;
+}
+
+
+// ─────────────────────────────────────────────
+// INIT  (attaches events and kicks off data load — call after HTML is in DOM)
+// ─────────────────────────────────────────────
+
+export function initCalc() {
+    loadPolls();
+    document.getElementById('download-btn').addEventListener('click', () => {
+        window.location.href = '/polls.csv';
+    });
+}
+
+
+// ─────────────────────────────────────────────
+// STANDALONE PAGE RENDER  (for the /electoral-calc direct route)
 // ─────────────────────────────────────────────
 
 export function renderElectoralCalc() {
     updateContent(`
         <div class="govuk-!-padding-top-2 govuk-!-padding-bottom-9">
-
             <div class="govuk-grid-row">
                 <div class="govuk-grid-column-full">
                     <h1 class="govuk-heading-xl govuk-!-margin-bottom-1">Electoral Model 2027</h1>
@@ -35,222 +322,10 @@ export function renderElectoralCalc() {
                     </p>
                 </div>
             </div>
-
-            <div class="govuk-grid-row">
-                <div class="govuk-grid-column-full">
-                    <h2 class="govuk-heading-m">Polling trends</h2>
-                    <div class="chart-wrapper" id="pollsChart"></div>
-                </div>
-            </div>
-
-            <div id="polls-loading" class="ec-loader">
-                <div class="ec-spinner"></div>
-                Loading polling data…
-            </div>
-
-            <div id="polls-table-section" style="display:none;">
-                <div class="polls-table-header">
-                    <h2 class="govuk-heading-m govuk-!-margin-bottom-0">Raw polling data</h2>
-                    <button class="polls-table-toggle" id="polls-table-toggle"
-                        aria-expanded="false" aria-controls="polls-table-body" type="button">
-                        <svg class="polls-toggle-chevron" aria-hidden="true" focusable="false"
-                             width="20" height="20" viewBox="0 0 20 20">
-                            <path d="M5 7l5 5 5-5" stroke="currentColor" stroke-width="2"
-                                  fill="none" stroke-linecap="round" stroke-linejoin="round"/>
-                        </svg>
-                        <span class="govuk-visually-hidden">Toggle raw polling data</span>
-                    </button>
-                </div>
-                <div id="polls-table-body" hidden>
-                    <div class="table-scroll">
-                        <table class="govuk-table govuk-table--small-text-until-tablet">
-                            <thead class="govuk-table__head" id="polls-thead"></thead>
-                            <tbody class="govuk-table__body" id="polls-tbody"></tbody>
-                        </table>
-                    </div>
-                    <div class="table-footer">
-                        <p class="govuk-body-s govuk-!-colour-secondary">
-                            Source: <a class="govuk-link"
-                                href="https://en.wikipedia.org/wiki/Opinion_polling_for_the_next_Greek_parliamentary_election"
-                                target="_blank" rel="noopener">Wikipedia</a>
-                        </p>
-                        <button class="govuk-button govuk-button--secondary govuk-!-margin-bottom-0" id="download-btn">
-                            <i class="fa-solid fa-download" aria-hidden="true"></i> Download CSV
-                        </button>
-                    </div>
-                </div>
-            </div>
-
-            <div id="prediction-section" style="display:none;">
-                <hr class="section-rule">
-                <h2 class="govuk-heading-l">2027 election forecast</h2>
-                <p class="govuk-body govuk-!-colour-secondary">
-                    Multi-variable model: weighted polling average, abstention, house effects,
-                    momentum, mean reversion, threshold risk and historical bias correction.
-                </p>
-
-                <div class="ec-controls-grid">
-
-                    <div class="ec-control-group">
-                        <h3 class="govuk-heading-s ec-control-group__title">Turnout &amp; base</h3>
-
-                        <div class="govuk-form-group">
-                            <label class="govuk-label govuk-label--s" for="abstention-slider">
-                                Abstention rate: <strong id="abstention-value">35</strong>%
-                            </label>
-                            <input class="govuk-range" type="range" id="abstention-slider"
-                                min="20" max="65" value="35" step="1">
-                            <div class="govuk-hint">Expected non-voters on election day.</div>
-                        </div>
-
-                        <div class="govuk-form-group">
-                            <label class="govuk-label govuk-label--s" for="polls-count-select">Poll base</label>
-                            <select class="govuk-select" id="polls-count-select">
-                                <option value="5">Last 5 polls</option>
-                                <option value="10" selected>Last 10 polls</option>
-                                <option value="20">Last 20 polls</option>
-                                <option value="all">All polls</option>
-                            </select>
-                        </div>
-
-                        <div class="govuk-form-group govuk-checkboxes govuk-checkboxes--small">
-                            <div class="govuk-checkboxes__item">
-                                <input class="govuk-checkboxes__input" id="sample-weight-checkbox" type="checkbox" checked>
-                                <label class="govuk-label govuk-checkboxes__label" for="sample-weight-checkbox">
-                                    Sample size weighting
-                                </label>
-                                <div class="govuk-hint govuk-checkboxes__hint">
-                                    Weight polls by √n — larger samples count more.
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="ec-control-group">
-                        <h3 class="govuk-heading-s ec-control-group__title">Bias corrections</h3>
-
-                        <div class="govuk-form-group govuk-checkboxes govuk-checkboxes--small">
-                            <div class="govuk-checkboxes__item">
-                                <input class="govuk-checkboxes__input" id="nd-correction-checkbox" type="checkbox" checked>
-                                <label class="govuk-label govuk-checkboxes__label" for="nd-correction-checkbox">
-                                    ND historical bias
-                                    <strong id="nd-bias-label" style="color:#1d4e89;margin-left:4px;"></strong>
-                                </label>
-                                <div class="govuk-hint govuk-checkboxes__hint">
-                                    Corrects ND's systematic gap between polls and election results.
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="govuk-form-group govuk-checkboxes govuk-checkboxes--small">
-                            <div class="govuk-checkboxes__item">
-                                <input class="govuk-checkboxes__input" id="house-effects-checkbox" type="checkbox" checked>
-                                <label class="govuk-label govuk-checkboxes__label" for="house-effects-checkbox">
-                                    House effects correction
-                                </label>
-                                <div class="govuk-hint govuk-checkboxes__hint">
-                                    Adjusts for each firm's systematic over/underestimation per party.
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="govuk-form-group govuk-checkboxes govuk-checkboxes--small">
-                            <div class="govuk-checkboxes__item">
-                                <input class="govuk-checkboxes__input" id="lead-compression-checkbox" type="checkbox" checked>
-                                <label class="govuk-label govuk-checkboxes__label" for="lead-compression-checkbox">
-                                    Lead compression
-                                </label>
-                                <div class="govuk-hint govuk-checkboxes__hint">
-                                    Large leads shrink on election day due to tactical voting.
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="ec-control-group">
-                        <h3 class="govuk-heading-s ec-control-group__title">Trend modelling</h3>
-
-                        <div class="govuk-form-group">
-                            <label class="govuk-label govuk-label--s" for="momentum-slider">
-                                Momentum factor: <strong id="momentum-value">50</strong>%
-                            </label>
-                            <input class="govuk-range" type="range" id="momentum-slider"
-                                min="0" max="100" value="50" step="5">
-                            <div class="govuk-hint">Weight given to each party's current polling trend.</div>
-                        </div>
-
-                        <div class="govuk-form-group">
-                            <label class="govuk-label govuk-label--s" for="reversion-slider">
-                                Mean reversion: <strong id="reversion-value">20</strong>%
-                            </label>
-                            <input class="govuk-range" type="range" id="reversion-slider"
-                                min="0" max="60" value="20" step="5">
-                            <div class="govuk-hint">Pull toward each party's long-run polling average.</div>
-                        </div>
-
-                        <div class="govuk-form-group govuk-checkboxes govuk-checkboxes--small">
-                            <div class="govuk-checkboxes__item">
-                                <input class="govuk-checkboxes__input" id="threshold-risk-checkbox" type="checkbox" checked>
-                                <label class="govuk-label govuk-checkboxes__label" for="threshold-risk-checkbox">
-                                    Threshold risk redistribution
-                                </label>
-                                <div class="govuk-hint govuk-checkboxes__hint">
-                                    Parties near 3% may fail; redistribute their expected lost votes.
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                </div>
-
-                <details class="govuk-details">
-                    <summary class="govuk-details__summary">
-                        <span class="govuk-details__summary-text">House effects by polling firm</span>
-                    </summary>
-                    <div class="govuk-details__text" id="house-effects-table"></div>
-                </details>
-
-                <h3 class="govuk-heading-m govuk-!-margin-bottom-2">Forecast by party</h3>
-                <div class="prediction-cards" id="prediction-cards"></div>
-
-                <div id="parliament-container" style="display:none;"></div>
-                <div id="coalition-container" style="display:none;"></div>
-                <div id="prediction-stats"></div>
-
-                <details class="govuk-details govuk-!-margin-top-6">
-                    <summary class="govuk-details__summary">
-                        <span class="govuk-details__summary-text">Methodology &amp; electoral law</span>
-                    </summary>
-                    <div class="govuk-details__text">
-                        <h3 class="govuk-heading-s">Model variables</h3>
-                        <ul class="govuk-list govuk-list--bullet govuk-body-s">
-                            <li><strong>Recency weighting:</strong> More recent polls receive up to 2× weight.</li>
-                            <li><strong>Sample size weighting:</strong> Each poll weighted by √n of its sample size.</li>
-                            <li><strong>House effects:</strong> Per-firm systematic deviation from the cross-firm mean, subtracted at poll level. Requires ≥3 polls per firm.</li>
-                            <li><strong>ND historical bias:</strong> ND's average underestimation in polls vs. actual election results across past elections.</li>
-                            <li><strong>Abstention penalty:</strong> abstention × (0.5 + 0.5 × volatility) applied per party.</li>
-                            <li><strong>Momentum:</strong> Linear regression slope over the selected poll window, scaled by the momentum factor.</li>
-                            <li><strong>Trend acceleration:</strong> Comparison of recent vs. earlier momentum, shown as an indicator on each forecast card.</li>
-                            <li><strong>Mean reversion:</strong> Partial pull toward each party's long-run polling average.</li>
-                            <li><strong>Lead compression:</strong> Leads above 10pp are partially compressed — 15% of the excess is redistributed to 2nd and 3rd place.</li>
-                            <li><strong>Threshold risk redistribution:</strong> Parties polling 3–7% face a failure probability based on volatility and distance from the threshold. Expected lost votes redistribute to parties safely above it.</li>
-                        </ul>
-                        <h3 class="govuk-heading-s">Seat allocation (Law 4654/2020)</h3>
-                        <p class="govuk-body-s govuk-!-margin-bottom-0">
-                            3% threshold. Tiered first-place bonus: 20 seats at 25%, +1 per 0.5pp, capped at 50.
-                            Remainder by Largest Remainder method.
-                        </p>
-                    </div>
-                </details>
-
-            </div>
+            ${getCalcHTML()}
         </div>
     `);
-
-    loadPolls();
-    document.getElementById('download-btn').addEventListener('click', () => {
-        window.location.href = '/polls.csv';
-    });
+    initCalc();
 }
 
 
@@ -505,7 +580,6 @@ function renderPrediction() {
         }
     });
 
-    // Uncorrected poll average for display in cards / stats
     const rawBase = {};
     for (const p of Object.keys(weightedSum)) rawBase[p] = weightedSum[p] / totalWeight;
 
@@ -587,7 +661,6 @@ function applyThresholdRisk(predicted, volatility) {
         if (pct >= THRESHOLD && pct < 7.0) {
             const vol = volatility[party] || 0;
             const dist = pct - THRESHOLD;
-            // Higher volatility + closer to threshold = higher fail probability
             const failProb = Math.max(0, Math.min(0.75, vol * 0.5 * (1 - dist / 4)));
             const expectedLoss = pct * failProb;
             result[party] = pct - expectedLoss;
@@ -741,7 +814,6 @@ function renderCoalitions(seats) {
             const total = combo.reduce((s, [, c]) => s + c, 0);
             if (total < MAJORITY) continue;
 
-            // Ensure no strict subset of this coalition already forms a majority
             const isMinimal = !minimal.some(m =>
                 m.parties.length < combo.length &&
                 m.parties.every(([p]) => combo.some(([p2]) => p2 === p))

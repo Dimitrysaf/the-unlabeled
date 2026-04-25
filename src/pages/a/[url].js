@@ -1,6 +1,19 @@
 import { updateContent } from '../../components/Layout.js';
 import { renderError } from '../../components/ErrorPage.js';
 import { sampleArticleContent } from '../../data/articleContent.test.js';
+import { sampleArticles } from '../../data/articles.test.js';
+
+// ─────────────────────────────────────────────
+// MODULE REGISTRY
+// ─────────────────────────────────────────────
+const MODULE_REGISTRY = {
+    'electoral-calc': () => import('../electoral-calc.js'),
+};
+
+
+// ─────────────────────────────────────────────
+// SHARED BUILDERS
+// ─────────────────────────────────────────────
 
 function buildBreadcrumb(title) {
     return `
@@ -65,8 +78,10 @@ function buildBody(body = []) {
         </div>`;
 }
 
-function buildPage(article) {
-    const { title = 'Untitled', subtitle = '', image = '', tags = [], author = {}, date = '', body = [] } = article;
+// Builds the article shell. bodyHtml is either rendered paragraphs or
+// arbitrary HTML injected by a code module — the shell does not care which.
+function buildPage(article, bodyHtml) {
+    const { title = 'Untitled', subtitle = '', image = '', tags = [], author = {}, date = '' } = article;
 
     const imageHtml = image
         ? `<img class="article-image" src="${image}" alt="${title}">`
@@ -74,7 +89,6 @@ function buildPage(article) {
 
     return `
         ${imageHtml}
-        
         <div class="article-meta-row">
             <div style="flex:1;">${buildBreadcrumb(title)}</div>
             <div style="flex:0;">${buildShare()}</div>
@@ -84,7 +98,7 @@ function buildPage(article) {
         <hr class="govuk-section-break govuk-section-break--m govuk-section-break--visible">
         ${buildMeta(author, date)}
         ${buildTags(tags)}
-        ${buildBody(body)}
+        ${bodyHtml}
     `;
 }
 
@@ -105,15 +119,33 @@ function initShare() {
     });
 }
 
-export function renderArticlePage(slug) {
-    const normalized = slug?.toLowerCase?.().trim();
-    const article = sampleArticleContent.slug === normalized ? sampleArticleContent : null;
 
-    if (!article) {
-        renderError('404');
+// ─────────────────────────────────────────────
+// ROUTER
+// ─────────────────────────────────────────────
+
+export async function renderArticlePage(slug) {
+    const normalized = slug?.toLowerCase?.().trim();
+
+    // Look up metadata from the data layer (future: DB query by slug)
+    const articleMeta = sampleArticles.find(a => a.slug === normalized);
+
+    // ── Interactive / code article ──
+    if (articleMeta?.codeModule) {
+        const loader = MODULE_REGISTRY[articleMeta.codeModule];
+        if (!loader) { renderError('404'); return; }
+
+        const mod = await loader();
+        updateContent(buildPage(articleMeta, mod.getCalcHTML()));
+        initShare();
+        mod.initCalc();
         return;
     }
 
-    updateContent(buildPage(article));
+    // ── Text article ── (future: fetch body from DB by slug)
+    const article = sampleArticleContent.slug === normalized ? sampleArticleContent : null;
+    if (!article) { renderError('404'); return; }
+
+    updateContent(buildPage(article, buildBody(article.body)));
     initShare();
 }

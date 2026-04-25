@@ -2,7 +2,7 @@ import { renderLogo } from './Logo.js';
 
 const menuItems = [
     { label: 'Home', link: '/' },
-    { label: 'Electoral Calculator', link: '/electoral-calc' },
+    { label: 'About', link: '/about' },
 ];
 
 export function initLayout() {
@@ -56,10 +56,7 @@ export function initLayout() {
                     <div class="govuk-footer__meta-item govuk-footer__meta-item--grow">
                         <ul class="govuk-footer__inline-list">
                             <li class="govuk-footer__inline-list-item">
-                                <a class="govuk-footer__link" href="#">Privacy</a>
-                            </li>
-                            <li class="govuk-footer__inline-list-item">
-                                <a class="govuk-footer__link" href="#">Terms</a>
+                                <a class="govuk-footer__link" href="/legal#privacy">Privacy</a>
                             </li>
                         </ul>
                         <span class="govuk-footer__licence-description">
