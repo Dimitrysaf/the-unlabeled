@@ -1,7 +1,7 @@
 import { updateContent } from '../../components/Layout.js';
 import { renderError } from '../../components/ErrorPage.js';
 import { sampleArticleContent } from '../../data/articleContent.test.js';
-import { sampleArticles } from '../../data/articles.test.js';
+import { getArticleBySlug } from '../../data/~articles.js';
 
 // ─────────────────────────────────────────────
 // MODULE REGISTRY
@@ -62,8 +62,6 @@ function buildBody(body = []) {
         </div>`;
 }
 
-// Builds the article shell. bodyHtml is either rendered paragraphs or
-// arbitrary HTML injected by a code module — the shell does not care which.
 function buildPage(article, bodyHtml) {
     const { title = 'Untitled', subtitle = '', image = '', tags = [], author = {}, date = '' } = article;
 
@@ -103,6 +101,15 @@ function initShare() {
     });
 }
 
+function buildLoadingShell() {
+    return `
+        <div class="govuk-!-padding-top-4">
+            <div class="skeleton-line" style="width:40%;height:2rem;margin-bottom:1.5rem;"></div>
+            <div class="skeleton-line" style="width:80%;height:1.2rem;margin-bottom:0.5rem;"></div>
+            <div class="skeleton-line" style="width:60%;height:1.2rem;"></div>
+        </div>`;
+}
+
 
 // ─────────────────────────────────────────────
 // ROUTER
@@ -111,12 +118,26 @@ function initShare() {
 export async function renderArticlePage(slug) {
     const normalized = slug?.toLowerCase?.().trim();
 
-    // Look up metadata from the data layer (future: DB query by slug)
-    const articleMeta = sampleArticles.find(a => a.slug === normalized);
+    // Show loading skeleton while we hit the DB
+    updateContent(buildLoadingShell());
+
+    let articleMeta;
+    try {
+        articleMeta = await getArticleBySlug(normalized);
+    } catch (err) {
+        console.error('[article] DB lookup failed:', err);
+        renderError('500');
+        return;
+    }
+
+    if (!articleMeta) {
+        renderError('404');
+        return;
+    }
 
     // ── Interactive / code article ──
-    if (articleMeta?.codeModule) {
-        const loader = MODULE_REGISTRY[articleMeta.codeModule];
+    if (articleMeta.code_module) {
+        const loader = MODULE_REGISTRY[articleMeta.code_module];
         if (!loader) { renderError('404'); return; }
 
         const mod = await loader();
@@ -126,7 +147,7 @@ export async function renderArticlePage(slug) {
         return;
     }
 
-    // ── Text article ── (future: fetch body from DB by slug)
+    // ── Text article ── (body still from static file; move to DB when ready)
     const article = sampleArticleContent.slug === normalized ? sampleArticleContent : null;
     if (!article) { renderError('404'); return; }
 

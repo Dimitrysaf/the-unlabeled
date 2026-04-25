@@ -1,54 +1,63 @@
 import { updateContent } from '../components/Layout.js';
 import { renderGrid } from '../components/Grid.js';
-import { sampleArticles } from '../data/articles.test.js';
+import { searchArticles } from '../data/~articles.js';
 
-function searchArticles(query) {
-    const q = query.toLowerCase().trim();
-    if (!q) return [];
-    return sampleArticles.filter(article => {
-        const inTitle = article.title?.toLowerCase().includes(q);
-        const inExcerpt = article.excerpt?.toLowerCase().includes(q);
-        const inSubtitle = article.subtitle?.toLowerCase().includes(q);
-        const inTags = article.tags?.some(t => t.label?.toLowerCase().includes(q));
-        return inTitle || inExcerpt || inSubtitle || inTags;
-    });
-}
-
-export function renderSearch() {
+export async function renderSearch() {
     const params = new URLSearchParams(window.location.search);
     const query = params.get('q') || '';
-    const results = query ? searchArticles(query) : [];
 
-    let bodyHtml;
-    if (!query) {
-        bodyHtml = `<p class="govuk-body govuk-!-colour-secondary">Enter a search term above to find articles.</p>`;
-    } else if (!results.length) {
-        bodyHtml = `
-            <p class="govuk-body">No results found for <strong>"${escapeHtml(query)}"</strong>.</p>
-            <ul class="govuk-list govuk-list--bullet govuk-body-s govuk-!-colour-secondary">
-                <li>Check your spelling.</li>
-                <li>Try different or fewer keywords.</li>
-            </ul>`;
-    } else {
-        bodyHtml = renderGrid(results);
-    }
-
-    const countLine = results.length
-        ? `<p class="govuk-body-s govuk-!-colour-secondary govuk-!-margin-bottom-6">
-               ${results.length} result${results.length === 1 ? '' : 's'} for <strong>"${escapeHtml(query)}"</strong>
-           </p>`
-        : '';
-
-    updateContent(`
+    const heroHtml = `
         <div class="govuk-!-padding-bottom-9">
             <h1 class="govuk-heading-xl govuk-!-margin-bottom-2">Search</h1>
             <hr class="govuk-section-break govuk-section-break--m govuk-section-break--visible govuk-!-margin-bottom-4">
-            ${countLine}
-            <div class="search-results">${bodyHtml}</div>
-        </div>
-    `);
+    `;
+
+    if (!query) {
+        updateContent(heroHtml + `
+            <p class="govuk-body govuk-!-colour-secondary">Enter a search term above to find articles.</p>
+        </div>`);
+        return;
+    }
+
+    // Skeleton while fetching
+    updateContent(heroHtml + renderGrid([], { loading: true }) + '</div>');
+
+    try {
+        const results = await searchArticles(query);
+
+        const countLine = results.length
+            ? `<p class="govuk-body-s govuk-!-colour-secondary govuk-!-margin-bottom-6">
+                   ${results.length} result${results.length === 1 ? '' : 's'} for <strong>"${escapeHtml(query)}"</strong>
+               </p>`
+            : '';
+
+        const bodyHtml = results.length
+            ? renderGrid(results)
+            : `<p class="govuk-body">No results found for <strong>"${escapeHtml(query)}"</strong>.</p>
+               <ul class="govuk-list govuk-list--bullet govuk-body-s govuk-!-colour-secondary">
+                   <li>Check your spelling.</li>
+                   <li>Try different or fewer keywords.</li>
+               </ul>`;
+
+        updateContent(heroHtml + countLine +
+            `<div class="search-results">${bodyHtml}</div></div>`);
+    } catch (err) {
+        console.error('[search] failed:', err);
+        updateContent(heroHtml + `
+            <div class="govuk-error-summary" role="alert">
+                <h2 class="govuk-error-summary__title">There is a problem</h2>
+                <div class="govuk-error-summary__body">
+                    <p class="govuk-body">Could not load search results. Please try again later.</p>
+                </div>
+            </div>
+        </div>`);
+    }
 }
 
 function escapeHtml(str) {
-    return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    return str
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
 }
