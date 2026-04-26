@@ -7,6 +7,10 @@ import { renderArticlePage } from './pages/a/[url].js';
 import { renderAbout } from './pages/about.js';
 import { renderLegal } from './pages/legal.js';
 import { renderSearch } from './pages/search.js';
+import { renderLogin } from './pages/login.js';
+import { renderSignup } from './pages/signup.js';
+import { renderAccount } from './pages/account.js';
+import { renderChange } from './pages/change.js';
 
 // Vercel observability — no-ops in local dev, active on Vercel deployments
 injectAnalytics();
@@ -28,6 +32,15 @@ document.addEventListener('DOMContentLoaded', async () => {
         renderAbout();
     } else if (path === '/legal') {
         renderLegal();
+    } else if (path === '/login') {
+        renderLogin();
+    } else if (path === '/signup') {
+        renderSignup();
+    } else if (path === '/account') {
+        await renderAccount();
+    } else if (path.startsWith('/c/')) {
+        const field = path.replace('/c/', '').replace(/\/+$/, '');
+        await renderChange(field);
     } else {
         renderError('404');
     }

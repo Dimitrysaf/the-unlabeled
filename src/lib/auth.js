@@ -85,6 +85,13 @@ export async function updateUserProfile(updates) {
     return data;
 }
 
+// Update user fields such as email or password
+export async function updateUser(updates) {
+    const { data, error } = await supabase.auth.updateUser(updates);
+    if (error) throw error;
+    return data;
+}
+
 // Reset password
 export async function resetPassword(email) {
     const { error } = await supabase.auth.resetPasswordForEmail(email);

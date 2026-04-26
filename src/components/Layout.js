@@ -1,26 +1,61 @@
 import { renderLogo } from './Logo.js';
+import { getCurrentUser, onAuthStateChange, signOut } from '../lib/auth.js';
 
-const menuItems = [
+const baseMenuItems = [
     { label: 'Home', link: '/' },
     { label: 'About', link: '/about' },
 ];
+
+let currentUser = null;
+
+function getMenuItems() {
+    const items = [...baseMenuItems];
+
+    if (currentUser) {
+        items.push({
+            label: 'Account',
+            link: '/account',
+            type: 'account-link'
+        });
+    } else {
+        items.push({
+            label: 'Login',
+            link: '/login',
+            type: 'auth-link'
+        });
+    }
+
+    return items;
+}
 
 export function initLayout() {
     const app = document.querySelector('#app');
     const currentPath = window.location.pathname;
 
-    const navItemsHtml = menuItems.map(({ label, link }) => {
-        const isActive = link !== '#' && (
-            link === '/' ? currentPath === '/' : currentPath.startsWith(link)
+    // Initialize auth state
+    initAuth();
+
+    const navItemsHtml = getMenuItems().map((item) => {
+        const isActive = item.link !== '#' && (
+            item.link === '/' ? currentPath === '/' : currentPath.startsWith(item.link)
         );
+
+        if (item.type === 'account-link') {
+            return `<li class="govuk-service-navigation__item">
+                       <a class="govuk-service-navigation__link" href="${item.link}">
+                           ${item.label}
+                       </a>
+                   </li>`;
+        }
+
         return isActive
             ? `<li class="govuk-service-navigation__item govuk-service-navigation__item--active">
-                   <a class="govuk-service-navigation__link" href="${link}" aria-current="true">
-                       <strong class="govuk-service-navigation__active-fallback">${label}</strong>
+                   <a class="govuk-service-navigation__link" href="${item.link}" aria-current="true">
+                       <strong class="govuk-service-navigation__active-fallback">${item.label}</strong>
                    </a>
                </li>`
             : `<li class="govuk-service-navigation__item">
-                   <a class="govuk-service-navigation__link" href="${link}">${label}</a>
+                   <a class="govuk-service-navigation__link" href="${item.link}">${item.label}</a>
                </li>`;
     }).join('');
 
@@ -93,6 +128,7 @@ export function initLayout() {
 
     _initSearchForm();
     _initServiceNavFallback();
+    initAuthEventListeners();
 }
 
 function _initSearchForm() {
@@ -105,6 +141,67 @@ function _initSearchForm() {
             window.location.href = '/search?q=' + encodeURIComponent(q);
         }
     });
+}
+
+function initAuth() {
+    // Get initial auth state
+    getCurrentUser().then(user => {
+        currentUser = user;
+        updateNavigation();
+    }).catch(() => {
+        currentUser = null;
+        updateNavigation();
+    });
+
+    // Listen for auth changes
+    onAuthStateChange((event, session) => {
+        currentUser = session?.user || null;
+        updateNavigation();
+    });
+}
+
+function updateNavigation() {
+    const navList = document.getElementById('service-navigation');
+    if (navList) {
+        const currentPath = window.location.pathname;
+        const navItemsHtml = getMenuItems().map((item) => {
+            const isActive = item.link !== '#' && (
+                item.link === '/' ? currentPath === '/' : currentPath.startsWith(item.link)
+            );
+
+            if (item.type === 'user-menu') {
+                return `<li class="govuk-service-navigation__item user-menu-nav-item">
+                           <button class="govuk-service-navigation__link user-menu__button" id="user-menu-btn" aria-haspopup="true" aria-expanded="false">
+                               <span class="user-menu__name">${item.label}</span>
+                               <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true">
+                                   <path d="M3 4.5L6 7.5L9 4.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                               </svg>
+                           </button>
+                           <div class="user-menu__dropdown" id="user-menu-dropdown" hidden>
+                               <button class="user-menu__item" id="sign-out-btn">Sign out</button>
+                           </div>
+                       </li>`;
+            }
+
+            return isActive
+                ? `<li class="govuk-service-navigation__item govuk-service-navigation__item--active">
+                       <a class="govuk-service-navigation__link" href="${item.link}" aria-current="true">
+                           <strong class="govuk-service-navigation__active-fallback">${item.label}</strong>
+                       </a>
+                   </li>`
+                : `<li class="govuk-service-navigation__item">
+                       <a class="govuk-service-navigation__link" href="${item.link}">${item.label}</a>
+                   </li>`;
+        }).join('');
+
+        navList.innerHTML = navItemsHtml;
+        initAuthEventListeners();
+    }
+}
+
+function initAuthEventListeners() {
+    // No navbar-specific auth event listeners needed anymore
+    // Logout functionality is now on the account page
 }
 
 const MOBILE_MQ = window.matchMedia('(max-width: 640px)');

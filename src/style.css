@@ -1245,4 +1245,115 @@ body {
   @page {
     margin: 1.5cm;
   }
+
+/* ── Custom GOV.UK-style Tabs ── */
+.custom-tabs {
+  border-bottom: 1px solid #b1b4b6;
+  margin-bottom: 1.5rem;
+}
+
+.custom-tabs__list {
+  margin: 0 !important;
+  padding: 0 !important;
+  list-style: none !important;
+  display: flex !important;
+  gap: 0.5rem;
+  border-bottom: 1px solid #b1b4b6;
+}
+
+.custom-tabs__list-item {
+  margin: 0 !important;
+  list-style: none !important;
+}
+
+.custom-tabs__tab {
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  padding: 0.75rem 1.25rem;
+  background: #f3f2f1;
+  border: 1px solid transparent;
+  border-bottom: 3px solid transparent;
+  color: #0b0c0c;
+  text-decoration: none;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.custom-tabs__tab:hover {
+  background: #e6e6e6;
+  color: #0b0c0c;
+}
+
+.custom-tabs__list-item--selected .custom-tabs__tab {
+  background: #ffffff;
+  border-color: #b1b4b6;
+  border-bottom-color: #ffffff;
+  color: #0b0c0c;
+}
+
+.custom-tabs__panel {
+  padding-top: 1.5rem;
+  border-top: 1px solid transparent;
+}
+
+.custom-tabs__panel--hidden {
+  display: none !important;
+}
+
+.custom-tabs__panel:not(.custom-tabs__panel--hidden) {
+  border: 1px solid #b1b4b6;
+  padding: 1.5rem;
+  background: #ffffff;
+  margin-top: -1px;
+}
+
+.header-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.auth-form {
+  max-width: 400px;
+}
+
+.auth-form .govuk-form-group {
+  margin-bottom: 1.5rem;
+}
+
+.auth-message {
+  margin-top: 1.5rem;
+  padding: 1rem;
+  border-radius: 4px;
+  font-weight: 500;
+}
+
+.auth-message--success {
+  background: #d4edda;
+  color: #155724;
+  border: 1px solid #c3e6cb;
+}
+
+.auth-message--error {
+  background: #f8d7da;
+  color: #721c24;
+  border: 1px solid #f5c6cb;
+}
+
+/* Mobile adjustments */
+@media (max-width: 40em) {
+  .header-inner {
+    flex-wrap: wrap;
+  }
+
+  .header-search {
+    order: 3;
+    width: 100%;
+    margin-top: 1rem;
+  }
+}
 }
