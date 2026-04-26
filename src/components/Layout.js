@@ -1,5 +1,6 @@
 import { renderLogo } from './Logo.js';
 import { getCurrentUser, onAuthStateChange, signOut } from '../lib/auth.js';
+import { readCookiePreferences, setSessionCookie, writeCookiePreferences } from '../lib/cookiePreferences.js';
 
 const baseMenuItems = [
     { label: 'Home', link: '/' },
@@ -7,7 +8,6 @@ const baseMenuItems = [
 ];
 
 let currentUser = null;
-const COOKIE_PREF_KEY = 'cookie-preferences-v1';
 
 function getMenuItems() {
     const items = [...baseMenuItems];
@@ -79,7 +79,7 @@ export function initLayout() {
                     <button type="button" class="govuk-button" data-module="govuk-button" id="cookie-reject-btn">
                         Reject analytics cookies
                     </button>
-                    <a class="govuk-link" href="/legal#privacy">View cookies</a>
+                    <a class="govuk-link" href="/cookies">View cookies</a>
                 </div>
             </div>
 
@@ -87,7 +87,7 @@ export function initLayout() {
                 <div class="govuk-grid-row">
                     <div class="govuk-grid-column-two-thirds">
                         <div class="govuk-cookie-banner__content">
-                            <p class="govuk-body">You have accepted analytics cookies. You can change this anytime in our privacy section.</p>
+                            <p class="govuk-body">You have accepted analytics cookies. You can change this anytime on the cookies page.</p>
                         </div>
                     </div>
                 </div>
@@ -95,6 +95,7 @@ export function initLayout() {
                     <button type="button" class="govuk-button" data-module="govuk-button" id="cookie-hide-accepted-btn">
                         Hide cookie message
                     </button>
+                    <a class="govuk-link" href="/cookies">Change cookie settings</a>
                 </div>
             </div>
 
@@ -102,7 +103,7 @@ export function initLayout() {
                 <div class="govuk-grid-row">
                     <div class="govuk-grid-column-two-thirds">
                         <div class="govuk-cookie-banner__content">
-                            <p class="govuk-body">You have rejected analytics cookies. You can change this anytime in our privacy section.</p>
+                            <p class="govuk-body">You have rejected analytics cookies. You can change this anytime on the cookies page.</p>
                         </div>
                     </div>
                 </div>
@@ -110,6 +111,7 @@ export function initLayout() {
                     <button type="button" class="govuk-button" data-module="govuk-button" id="cookie-hide-rejected-btn">
                         Hide cookie message
                     </button>
+                    <a class="govuk-link" href="/cookies">Change cookie settings</a>
                 </div>
             </div>
         </div>
@@ -199,37 +201,18 @@ function _initSearchForm() {
 }
 
 function _readCookiePreferences() {
-    try {
-        const raw = window.localStorage.getItem(COOKIE_PREF_KEY);
-        if (!raw) return null;
-        const parsed = JSON.parse(raw);
-        if (!parsed || typeof parsed.analytics !== 'boolean') return null;
-        return parsed;
-    } catch {
-        return null;
-    }
+    return readCookiePreferences();
 }
 
 function _writeCookiePreferences(analytics) {
-    const nextPrefs = { analytics, bannerHidden: false };
-    try {
-        window.localStorage.setItem(COOKIE_PREF_KEY, JSON.stringify(nextPrefs));
-    } catch {
-        // Ignore storage errors; banner state will be session-only.
-    }
-    return nextPrefs;
+    return writeCookiePreferences(analytics, { bannerHidden: false });
 }
 
 function _hideCookieBannerPermanently(currentPrefs) {
     const banner = document.getElementById('cookie-banner');
     if (banner) banner.setAttribute('hidden', '');
 
-    const nextPrefs = { ...currentPrefs, bannerHidden: true };
-    try {
-        window.localStorage.setItem(COOKIE_PREF_KEY, JSON.stringify(nextPrefs));
-    } catch {
-        // Ignore storage errors.
-    }
+    writeCookiePreferences(Boolean(currentPrefs?.analytics), { bannerHidden: true });
 }
 
 function _showCookieState(state) {
@@ -302,15 +285,18 @@ function initAuth() {
     // Get initial auth state
     getCurrentUser().then(user => {
         currentUser = user;
+        setSessionCookie(Boolean(user));
         updateNavigation();
     }).catch(() => {
         currentUser = null;
+        setSessionCookie(false);
         updateNavigation();
     });
 
     // Listen for auth changes
     onAuthStateChange((event, session) => {
         currentUser = session?.user || null;
+        setSessionCookie(Boolean(currentUser));
         updateNavigation();
     });
 }

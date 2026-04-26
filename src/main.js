@@ -6,26 +6,15 @@ import { renderError } from './components/ErrorPage.js';
 import { renderArticlePage } from './pages/a/[url].js';
 import { renderAbout } from './pages/about.js';
 import { renderLegal } from './pages/legal.js';
+import { renderCookies } from './pages/cookies.js';
 import { renderSearch } from './pages/search.js';
 import { renderLogin } from './pages/login.js';
 import { renderSignup } from './pages/signup.js';
 import { renderAccount } from './pages/account.js';
 import { renderChange } from './pages/change.js';
+import { readCookiePreferences } from './lib/cookiePreferences.js';
 
 let analyticsInitialized = false;
-const COOKIE_PREF_KEY = 'cookie-preferences-v1';
-
-function readCookiePreferences() {
-    try {
-        const raw = window.localStorage.getItem(COOKIE_PREF_KEY);
-        if (!raw) return null;
-        const parsed = JSON.parse(raw);
-        if (!parsed || typeof parsed.analytics !== 'boolean') return null;
-        return parsed;
-    } catch {
-        return null;
-    }
-}
 
 function initObservabilityIfAllowed() {
     if (analyticsInitialized) return;
@@ -53,6 +42,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         renderAbout();
     } else if (path === '/legal') {
         renderLegal();
+    } else if (path === '/cookies') {
+        renderCookies();
     } else if (path === '/login') {
         await renderLogin();
     } else if (path === '/signup') {

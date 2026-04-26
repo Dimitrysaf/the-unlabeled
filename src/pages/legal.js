@@ -38,8 +38,14 @@ export function renderLegal() {
 
         <h3 class="govuk-heading-m">Cookies</h3>
         <p class="govuk-body">
-          We use only essential cookies required for basic functionality. No tracking or advertising cookies are used.
+          We use essential cookies required for basic functionality. You can choose whether to allow analytics cookies.
         </p>
+        <p class="govuk-body">
+          Manage your settings on our dedicated cookies page.
+        </p>
+        <a class="govuk-button govuk-button--secondary" data-module="govuk-button" href="/cookies">
+          Cookie settings
+        </a>
 
         <h3 class="govuk-heading-m">Data Retention</h3>
         <p class="govuk-body">
