@@ -9,6 +9,8 @@
  *   VITE_SUPABASE_ANON_KEY = <your anon key>
  */
 
+import { createClient } from '@supabase/supabase-js';
+
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
@@ -18,6 +20,8 @@ if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
         'Add them to your .env.local and to Vercel project settings.'
     );
 }
+
+export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 const BASE = `${SUPABASE_URL}/rest/v1`;
 
