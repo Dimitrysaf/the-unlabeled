@@ -1,5 +1,6 @@
 import { updateContent } from '../components/Layout.js';
 import { signIn } from '../lib/auth.js';
+import { validateEmail, validatePassword, clearFieldErrors, setFieldError, setButtonLoading, resetButton, showErrorSummary } from '../lib/validation.js';
 
 export function renderLogin() {
     updateContent(`
@@ -9,32 +10,51 @@ export function renderLogin() {
                     <h1 class="govuk-heading-xl">Login</h1>
 
                     <form class="auth-form" id="login-form">
-                        <div class="govuk-form-group">
+                        <div class="govuk-error-summary" id="login-error-summary" hidden role="alert" tabindex="-1">
+                            <div>
+                                <h2 class="govuk-error-summary__title">There is a problem</h2>
+                                <div class="govuk-error-summary__body">
+                                    <ul class="govuk-list govuk-error-summary__list"></ul>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="govuk-form-group" id="login-email-group">
                             <label class="govuk-label" for="login-email">
                                 Email address
                             </label>
+                            <p id="login-email-hint" class="govuk-hint">Enter your email address</p>
                             <input
                                 class="govuk-input"
                                 id="login-email"
                                 name="email"
                                 type="email"
                                 autocomplete="email"
+                                aria-describedby="login-email-hint login-email-error"
                                 required
                             >
+                            <p id="login-email-error" class="govuk-error-message" hidden>
+                                <span class="govuk-visually-hidden">Error:</span>
+                            </p>
                         </div>
 
-                        <div class="govuk-form-group">
+                        <div class="govuk-form-group" id="login-password-group">
                             <label class="govuk-label" for="login-password">
                                 Password
                             </label>
+                            <p id="login-password-hint" class="govuk-hint">Enter your password</p>
                             <input
                                 class="govuk-input"
                                 id="login-password"
                                 name="password"
                                 type="password"
                                 autocomplete="current-password"
+                                aria-describedby="login-password-hint login-password-error"
                                 required
                             >
+                            <p id="login-password-error" class="govuk-error-message" hidden>
+                                <span class="govuk-visually-hidden">Error:</span>
+                            </p>
                         </div>
 
                         <button class="govuk-button" type="submit" id="login-submit-btn">
@@ -61,26 +81,39 @@ function initLoginForm() {
 
     loginForm.addEventListener('submit', async (e) => {
         e.preventDefault();
+        clearFieldErrors(loginForm);
+        messageDiv.style.display = 'none';
+
         const formData = new FormData(loginForm);
         const email = formData.get('email');
         const password = formData.get('password');
 
+        const emailError = validateEmail(email);
+        const passwordError = validatePassword(password);
+        const errors = [];
+
+        if (emailError) {
+            setFieldError('login-email', emailError);
+            errors.push({ fieldId: 'login-email', message: emailError });
+        }
+        if (passwordError) {
+            setFieldError('login-password', passwordError);
+            errors.push({ fieldId: 'login-password', message: passwordError });
+        }
+        if (errors.length) {
+            showErrorSummary(loginForm, errors);
+            return;
+        }
+
         const submitBtn = document.getElementById('login-submit-btn');
-        submitBtn.disabled = true;
-        submitBtn.textContent = 'Please wait...';
-        messageDiv.style.display = 'none';
+        setButtonLoading(submitBtn, 'Redirecting...');
 
         try {
             await signIn(email, password);
-            showMessage('Login successful! Redirecting...', 'success');
-            setTimeout(() => {
-                window.location.href = '/';
-            }, 1000);
+            window.location.href = '/';
         } catch (error) {
-            showMessage(error.message, 'error');
-        } finally {
-            submitBtn.disabled = false;
-            submitBtn.textContent = 'Login';
+            showMessage(error.message || 'Unable to sign in. Please check your details.', 'error');
+            resetButton(submitBtn, 'Login');
         }
     });
 }

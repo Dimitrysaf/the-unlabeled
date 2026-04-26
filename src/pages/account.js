@@ -155,7 +155,7 @@ export async function renderAccount() {
                     </dl>
 
                     <div class="govuk-!-margin-top-9">
-                        <button class="govuk-button govuk-button--secondary" id="sign-out-btn">
+                        <button class="govuk-button govuk-button--warning" id="sign-out-btn">
                             Sign out
                         </button>
                     </div>
