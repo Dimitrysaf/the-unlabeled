@@ -1,8 +1,18 @@
 import { updateContent } from '../components/Layout.js';
-import { signIn } from '../lib/auth.js';
+import { getCurrentUser, signIn } from '../lib/auth.js';
 import { validateEmail, clearFieldErrors, setFieldError, setButtonLoading, resetButton, showErrorSummary } from '../lib/validation.js';
 
-export function renderLogin() {
+export async function renderLogin() {
+    try {
+        const user = await getCurrentUser();
+        if (user) {
+            window.location.href = '/account';
+            return;
+        }
+    } catch (error) {
+        console.error('Error checking auth state on login page:', error);
+    }
+
     updateContent(`
         <div class="govuk-!-padding-bottom-9">
             <div class="govuk-grid-row">

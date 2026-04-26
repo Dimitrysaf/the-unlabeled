@@ -1,8 +1,18 @@
 import { updateContent } from '../components/Layout.js';
-import { signUp } from '../lib/auth.js';
+import { getCurrentUser, signUp } from '../lib/auth.js';
 import { validateEmail, validateDisplayName, validatePassword, clearFieldErrors, setFieldError, setButtonLoading, resetButton, showErrorSummary } from '../lib/validation.js';
 
-export function renderSignup() {
+export async function renderSignup() {
+    try {
+        const user = await getCurrentUser();
+        if (user) {
+            window.location.href = '/account';
+            return;
+        }
+    } catch (error) {
+        console.error('Error checking auth state on signup page:', error);
+    }
+
     updateContent(`
         <div class="govuk-!-padding-bottom-9">
             <div class="govuk-grid-row">

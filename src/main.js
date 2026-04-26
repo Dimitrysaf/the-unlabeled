@@ -54,9 +54,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     } else if (path === '/legal') {
         renderLegal();
     } else if (path === '/login') {
-        renderLogin();
+        await renderLogin();
     } else if (path === '/signup') {
-        renderSignup();
+        await renderSignup();
     } else if (path === '/account') {
         await renderAccount();
     } else if (path.startsWith('/c/')) {
