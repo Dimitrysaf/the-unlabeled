@@ -7,6 +7,7 @@ const baseMenuItems = [
 ];
 
 let currentUser = null;
+const COOKIE_PREF_KEY = 'cookie-preferences-v1';
 
 function getMenuItems() {
     const items = [...baseMenuItems];
@@ -60,6 +61,59 @@ export function initLayout() {
     }).join('');
 
     app.innerHTML = `
+        <div class="govuk-cookie-banner" data-nosnippet role="region" aria-label="Cookies on The Unlabeled" id="cookie-banner" hidden>
+            <div class="govuk-cookie-banner__message govuk-width-container" id="cookie-banner-choice">
+                <div class="govuk-grid-row">
+                    <div class="govuk-grid-column-two-thirds">
+                        <h2 class="govuk-cookie-banner__heading govuk-heading-m">Cookies on The Unlabeled</h2>
+                        <div class="govuk-cookie-banner__content">
+                            <p class="govuk-body">We use essential cookies to keep this service secure and working properly.</p>
+                            <p class="govuk-body">We would also like to use analytics cookies to understand usage and improve the site.</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="govuk-button-group">
+                    <button type="button" class="govuk-button" data-module="govuk-button" id="cookie-accept-btn">
+                        Accept analytics cookies
+                    </button>
+                    <button type="button" class="govuk-button" data-module="govuk-button" id="cookie-reject-btn">
+                        Reject analytics cookies
+                    </button>
+                    <a class="govuk-link" href="/legal#privacy">View cookies</a>
+                </div>
+            </div>
+
+            <div class="govuk-cookie-banner__message govuk-width-container" role="alert" id="cookie-banner-accepted" hidden>
+                <div class="govuk-grid-row">
+                    <div class="govuk-grid-column-two-thirds">
+                        <div class="govuk-cookie-banner__content">
+                            <p class="govuk-body">You have accepted analytics cookies. You can change this anytime in our privacy section.</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="govuk-button-group">
+                    <button type="button" class="govuk-button" data-module="govuk-button" id="cookie-hide-accepted-btn">
+                        Hide cookie message
+                    </button>
+                </div>
+            </div>
+
+            <div class="govuk-cookie-banner__message govuk-width-container" role="alert" id="cookie-banner-rejected" hidden>
+                <div class="govuk-grid-row">
+                    <div class="govuk-grid-column-two-thirds">
+                        <div class="govuk-cookie-banner__content">
+                            <p class="govuk-body">You have rejected analytics cookies. You can change this anytime in our privacy section.</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="govuk-button-group">
+                    <button type="button" class="govuk-button" data-module="govuk-button" id="cookie-hide-rejected-btn">
+                        Hide cookie message
+                    </button>
+                </div>
+            </div>
+        </div>
+
         <header style="background: #f3f2f1; color: #0b0c0c; padding: 12px 0; border-bottom: 1px solid #d4d2cf;">
             <div class="govuk-width-container">
                 <div class="header-inner">
@@ -128,6 +182,7 @@ export function initLayout() {
 
     _initSearchForm();
     _initServiceNavFallback();
+    _initCookieBanner();
     initAuthEventListeners();
 }
 
@@ -141,6 +196,106 @@ function _initSearchForm() {
             window.location.href = '/search?q=' + encodeURIComponent(q);
         }
     });
+}
+
+function _readCookiePreferences() {
+    try {
+        const raw = window.localStorage.getItem(COOKIE_PREF_KEY);
+        if (!raw) return null;
+        const parsed = JSON.parse(raw);
+        if (!parsed || typeof parsed.analytics !== 'boolean') return null;
+        return parsed;
+    } catch {
+        return null;
+    }
+}
+
+function _writeCookiePreferences(analytics) {
+    const nextPrefs = { analytics, bannerHidden: false };
+    try {
+        window.localStorage.setItem(COOKIE_PREF_KEY, JSON.stringify(nextPrefs));
+    } catch {
+        // Ignore storage errors; banner state will be session-only.
+    }
+    return nextPrefs;
+}
+
+function _hideCookieBannerPermanently(currentPrefs) {
+    const banner = document.getElementById('cookie-banner');
+    if (banner) banner.setAttribute('hidden', '');
+
+    const nextPrefs = { ...currentPrefs, bannerHidden: true };
+    try {
+        window.localStorage.setItem(COOKIE_PREF_KEY, JSON.stringify(nextPrefs));
+    } catch {
+        // Ignore storage errors.
+    }
+}
+
+function _showCookieState(state) {
+    const banner = document.getElementById('cookie-banner');
+    const choice = document.getElementById('cookie-banner-choice');
+    const accepted = document.getElementById('cookie-banner-accepted');
+    const rejected = document.getElementById('cookie-banner-rejected');
+    if (!banner || !choice || !accepted || !rejected) return;
+
+    banner.removeAttribute('hidden');
+    choice.setAttribute('hidden', '');
+    accepted.setAttribute('hidden', '');
+    rejected.setAttribute('hidden', '');
+
+    if (state === 'choice') choice.removeAttribute('hidden');
+    if (state === 'accepted') accepted.removeAttribute('hidden');
+    if (state === 'rejected') rejected.removeAttribute('hidden');
+}
+
+function _initCookieBanner() {
+    const prefs = _readCookiePreferences();
+    const acceptBtn = document.getElementById('cookie-accept-btn');
+    const rejectBtn = document.getElementById('cookie-reject-btn');
+    const hideAcceptedBtn = document.getElementById('cookie-hide-accepted-btn');
+    const hideRejectedBtn = document.getElementById('cookie-hide-rejected-btn');
+
+    if (acceptBtn) {
+        acceptBtn.addEventListener('click', () => {
+            const nextPrefs = _writeCookiePreferences(true);
+            _showCookieState('accepted');
+            window.dispatchEvent(new CustomEvent('cookie-consent-updated', { detail: nextPrefs }));
+        });
+    }
+
+    if (rejectBtn) {
+        rejectBtn.addEventListener('click', () => {
+            const nextPrefs = _writeCookiePreferences(false);
+            _showCookieState('rejected');
+            window.dispatchEvent(new CustomEvent('cookie-consent-updated', { detail: nextPrefs }));
+        });
+    }
+
+    if (hideAcceptedBtn) {
+        hideAcceptedBtn.addEventListener('click', () => {
+            _hideCookieBannerPermanently(_readCookiePreferences() || { analytics: true, bannerHidden: false });
+        });
+    }
+
+    if (hideRejectedBtn) {
+        hideRejectedBtn.addEventListener('click', () => {
+            _hideCookieBannerPermanently(_readCookiePreferences() || { analytics: false, bannerHidden: false });
+        });
+    }
+
+    if (!prefs) {
+        _showCookieState('choice');
+        return;
+    }
+
+    if (prefs.bannerHidden) {
+        const banner = document.getElementById('cookie-banner');
+        if (banner) banner.setAttribute('hidden', '');
+        return;
+    }
+
+    _showCookieState(prefs.analytics ? 'accepted' : 'rejected');
 }
 
 function initAuth() {

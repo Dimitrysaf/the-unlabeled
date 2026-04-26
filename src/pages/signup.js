@@ -10,7 +10,7 @@ export function renderSignup() {
                     <h1 class="govuk-heading-xl">Sign up</h1>
 
                     <form class="auth-form" id="signup-form">
-                        <div class="govuk-error-summary" id="signup-error-summary" hidden role="alert" tabindex="-1">
+                        <div class="govuk-error-summary" id="signup-error-summary" data-module="govuk-error-summary" hidden role="alert" tabindex="-1">
                             <div>
                                 <h2 class="govuk-error-summary__title">There is a problem</h2>
                                 <div class="govuk-error-summary__body">
@@ -84,8 +84,6 @@ export function renderSignup() {
                     <p class="govuk-body">
                         Already have an account? <a class="govuk-link" href="/login">Login</a>
                     </p>
-
-                    <div class="auth-message" id="auth-message" style="display: none;"></div>
                 </div>
             </div>
         </div>
@@ -96,12 +94,10 @@ export function renderSignup() {
 
 function initSignupForm() {
     const signupForm = document.getElementById('signup-form');
-    const messageDiv = document.getElementById('auth-message');
 
     signupForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         clearFieldErrors(signupForm);
-        messageDiv.style.display = 'none';
 
         const formData = new FormData(signupForm);
         const email = formData.get('email');
@@ -137,16 +133,18 @@ function initSignupForm() {
             await signUp(email, password, { display_name: displayName });
             window.location.href = '/login';
         } catch (error) {
-            showMessage(error.message || 'Unable to create an account. Please try again.', 'error');
+            showAuthErrorSummary(signupForm, error.message || 'Unable to create an account. Please try again.');
             resetButton(submitBtn, 'Sign up');
         }
     });
 }
 
-function showMessage(message, type) {
-    const messageDiv = document.getElementById('auth-message');
-    if (!messageDiv) return;
-    messageDiv.textContent = message;
-    messageDiv.className = `auth-message auth-message--${type}`;
-    messageDiv.style.display = 'block';
+function showAuthErrorSummary(form, message) {
+    const summary = form.querySelector('.govuk-error-summary');
+    const list = summary?.querySelector('.govuk-error-summary__list');
+    if (!summary || !list) return;
+
+    list.innerHTML = `<li><a href="#">${message}</a></li>`;
+    summary.hidden = false;
+    summary.focus();
 }

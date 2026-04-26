@@ -12,11 +12,32 @@ import { renderSignup } from './pages/signup.js';
 import { renderAccount } from './pages/account.js';
 import { renderChange } from './pages/change.js';
 
-// Vercel observability — no-ops in local dev, active on Vercel deployments
-injectAnalytics();
-injectSpeedInsights();
+let analyticsInitialized = false;
+const COOKIE_PREF_KEY = 'cookie-preferences-v1';
+
+function readCookiePreferences() {
+    try {
+        const raw = window.localStorage.getItem(COOKIE_PREF_KEY);
+        if (!raw) return null;
+        const parsed = JSON.parse(raw);
+        if (!parsed || typeof parsed.analytics !== 'boolean') return null;
+        return parsed;
+    } catch {
+        return null;
+    }
+}
+
+function initObservabilityIfAllowed() {
+    if (analyticsInitialized) return;
+    const prefs = readCookiePreferences();
+    if (!prefs || !prefs.analytics) return;
+    injectAnalytics();
+    injectSpeedInsights();
+    analyticsInitialized = true;
+}
 
 document.addEventListener('DOMContentLoaded', async () => {
+    initObservabilityIfAllowed();
     initLayout();
 
     const path = window.location.pathname;
@@ -44,4 +65,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     } else {
         renderError('404');
     }
+});
+
+window.addEventListener('cookie-consent-updated', () => {
+    initObservabilityIfAllowed();
 });

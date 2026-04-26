@@ -1,6 +1,6 @@
 import { updateContent } from '../components/Layout.js';
 import { signIn } from '../lib/auth.js';
-import { validateEmail, validatePassword, clearFieldErrors, setFieldError, setButtonLoading, resetButton, showErrorSummary } from '../lib/validation.js';
+import { validateEmail, clearFieldErrors, setFieldError, setButtonLoading, resetButton, showErrorSummary } from '../lib/validation.js';
 
 export function renderLogin() {
     updateContent(`
@@ -10,7 +10,7 @@ export function renderLogin() {
                     <h1 class="govuk-heading-xl">Login</h1>
 
                     <form class="auth-form" id="login-form">
-                        <div class="govuk-error-summary" id="login-error-summary" hidden role="alert" tabindex="-1">
+                        <div class="govuk-error-summary" id="login-error-summary" data-module="govuk-error-summary" hidden role="alert" tabindex="-1">
                             <div>
                                 <h2 class="govuk-error-summary__title">There is a problem</h2>
                                 <div class="govuk-error-summary__body">
@@ -65,8 +65,6 @@ export function renderLogin() {
                     <p class="govuk-body">
                         Don't have an account? <a class="govuk-link" href="/signup">Sign up</a>
                     </p>
-
-                    <div class="auth-message" id="auth-message" style="display: none;"></div>
                 </div>
             </div>
         </div>
@@ -77,19 +75,17 @@ export function renderLogin() {
 
 function initLoginForm() {
     const loginForm = document.getElementById('login-form');
-    const messageDiv = document.getElementById('auth-message');
 
     loginForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         clearFieldErrors(loginForm);
-        messageDiv.style.display = 'none';
 
         const formData = new FormData(loginForm);
         const email = formData.get('email');
         const password = formData.get('password');
 
         const emailError = validateEmail(email);
-        const passwordError = validatePassword(password);
+        const passwordError = validateLoginPassword(password);
         const errors = [];
 
         if (emailError) {
@@ -112,16 +108,25 @@ function initLoginForm() {
             await signIn(email, password);
             window.location.href = '/';
         } catch (error) {
-            showMessage(error.message || 'Unable to sign in. Please check your details.', 'error');
+            showAuthErrorSummary(loginForm, error.message || 'Unable to sign in. Please check your details.');
             resetButton(submitBtn, 'Login');
         }
     });
 }
 
-function showMessage(message, type) {
-    const messageDiv = document.getElementById('auth-message');
-    if (!messageDiv) return;
-    messageDiv.textContent = message;
-    messageDiv.className = `auth-message auth-message--${type}`;
-    messageDiv.style.display = 'block';
+function validateLoginPassword(password) {
+    if (typeof password !== 'string' || password.length === 0) {
+        return 'Enter your password';
+    }
+    return '';
+}
+
+function showAuthErrorSummary(form, message) {
+    const summary = form.querySelector('.govuk-error-summary');
+    const list = summary?.querySelector('.govuk-error-summary__list');
+    if (!summary || !list) return;
+
+    list.innerHTML = `<li><a href="#">${message}</a></li>`;
+    summary.hidden = false;
+    summary.focus();
 }
