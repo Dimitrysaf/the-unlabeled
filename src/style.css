@@ -413,10 +413,11 @@ body {
 
 /* ── Prediction cards ── */
 .prediction-cards {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   gap: 1rem;
   margin: 1.5rem 0;
+  align-items: stretch;
 }
 
 .prediction-card {
@@ -424,9 +425,11 @@ body {
   border: 1px solid #b1b4b6;
   border-top: 5px solid;
   padding: 1rem;
-  min-width: 130px;
-  flex: 1 1 130px;
-  max-width: 180px;
+  min-height: 0;
+  height: auto;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 
 .prediction-card__pct {
@@ -453,6 +456,7 @@ body {
   font-size: 0.8125rem;
   color: #505a5f;
   line-height: 1.6;
+  margin-top: auto;
 }
 
 .prediction-card__details strong {
@@ -699,6 +703,44 @@ body {
   cursor: pointer;
 }
 
+/* Disabled range styling for auto-set election horizon mode */
+.govuk-range:disabled {
+  background: #d8d8d8;
+  border-color: #8f8f8f;
+  cursor: not-allowed;
+  opacity: 1;
+}
+
+.govuk-range:disabled::-webkit-slider-thumb {
+  background: #8f8f8f;
+  border-color: #8f8f8f;
+  cursor: not-allowed;
+}
+
+.govuk-range:disabled::-webkit-slider-thumb:hover {
+  background: #8f8f8f;
+  border-color: #8f8f8f;
+}
+
+.govuk-range:disabled::-moz-range-thumb {
+  background: #8f8f8f;
+  border-color: #8f8f8f;
+  cursor: not-allowed;
+}
+
+.govuk-range:disabled:focus {
+  outline: none;
+}
+
+.govuk-range:disabled + .govuk-hint {
+  color: #6f777b;
+}
+
+label:has(+ .govuk-range:disabled),
+label:has(strong + .govuk-range:disabled) {
+  color: #6f777b;
+}
+
 /* ── Notification / info panel ── */
 .un-notification {
   border-left: 5px solid #1d70b8;
@@ -723,8 +765,8 @@ body {
 
 /* ── Responsive helpers ── */
 @media (max-width: 40em) {
-  .prediction-card {
-    max-width: calc(50% - 0.5rem);
+  .prediction-cards {
+    grid-template-columns: 1fr;
   }
 
   .ec-fields>* {
@@ -777,6 +819,15 @@ body {
   align-items: center;
   gap: 0.35rem;
   margin-bottom: 0.25rem;
+}
+
+.prediction-card__momentum-icon {
+  display: inline-flex;
+  width: 14px;
+  height: 14px;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
 }
 
 /* ── House effects table ── */
@@ -1216,13 +1267,12 @@ body {
 
   /* Prediction cards — stack tightly */
   .prediction-cards {
-    flex-wrap: wrap;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
     gap: 0.5rem;
   }
 
   .prediction-card {
-    max-width: 140px;
-    flex: 1 1 120px;
+    min-height: 0;
     page-break-inside: avoid;
   }
 

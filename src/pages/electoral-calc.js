@@ -15,8 +15,38 @@ const partyColors = {
     'DPK': '#424242',
 };
 
+// Current parliamentary seats by party abbreviation (for seat gain/loss deltas).
+// Source baseline: Hellenic Parliament composition (as reflected on Wikipedia, accessed 2026-04-28).
+const currentParliamentSeats = {
+    ND: 156,
+    SYRIZA: 25,
+    PASOK: 32,
+    KKE: 21,
+    SP: 2,
+    EL: 11,
+    NIKI: 8,
+    PE: 5,
+    M25: 0,
+    FL: 0,
+    NA: 0,
+    DPK: 0,
+};
+
 let _pollRows = [], _partyIndices = {}, _volatility = {}, _ndBias = 0;
 let _houseEffects = {}, _longRunAvg = {};
+
+const forecastDefaults = {
+    abstentionPct: 35,
+    pollBase: '180d',
+    electionDate: '2027-05-05',
+    useSampleWeight: true,
+    useNDCorrection: true,
+    useHouseEffects: true,
+    useLeadCompression: true,
+    useThresholdRisk: true,
+    momentumPct: 50,
+    reversionPct: 20,
+};
 
 
 // ─────────────────────────────────────────────
@@ -153,11 +183,62 @@ export function getCalcHTML() {
                     <div class="govuk-form-group">
                         <label class="govuk-label govuk-label--s" for="polls-count-select">Poll base</label>
                         <select class="govuk-select" id="polls-count-select">
-                            <option value="5">Last 5 polls</option>
-                            <option value="10" selected>Last 10 polls</option>
-                            <option value="20">Last 20 polls</option>
+                            <option value="1d">Last 1 day</option>
+                            <option value="3d">Last 3 days</option>
+                            <option value="7d">Last 1 week</option>
+                            <option value="10d">Last 10 days</option>
+                            <option value="14d">Last 2 weeks</option>
+                            <option value="21d">Last 3 weeks</option>
+                            <option value="28d">Last 4 weeks</option>
+                            <option value="35d">Last 5 weeks</option>
+                            <option value="42d">Last 6 weeks</option>
+                            <option value="49d">Last 7 weeks</option>
+                            <option value="56d">Last 8 weeks</option>
+                            <option value="30d" selected>Last 1 month</option>
+                            <option value="45d">Last 1.5 months</option>
+                            <option value="60d">Last 2 months</option>
+                            <option value="75d">Last 2.5 months</option>
+                            <option value="90d">Last 3 months</option>
+                            <option value="105d">Last 3.5 months</option>
+                            <option value="120d">Last 4 months</option>
+                            <option value="135d">Last 4.5 months</option>
+                            <option value="150d">Last 5 months</option>
+                            <option value="165d">Last 5.5 months</option>
+                            <option value="180d">Last 6 months</option>
+                            <option value="210d">Last 7 months</option>
+                            <option value="240d">Last 8 months</option>
+                            <option value="270d">Last 9 months</option>
+                            <option value="300d">Last 10 months</option>
+                            <option value="330d">Last 11 months</option>
+                            <option value="365d">Last 1 year</option>
+                            <option value="395d">Last 13 months</option>
+                            <option value="425d">Last 14 months</option>
+                            <option value="455d">Last 15 months</option>
+                            <option value="485d">Last 16 months</option>
+                            <option value="515d">Last 17 months</option>
+                            <option value="545d">Last 18 months</option>
+                            <option value="575d">Last 19 months</option>
+                            <option value="605d">Last 20 months</option>
+                            <option value="635d">Last 21 months</option>
+                            <option value="665d">Last 22 months</option>
+                            <option value="695d">Last 23 months</option>
+                            <option value="730d">Last 2 years</option>
+                            <option value="820d">Last 27 months</option>
+                            <option value="910d">Last 30 months</option>
+                            <option value="1000d">Last 33 months</option>
+                            <option value="1095d">Last 3 years</option>
                             <option value="all">All polls</option>
                         </select>
+                    </div>
+
+                    <div class="govuk-form-group">
+                        <label class="govuk-label govuk-label--s" for="election-date-picker">
+                            Election date
+                        </label>
+                        <input class="govuk-input" id="election-date-picker" type="date">
+                        <div class="govuk-hint" id="election-horizon-hint">
+                            Projection horizon is measured from the latest poll midpoint date.
+                        </div>
                     </div>
 
                     <div class="govuk-form-group govuk-checkboxes govuk-checkboxes--small">
@@ -248,6 +329,11 @@ export function getCalcHTML() {
                     </div>
                 </div>
 
+            </div>
+            <div class="govuk-button-group govuk-!-margin-bottom-4">
+                <button class="govuk-button govuk-button--secondary" id="reset-defaults-btn" type="button">
+                    Reset to defaults
+                </button>
             </div>
 
             <details class="govuk-details">
@@ -407,7 +493,7 @@ function createPollsChart(headers, rows) {
     }).filter(s => s.avg >= 2.5).sort((a, b) => b.avg - a.avg);
 
     const W = 880, H = 320;
-    const ml = 44, mr = 12, mt = 12, mb = 68;
+    const ml = 44, mr = 12, mt = 12, mb = 58;
     const pw = W - ml - mr, ph = H - mt - mb;
 
     const maxY = Math.ceil(Math.max(...series.flatMap(s => s.values.map(v => v || 0))) / 5) * 5;
@@ -425,8 +511,8 @@ function createPollsChart(headers, rows) {
     const xCount = Math.min(8, n);
     for (let i = 0; i < xCount; i++) {
         const idx = xCount > 1 ? Math.round(i * (n - 1) / (xCount - 1)) : 0;
-        xLabelHtml += `<text transform="translate(${xOf(idx).toFixed(1)},${(ph + 8).toFixed(1)}) rotate(-90)"
-            text-anchor="end" dominant-baseline="middle"
+        xLabelHtml += `<text transform="translate(${xOf(idx).toFixed(1)},${(ph + 12).toFixed(1)}) rotate(-35)"
+            text-anchor="end" dominant-baseline="hanging"
             font-size="11" fill="#505a5f" font-family="arial,sans-serif">${pts[idx][3] || ''}</text>`;
     }
 
@@ -512,6 +598,8 @@ function initPredictions(headers, rows) {
     _houseEffects = computeHouseEffects(_pollRows, _partyIndices);
     _longRunAvg = computeLongRunAverage(_pollRows, _partyIndices);
 
+    applyForecastDefaults();
+
     const sign = _ndBias >= 0 ? '+' : '';
     document.getElementById('nd-bias-label').textContent = `(${sign}${_ndBias.toFixed(2)}%)`;
 
@@ -520,7 +608,7 @@ function initPredictions(headers, rows) {
     const controls = [
         'abstention-slider', 'polls-count-select', 'nd-correction-checkbox',
         'sample-weight-checkbox', 'house-effects-checkbox', 'lead-compression-checkbox',
-        'threshold-risk-checkbox', 'momentum-slider', 'reversion-slider',
+        'threshold-risk-checkbox', 'momentum-slider', 'reversion-slider', 'election-date-picker',
     ];
     controls.forEach(id => {
         const el = document.getElementById(id);
@@ -533,7 +621,46 @@ function initPredictions(headers, rows) {
         });
     });
 
+    const resetBtn = document.getElementById('reset-defaults-btn');
+    if (resetBtn) {
+        resetBtn.addEventListener('click', () => {
+            applyForecastDefaults();
+            renderPrediction();
+        });
+    }
+
     renderPrediction();
+}
+
+function applyForecastDefaults() {
+    const abstention = document.getElementById('abstention-slider');
+    const pollBase = document.getElementById('polls-count-select');
+    const electionDate = document.getElementById('election-date-picker');
+    const sampleWeight = document.getElementById('sample-weight-checkbox');
+    const ndCorrection = document.getElementById('nd-correction-checkbox');
+    const houseEffects = document.getElementById('house-effects-checkbox');
+    const leadCompression = document.getElementById('lead-compression-checkbox');
+    const thresholdRisk = document.getElementById('threshold-risk-checkbox');
+    const momentum = document.getElementById('momentum-slider');
+    const reversion = document.getElementById('reversion-slider');
+
+    if (!abstention || !pollBase || !electionDate || !sampleWeight || !ndCorrection || !houseEffects ||
+        !leadCompression || !thresholdRisk || !momentum || !reversion) return;
+
+    abstention.value = String(forecastDefaults.abstentionPct);
+    pollBase.value = forecastDefaults.pollBase;
+    electionDate.value = forecastDefaults.electionDate;
+    sampleWeight.checked = forecastDefaults.useSampleWeight;
+    ndCorrection.checked = forecastDefaults.useNDCorrection;
+    houseEffects.checked = forecastDefaults.useHouseEffects;
+    leadCompression.checked = forecastDefaults.useLeadCompression;
+    thresholdRisk.checked = forecastDefaults.useThresholdRisk;
+    momentum.value = String(forecastDefaults.momentumPct);
+    reversion.value = String(forecastDefaults.reversionPct);
+
+    document.getElementById('abstention-value').textContent = String(forecastDefaults.abstentionPct);
+    document.getElementById('momentum-value').textContent = String(forecastDefaults.momentumPct);
+    document.getElementById('reversion-value').textContent = String(forecastDefaults.reversionPct);
 }
 
 
@@ -548,16 +675,49 @@ function renderPrediction() {
     const useSampleWeight = document.getElementById('sample-weight-checkbox').checked;
     const useHouseEffects = document.getElementById('house-effects-checkbox').checked;
     const useLeadCompress = document.getElementById('lead-compression-checkbox').checked;
-    const momentumFactor = parseInt(document.getElementById('momentum-slider').value) / 100;
-    const reversionFactor = parseInt(document.getElementById('reversion-slider').value) / 100;
     const useThresholdRisk = document.getElementById('threshold-risk-checkbox').checked;
+    const electionDateRaw = document.getElementById('election-date-picker').value;
+    const momentumSliderEl = document.getElementById('momentum-slider');
+    const reversionSliderEl = document.getElementById('reversion-slider');
 
-    const N = pollsCountVal === 'all' ? _pollRows.length : parseInt(pollsCountVal);
-    const recentPolls = _pollRows.slice(-N);
+    const recentPolls = filterPollsByDateWindow(_pollRows, pollsCountVal);
     const total = recentPolls.length;
+    if (!total) return;
 
-    const momentum = computeMomentum(_pollRows, _partyIndices, N);
-    const acceleration = computeTrendAcceleration(_pollRows, _partyIndices, N);
+    const horizonDays = getHorizonDaysFromRows(recentPolls, electionDateRaw);
+    const hasElectionDate = !!parseInputDate(electionDateRaw);
+    const autoMomentumPct = getAutoMomentumPercent(horizonDays);
+    const autoReversionPct = getAutoReversionPercent(horizonDays);
+
+    if (hasElectionDate) {
+        momentumSliderEl.value = String(autoMomentumPct);
+        reversionSliderEl.value = String(autoReversionPct);
+        momentumSliderEl.disabled = true;
+        reversionSliderEl.disabled = true;
+    } else {
+        momentumSliderEl.disabled = false;
+        reversionSliderEl.disabled = false;
+    }
+
+    document.getElementById('momentum-value').textContent = momentumSliderEl.value;
+    document.getElementById('reversion-value').textContent = reversionSliderEl.value;
+
+    const momentumFactor = parseInt(momentumSliderEl.value, 10) / 100;
+    const reversionFactor = parseInt(reversionSliderEl.value, 10) / 100;
+    const momentumHorizonScale = hasElectionDate ? 1 : getMomentumHorizonScale(horizonDays);
+    const reversionHorizonScale = hasElectionDate ? 1 : getReversionHorizonScale(horizonDays);
+
+    const horizonHint = document.getElementById('election-horizon-hint');
+    if (horizonHint) {
+        if (hasElectionDate) {
+            horizonHint.textContent = `Projection horizon: ${Math.max(0, horizonDays)} day${Math.abs(horizonDays) === 1 ? '' : 's'} from latest poll midpoint. Momentum ${autoMomentumPct}% and mean reversion ${autoReversionPct}% are auto-set.`;
+        } else {
+            horizonHint.textContent = 'Projection horizon is measured from the latest poll midpoint date.';
+        }
+    }
+
+    const momentum = computeMomentum(recentPolls, _partyIndices, total);
+    const acceleration = computeTrendAcceleration(recentPolls, _partyIndices, total);
 
     // ── Step 1: Weighted average with optional house-effect correction per poll ──
     const weightedSum = {};
@@ -589,16 +749,16 @@ function renderPrediction() {
     if (momentumFactor > 0) {
         for (const [party, slope] of Object.entries(momentum)) {
             if (base[party] !== undefined) {
-                base[party] = Math.max(0, base[party] + slope * momentumFactor * 2);
+                base[party] = Math.max(0, base[party] + slope * momentumFactor * 2 * momentumHorizonScale);
             }
         }
     }
 
     // ── Step 3: Mean reversion ──
-    if (reversionFactor > 0) {
+    if (reversionFactor > 0 && reversionHorizonScale > 0) {
         for (const [party, longAvg] of Object.entries(_longRunAvg)) {
             if (base[party] !== undefined && longAvg > 0) {
-                base[party] += (longAvg - base[party]) * reversionFactor;
+                base[party] += (longAvg - base[party]) * reversionFactor * reversionHorizonScale;
             }
         }
     }
@@ -641,7 +801,8 @@ function renderPrediction() {
     if (useThresholdRisk) predicted = applyThresholdRisk(predicted, _volatility);
 
     const seats = allocateGreekSeats(predicted);
-    renderPredictionCards(predicted, rawBase, seats, momentum, acceleration);
+    const confidence = computeConfidenceScores(predicted, _volatility, total, Math.max(0, horizonDays));
+    renderPredictionCards(predicted, rawBase, seats, momentum, acceleration, confidence, total);
     renderPredictionStats(predicted, rawBase);
     renderParliament(seats);
     renderCoalitions(seats);
@@ -751,18 +912,33 @@ function renderParliament(seats) {
 
     const cx = 240, cy = 240;
     let svg = `<svg viewBox="0 0 480 240" class="parliament-svg" aria-label="Parliament seat diagram">`;
-    let idx = 0;
 
-    for (const arc of arcs) {
+    // Keep the same hemicycle positions, but assign party colors by columns (vertical),
+    // not row-by-row arc scans (horizontal).
+    const posByArc = arcs.map(() => []);
+    arcs.forEach((arc, arcIdx) => {
         for (let i = 0; i < arc.count; i++) {
-            if (idx >= 300) break;
             const angle = Math.PI - (i * (Math.PI / (arc.count - 1)));
-            const x = cx + arc.r * Math.cos(angle);
-            const y = cy - arc.r * Math.sin(angle);
-            const color = partyColors[seatList[idx]] || '#b1b4b6';
-            svg += `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="5.5" fill="${color}"><title>${seatList[idx]}</title></circle>`;
-            idx++;
+            posByArc[arcIdx].push({
+                x: cx + arc.r * Math.cos(angle),
+                y: cy - arc.r * Math.sin(angle),
+            });
         }
+    });
+
+    const maxCols = Math.max(...arcs.map(a => a.count));
+    const verticalOrder = [];
+    for (let col = 0; col < maxCols; col++) {
+        for (let arcIdx = 0; arcIdx < arcs.length; arcIdx++) {
+            if (col < posByArc[arcIdx].length) verticalOrder.push(posByArc[arcIdx][col]);
+        }
+    }
+
+    for (let idx = 0; idx < Math.min(300, verticalOrder.length); idx++) {
+        const pos = verticalOrder[idx];
+        const party = seatList[idx];
+        const color = partyColors[party] || '#b1b4b6';
+        svg += `<circle cx="${pos.x.toFixed(1)}" cy="${pos.y.toFixed(1)}" r="5.5" fill="${color}"><title>${party}</title></circle>`;
     }
     svg += `</svg>`;
 
@@ -774,13 +950,13 @@ function renderParliament(seats) {
 
     container.innerHTML = `
         <div class="parliament-panel ${hasMajority ? 'majority-glow' : ''}">
-            <h3 class="govuk-heading-m govuk-!-text-align-centre">Parliament composition (300 seats)</h3>
-            ${hasMajority ? `<p class="govuk-!-text-align-centre">
-                <strong class="parliament-majority-tag">
-                    <i class="fa-solid fa-star" aria-hidden="true"></i> Absolute majority
-                </strong></p>` : ''}
+            <h3 class="govuk-heading-m govuk-!-text-align-centre govuk-!-margin-bottom-1">Parliament composition</h3>
+            <p class="govuk-body-s govuk-!-text-align-centre govuk-!-colour-secondary govuk-!-margin-top-0 govuk-!-margin-bottom-3">(300 seats)</p>
             <div class="parliament-wrapper">${svg}</div>
             <div class="parliament-legend">${legend}</div>
+            <p class="govuk-body-s govuk-!-text-align-centre govuk-!-colour-secondary govuk-!-margin-top-3 govuk-!-margin-bottom-0">
+                Seat projection only - not final election results.
+            </p>
         </div>`;
 }
 
@@ -872,7 +1048,7 @@ function renderCoalitions(seats) {
 // PREDICTION CARDS
 // ─────────────────────────────────────────────
 
-function renderPredictionCards(predicted, rawBase, seats, momentum, acceleration) {
+function renderPredictionCards(predicted, rawBase, seats, momentum, acceleration, confidence, windowSize) {
     const sorted = Object.entries(predicted)
         .sort(([, a], [, b]) => b - a)
         .filter(([, v]) => v >= 1.0);
@@ -882,31 +1058,39 @@ function renderPredictionCards(predicted, rawBase, seats, momentum, acceleration
         const diff = pct - basePct;
         const vol = ((_volatility[party] || 0) * 100).toFixed(0);
         const seat = seats[party] || 0;
+        const currentSeats = currentParliamentSeats[party] ?? 0;
+        const seatDelta = seat - currentSeats;
+        const seatDeltaSign = seatDelta > 0 ? '+' : '';
+        const seatDeltaClass = seatDelta > 0 ? 'text-up' : seatDelta < 0 ? 'text-down' : '';
         const color = partyColors[party] || '#0b0c0c';
         const diffSign = diff >= 0 ? '+' : '−';
         const diffClass = diff >= 0 ? 'text-up' : 'text-down';
 
         const slope = momentum[party] || 0;
         const accel = acceleration[party] || 0;
+        const confidencePct = confidence?.[party] ?? 50;
+        const trendDelta = slope * Math.max((windowSize || 1) - 1, 1);
+        const accelDelta = accel * Math.max((windowSize || 1) - 1, 1);
 
-        let momentumIcon, momentumLabel;
-        if (Math.abs(slope) < 0.05) {
-            momentumIcon = '→'; momentumLabel = 'Stable';
-        } else if (slope > 0) {
-            momentumIcon = accel > 0.02 ? '↑↑' : '↑';
-            momentumLabel = accel > 0.02 ? 'Rising fast' : 'Rising';
+        let momentumIconHtml, momentumLabel;
+        if (Math.abs(trendDelta) < 0.35) {
+            momentumIconHtml = getMomentumIconSvg('stable');
+            momentumLabel = 'Stable';
+        } else if (trendDelta > 0) {
+            momentumIconHtml = getMomentumIconSvg(accelDelta > 0.2 ? 'up-fast' : 'up');
+            momentumLabel = accelDelta > 0.2 ? 'Rising fast' : 'Rising';
         } else {
-            momentumIcon = accel < -0.02 ? '↓↓' : '↓';
-            momentumLabel = accel < -0.02 ? 'Falling fast' : 'Falling';
+            momentumIconHtml = getMomentumIconSvg(accelDelta < -0.2 ? 'down-fast' : 'down');
+            momentumLabel = accelDelta < -0.2 ? 'Falling fast' : 'Falling';
         }
-        const momentumColor = slope > 0.05 ? '#00703c' : slope < -0.05 ? '#d4351c' : '#505a5f';
+        const momentumColor = trendDelta > 0.35 ? '#00703c' : trendDelta < -0.35 ? '#d4351c' : '#505a5f';
 
         return `
         <div class="prediction-card" style="border-top-color:${color};">
             <div class="prediction-card__pct" style="color:${color};">${pct.toFixed(1)}%</div>
             <div class="prediction-card__party">${party}</div>
             <div class="prediction-card__momentum" style="color:${momentumColor};">
-                <span aria-hidden="true">${momentumIcon}</span>
+                <span class="prediction-card__momentum-icon" aria-hidden="true">${momentumIconHtml}</span>
                 <span class="govuk-visually-hidden">${momentumLabel}</span>
                 <span>${momentumLabel}</span>
             </div>
@@ -916,10 +1100,29 @@ function renderPredictionCards(predicted, rawBase, seats, momentum, acceleration
                     <span class="${diffClass}">${diffSign}${Math.abs(diff).toFixed(1)}%</span>
                 </div>
                 <div>Volatility: <strong>${vol}%</strong></div>
-                ${seat > 0 ? `<div>Seats: <strong style="color:${color};">${seat}</strong></div>` : ''}
+                <div>Confidence: <strong>${confidencePct}%</strong></div>
+                <div>Seats: <strong style="color:${color};">${seat > 0 ? seat : '—'}</strong>
+                    <span class="${seatDeltaClass}">(${seatDeltaSign}${seatDelta})</span>
+                </div>
             </div>
         </div>`;
     }).join('');
+}
+
+function getMomentumIconSvg(state) {
+    if (state === 'up-fast') {
+        return `<svg viewBox="0 0 16 16" width="14" height="14" fill="currentColor"><path d="M8 2l4 4H9v8H7V6H4l4-4z"/><path d="M13 4l3 3h-2v6h-2V7h-2l3-3z"/></svg>`;
+    }
+    if (state === 'up') {
+        return `<svg viewBox="0 0 16 16" width="14" height="14" fill="currentColor"><path d="M8 2l4 4H9v8H7V6H4l4-4z"/></svg>`;
+    }
+    if (state === 'down-fast') {
+        return `<svg viewBox="0 0 16 16" width="14" height="14" fill="currentColor"><path d="M8 14l-4-4h3V2h2v8h3l-4 4z"/><path d="M13 12l-3-3h2V3h2v6h2l-3 3z"/></svg>`;
+    }
+    if (state === 'down') {
+        return `<svg viewBox="0 0 16 16" width="14" height="14" fill="currentColor"><path d="M8 14l-4-4h3V2h2v8h3l-4 4z"/></svg>`;
+    }
+    return `<svg viewBox="0 0 16 16" width="14" height="14" fill="currentColor"><path d="M2 9h12v-2H2v2z"/></svg>`;
 }
 
 
@@ -1107,8 +1310,15 @@ function computeNDBias(electionRows, pollRows, partyIndices, party) {
     const biases = [];
     for (const elRow of electionRows) {
         const result = parseFloat(elRow[idx]);
+        const electionDate = parsePollDate(elRow[3]);
         if (isNaN(result)) continue;
-        const priorPolls = pollRows.filter(r => r[3] <= elRow[3]).slice(-10);
+        if (!electionDate) continue;
+        const priorPolls = pollRows
+            .filter(r => {
+                const pollDate = parsePollDate(r[3]);
+                return pollDate && pollDate <= electionDate;
+            })
+            .slice(-10);
         if (!priorPolls.length) continue;
         const avg = priorPolls.reduce((sum, r) => sum + (parseFloat(r[idx]) || 0), 0) / priorPolls.length;
         biases.push(result - avg);
@@ -1131,10 +1341,107 @@ function computeVolatility(pollRows, partyIndices) {
     return result;
 }
 
+function computeConfidenceScores(predicted, volatility, sampleCount, horizonDays) {
+    const horizonPenalty = Math.min(20, horizonDays / 18);
+    const sampleBonus = Math.min(12, Math.sqrt(Math.max(sampleCount, 1)) * 2.2);
+    const result = {};
+
+    for (const party of Object.keys(predicted)) {
+        const volPenalty = (volatility[party] || 0) * 28;
+        const base = 82 - volPenalty - horizonPenalty + sampleBonus;
+        result[party] = Math.max(35, Math.min(95, Math.round(base)));
+    }
+    return result;
+}
+
 function parseSampleSize(str) {
     if (!str) return 1000;
     const n = parseInt(str.replace(/[^0-9]/g, ''));
     return isNaN(n) || n === 0 ? 1000 : n;
+}
+
+function parseInputDate(str) {
+    if (!str) return null;
+    const d = new Date(str);
+    return Number.isNaN(d.getTime()) ? null : d;
+}
+
+function parsePollDate(str) {
+    if (!str) return null;
+    const m = str.trim().match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+    if (!m) return null;
+    const day = parseInt(m[1], 10);
+    const month = parseInt(m[2], 10) - 1;
+    const year = parseInt(m[3], 10);
+    const d = new Date(year, month, day);
+    if (Number.isNaN(d.getTime())) return null;
+    return d;
+}
+
+function getLatestPollDate(pollRows) {
+    const dates = pollRows.map(r => parsePollDate(r[3])).filter(Boolean);
+    if (!dates.length) return null;
+    return dates.reduce((max, d) => d > max ? d : max, dates[0]);
+}
+
+function getHorizonDaysFromRows(recentPolls, electionDateRaw) {
+    const latestPollDate = getLatestPollDate(recentPolls);
+    const electionDate = parseInputDate(electionDateRaw);
+    if (!latestPollDate || !electionDate) return 0;
+    const msPerDay = 24 * 60 * 60 * 1000;
+    return Math.round((electionDate - latestPollDate) / msPerDay);
+}
+
+function getMomentumHorizonScale(days) {
+    const d = Math.max(0, days);
+    // Keep short horizons conservative while allowing moderate projection extension.
+    return Math.min(1.6, 0.6 + d / 365);
+}
+
+function getReversionHorizonScale(days) {
+    const d = Math.max(0, days);
+    // Mean reversion grows with horizon and saturates around one year.
+    return Math.min(1, d / 365);
+}
+
+function getAutoMomentumPercent(days) {
+    const d = Math.max(0, days);
+    // Short horizons lean on trend more; long horizons taper momentum.
+    const pct = 70 - Math.min(40, Math.round(d / 14));
+    return Math.max(30, Math.min(70, pct));
+}
+
+function getAutoReversionPercent(days) {
+    const d = Math.max(0, days);
+    // Longer horizons rely more on mean reversion.
+    const pct = 10 + Math.min(50, Math.round(d / 7));
+    return Math.max(10, Math.min(60, pct));
+}
+
+function filterPollsByDateWindow(pollRows, windowValue) {
+    const allWithDates = pollRows
+        .map(row => ({ row, date: parsePollDate(row[3]) }))
+        .filter(item => item.date)
+        .sort((a, b) => a.date - b.date);
+
+    const allChronologicalRows = allWithDates.map(item => item.row);
+    if (windowValue === 'all') return allChronologicalRows.length ? allChronologicalRows : pollRows;
+
+    const days = parseInt(windowValue, 10);
+    if (Number.isNaN(days) || days <= 0) return allChronologicalRows.length ? allChronologicalRows : pollRows;
+
+    if (!allWithDates.length) return pollRows;
+
+    const latestDate = allWithDates[allWithDates.length - 1].date;
+    const cutoff = new Date(latestDate);
+    cutoff.setDate(cutoff.getDate() - days);
+
+    const filtered = allWithDates
+        .filter(item => item.date >= cutoff)
+        .map(item => item.row);
+
+    // Keep UX resilient: if no rows match a very narrow window, fall back to most recent poll.
+    return filtered.length ? filtered : [allWithDates[allWithDates.length - 1].row];
 }
 
 function parseCSV(text) {
