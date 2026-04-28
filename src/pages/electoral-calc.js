@@ -176,7 +176,7 @@ export function getCalcHTML() {
                             Abstention rate: <strong id="abstention-value">35</strong>%
                         </label>
                         <input class="govuk-range" type="range" id="abstention-slider"
-                            min="20" max="65" value="35" step="1">
+                            min="0" max="100" value="35" step="1">
                         <div class="govuk-hint">Expected non-voters on election day.</div>
                     </div>
 
@@ -312,7 +312,7 @@ export function getCalcHTML() {
                             Mean reversion: <strong id="reversion-value">20</strong>%
                         </label>
                         <input class="govuk-range" type="range" id="reversion-slider"
-                            min="0" max="60" value="20" step="5">
+                            min="0" max="100" value="20" step="5">
                         <div class="govuk-hint">Pull toward each party's long-run polling average.</div>
                     </div>
 
