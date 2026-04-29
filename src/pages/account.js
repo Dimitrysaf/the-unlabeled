@@ -1,11 +1,10 @@
 import { updateContent } from '../components/Layout.js';
-import { getCurrentUser, getCurrentSession, signOut } from '../lib/auth.js';
+import { getCurrentUser, signOut } from '../lib/auth.js';
 
 export async function renderAccount() {
-    let user, session;
+    let user;
     try {
         user = await getCurrentUser();
-        session = await getCurrentSession();
     } catch (error) {
         console.error('Error retrieving user data:', error);
         updateContent(`
@@ -21,20 +20,9 @@ export async function renderAccount() {
         return;
     }
 
-    console.log('Session:', session);
-    console.log('Session user:', session?.user);
-
     if (!user) {
         window.location.href = '/login';
         return;
-    }
-
-    const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-
-    if (isLocalhost) {
-        console.log('User data:', user);
-        console.log('User metadata:', user.user_metadata);
-        console.log('User app_metadata:', user.app_metadata);
     }
 
     const displayName = user.user_metadata?.display_name ||
@@ -53,16 +41,6 @@ export async function renderAccount() {
     const emailConfirmed = user.email_confirmed_at ? 'Yes (' + new Date(user.email_confirmed_at).toLocaleDateString('en-GB') + ')' : 'No';
     const accountConfirmed = user.confirmed_at ? new Date(user.confirmed_at).toLocaleDateString('en-GB') : 'Not confirmed';
     const lastUpdated = user.updated_at ? new Date(user.updated_at).toLocaleDateString('en-GB') : 'Not available';
-
-    if (isLocalhost) {
-        console.log('Display name:', displayName);
-        console.log('Email:', email);
-        console.log('Created at:', createdAt);
-        console.log('Last sign in:', lastSignIn);
-        console.log('Email confirmed:', emailConfirmed);
-        console.log('Account confirmed:', accountConfirmed);
-        console.log('Last updated:', lastUpdated);
-    }
 
     updateContent(`
         <div class="govuk-!-padding-bottom-9">
@@ -155,6 +133,7 @@ export async function renderAccount() {
                     </dl>
 
                     <div class="govuk-!-margin-top-9">
+                        <p class="govuk-error-message" id="sign-out-error" style="display:none">Failed to sign out. Please try again.</p>
                         <button class="govuk-button govuk-button--warning" id="sign-out-btn">
                             Sign out
                         </button>
@@ -177,7 +156,8 @@ function initAccountPage() {
                 window.location.href = '/';
             } catch (error) {
                 console.error('Sign out error:', error);
-                alert('Failed to sign out. Please try again.');
+                const errEl = document.getElementById('sign-out-error');
+                if (errEl) errEl.style.display = 'block';
             }
         });
     }

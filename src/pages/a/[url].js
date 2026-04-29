@@ -16,28 +16,14 @@ const MODULE_REGISTRY = {
 // ─────────────────────────────────────────────
 
 function buildBreadcrumb() {
-    return `<a class="govuk-back-link" href="/" onclick="event.preventDefault();history.length>1?history.back():location.href='/';">Back</a>`;
+    return `<a class="govuk-back-link" href="/" id="article-back-link">Back</a>`;
 }
 
 function buildShare() {
     return `
         <span class="article-actions">
-            <a class="govuk-link" href="#"
-                aria-label="Copy link to this article"
-                onclick="
-                    var a=this, old=a.innerHTML, t=document.createElement('textarea');
-                    t.value=window.location.href;
-                    document.body.appendChild(t);
-                    t.select();
-                    try { document.execCommand('copy'); a.innerHTML='Copied!'; } catch(e) {}
-                    document.body.removeChild(t);
-                    setTimeout(function(){ a.innerHTML=old; }, 2000);
-                    return false;
-                ">Copy link</a>
-            <a class="govuk-link" href="#"
-                aria-label="Print this article"
-                onclick="window.print();return false;"
-                >Print</a>
+            <a class="govuk-link" href="#" id="copy-link-btn" aria-label="Copy link to this article">Copy link</a>
+            <a class="govuk-link" href="#" id="print-btn" aria-label="Print this article">Print</a>
         </span>`;
 }
 
@@ -91,21 +77,36 @@ function buildPage(article, bodyHtml) {
     `;
 }
 
-function initShare() {
-    const btn = document.getElementById('share-btn');
-    const menu = document.getElementById('share-menu');
-    if (!btn || !menu) return;
+function initArticleActions() {
+    const backLink = document.getElementById('article-back-link');
+    if (backLink) {
+        backLink.addEventListener('click', e => {
+            e.preventDefault();
+            if (history.length > 1) history.back();
+            else window.location.href = '/';
+        });
+    }
 
-    btn.addEventListener('click', e => {
-        e.stopPropagation();
-        const open = menu.classList.toggle('is-open');
-        btn.setAttribute('aria-expanded', String(open));
-    });
+    const copyBtn = document.getElementById('copy-link-btn');
+    if (copyBtn) {
+        copyBtn.addEventListener('click', async e => {
+            e.preventDefault();
+            try {
+                await navigator.clipboard.writeText(window.location.href);
+                const original = copyBtn.textContent;
+                copyBtn.textContent = 'Copied!';
+                setTimeout(() => { copyBtn.textContent = original; }, 2000);
+            } catch {}
+        });
+    }
 
-    document.addEventListener('click', () => {
-        menu.classList.remove('is-open');
-        btn.setAttribute('aria-expanded', 'false');
-    });
+    const printBtn = document.getElementById('print-btn');
+    if (printBtn) {
+        printBtn.addEventListener('click', e => {
+            e.preventDefault();
+            window.print();
+        });
+    }
 }
 
 function buildLoadingShell() {
@@ -149,7 +150,7 @@ export async function renderArticlePage(slug) {
 
         const mod = await loader();
         updateContent(buildPage(articleMeta, mod.getCalcHTML()));
-        initShare();
+        initArticleActions();
         mod.initCalc();
         return;
     }
@@ -159,5 +160,5 @@ export async function renderArticlePage(slug) {
     if (!article) { renderError('404'); return; }
 
     updateContent(buildPage(article, buildBody(article.body)));
-    initShare();
+    initArticleActions();
 }

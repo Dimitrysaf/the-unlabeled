@@ -185,7 +185,6 @@ export function initLayout() {
     _initSearchForm();
     _initServiceNavFallback();
     _initCookieBanner();
-    initAuthEventListeners();
 }
 
 function _initSearchForm() {
@@ -198,14 +197,6 @@ function _initSearchForm() {
             window.location.href = '/search?q=' + encodeURIComponent(q);
         }
     });
-}
-
-function _readCookiePreferences() {
-    return readCookiePreferences();
-}
-
-function _writeCookiePreferences(analytics) {
-    return writeCookiePreferences(analytics, { bannerHidden: false });
 }
 
 function _hideCookieBannerPermanently(currentPrefs) {
@@ -233,7 +224,7 @@ function _showCookieState(state) {
 }
 
 function _initCookieBanner() {
-    const prefs = _readCookiePreferences();
+    const prefs = readCookiePreferences();
     const acceptBtn = document.getElementById('cookie-accept-btn');
     const rejectBtn = document.getElementById('cookie-reject-btn');
     const hideAcceptedBtn = document.getElementById('cookie-hide-accepted-btn');
@@ -241,7 +232,7 @@ function _initCookieBanner() {
 
     if (acceptBtn) {
         acceptBtn.addEventListener('click', () => {
-            const nextPrefs = _writeCookiePreferences(true);
+            const nextPrefs = writeCookiePreferences(true, { bannerHidden: false });
             _showCookieState('accepted');
             window.dispatchEvent(new CustomEvent('cookie-consent-updated', { detail: nextPrefs }));
         });
@@ -249,7 +240,7 @@ function _initCookieBanner() {
 
     if (rejectBtn) {
         rejectBtn.addEventListener('click', () => {
-            const nextPrefs = _writeCookiePreferences(false);
+            const nextPrefs = writeCookiePreferences(false, { bannerHidden: false });
             _showCookieState('rejected');
             window.dispatchEvent(new CustomEvent('cookie-consent-updated', { detail: nextPrefs }));
         });
@@ -257,13 +248,13 @@ function _initCookieBanner() {
 
     if (hideAcceptedBtn) {
         hideAcceptedBtn.addEventListener('click', () => {
-            _hideCookieBannerPermanently(_readCookiePreferences() || { analytics: true, bannerHidden: false });
+            _hideCookieBannerPermanently(readCookiePreferences() || { analytics: true, bannerHidden: false });
         });
     }
 
     if (hideRejectedBtn) {
         hideRejectedBtn.addEventListener('click', () => {
-            _hideCookieBannerPermanently(_readCookiePreferences() || { analytics: false, bannerHidden: false });
+            _hideCookieBannerPermanently(readCookiePreferences() || { analytics: false, bannerHidden: false });
         });
     }
 
@@ -336,13 +327,7 @@ function updateNavigation() {
         }).join('');
 
         navList.innerHTML = navItemsHtml;
-        initAuthEventListeners();
     }
-}
-
-function initAuthEventListeners() {
-    // No navbar-specific auth event listeners needed anymore
-    // Logout functionality is now on the account page
 }
 
 const MOBILE_MQ = window.matchMedia('(max-width: 640px)');
