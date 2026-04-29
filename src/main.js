@@ -26,7 +26,34 @@ function initObservabilityIfAllowed() {
     analyticsInitialized = true;
 }
 
+/**
+ * If a Supabase auth hash fragment (type=, error=, message=) lands on any
+ * page other than /auth/confirm — e.g. because the email was generated before
+ * the Site URL was updated — forward to the confirm page so the user still
+ * sees proper feedback instead of a blank/home screen.
+ */
+function redirectAuthHashIfNeeded() {
+    const hash = window.location.hash.slice(1);
+    if (!hash) return false;
+
+    const params = new URLSearchParams(hash);
+    const isAuthHash =
+        params.has('type') ||
+        params.has('error') ||
+        params.has('message') ||
+        params.has('access_token');
+
+    if (isAuthHash && window.location.pathname !== '/auth/confirm') {
+        window.location.replace('/auth/confirm' + window.location.hash);
+        return true;
+    }
+    return false;
+}
+
 document.addEventListener('DOMContentLoaded', async () => {
+    // Must run before initLayout so we don't render the wrong page first.
+    if (redirectAuthHashIfNeeded()) return;
+
     initObservabilityIfAllowed();
     initLayout();
 
