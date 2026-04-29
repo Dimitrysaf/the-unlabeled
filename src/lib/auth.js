@@ -57,9 +57,6 @@ export async function getUserProfile(userId = null) {
     const user = userId ? { id: userId } : await getCurrentUser();
     if (!user) return null;
 
-    // In Supabase, auth.users data is accessible via the user object
-    // For additional profile data, you might have a separate profiles table
-    // But for auth.users fields, we can return what's available
     return {
         id: user.id,
         email: user.email,
@@ -70,13 +67,12 @@ export async function getUserProfile(userId = null) {
         emailConfirmedAt: user.email_confirmed_at,
         phone: user.phone,
         phoneConfirmedAt: user.phone_confirmed_at,
-        // Additional metadata
         metadata: user.user_metadata,
         appMetadata: user.app_metadata
     };
 }
 
-// Update user metadata
+// Update user metadata (display name etc.)
 export async function updateUserProfile(updates) {
     const { data, error } = await supabase.auth.updateUser({
         data: updates
@@ -85,14 +81,18 @@ export async function updateUserProfile(updates) {
     return data;
 }
 
-// Update user fields such as email or password
+/**
+ * Update user fields such as email or password.
+ * @param {object} updates        - e.g. { email } or { password }
+ * @param {object} [options]      - e.g. { emailRedirectTo: 'https://…/auth/confirm' }
+ */
 export async function updateUser(updates, options = {}) {
     const { data, error } = await supabase.auth.updateUser(updates, options);
     if (error) throw error;
     return data;
 }
 
-// Reset password
+// Reset password (for logged-out forgot-password flow)
 export async function resetPassword(email) {
     const { error } = await supabase.auth.resetPasswordForEmail(email);
     if (error) throw error;
@@ -105,7 +105,3 @@ export async function confirmPasswordReset(token, newPassword) {
     });
     if (error) throw error;
 }
-
-// Note: To query auth.users table directly, you need service role key
-// The functions above work with the current authenticated user
-// For admin operations (listing all users), you'd need server-side code with service role
