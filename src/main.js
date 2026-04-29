@@ -12,6 +12,7 @@ import { renderLogin } from './pages/login.js';
 import { renderSignup } from './pages/signup.js';
 import { renderAccount } from './pages/account.js';
 import { renderChange } from './pages/change.js';
+import { renderAuthConfirm } from './pages/auth-confirm.js';
 import { readCookiePreferences } from './lib/cookiePreferences.js';
 
 let analyticsInitialized = false;
@@ -53,6 +54,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     } else if (path.startsWith('/c/')) {
         const field = path.replace('/c/', '').replace(/\/+$/, '');
         await renderChange(field);
+    } else if (path === '/auth/confirm') {
+        renderAuthConfirm();
     } else {
         renderError('404');
     }

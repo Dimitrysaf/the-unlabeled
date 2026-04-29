@@ -26,27 +26,59 @@ export async function renderAccount() {
     }
 
     const displayName = user.user_metadata?.display_name ||
-                       user.user_metadata?.name ||
-                       user.app_metadata?.display_name ||
-                       user.app_metadata?.name ||
-                       'Not provided';
+        user.user_metadata?.name ||
+        user.app_metadata?.display_name ||
+        user.app_metadata?.name ||
+        'Not provided';
 
     const email = user.email || 'Not provided';
 
-    // Format creation date
-    const createdAt = user.created_at ? new Date(user.created_at).toLocaleDateString('en-GB') : 'Not available';
+    const createdAt = user.created_at
+        ? new Date(user.created_at).toLocaleDateString('en-GB') : 'Not available';
+    const lastSignIn = user.last_sign_in_at
+        ? new Date(user.last_sign_in_at).toLocaleDateString('en-GB') +
+        ' at ' + new Date(user.last_sign_in_at).toLocaleTimeString('en-GB')
+        : 'Never';
+    const emailConfirmed = user.email_confirmed_at
+        ? 'Yes (' + new Date(user.email_confirmed_at).toLocaleDateString('en-GB') + ')'
+        : 'No';
+    const accountConfirmed = user.confirmed_at
+        ? new Date(user.confirmed_at).toLocaleDateString('en-GB')
+        : 'Not confirmed';
+    const lastUpdated = user.updated_at
+        ? new Date(user.updated_at).toLocaleDateString('en-GB') : 'Not available';
 
-    // Additional user data
-    const lastSignIn = user.last_sign_in_at ? new Date(user.last_sign_in_at).toLocaleDateString('en-GB') + ' at ' + new Date(user.last_sign_in_at).toLocaleTimeString('en-GB') : 'Never';
-    const emailConfirmed = user.email_confirmed_at ? 'Yes (' + new Date(user.email_confirmed_at).toLocaleDateString('en-GB') + ')' : 'No';
-    const accountConfirmed = user.confirmed_at ? new Date(user.confirmed_at).toLocaleDateString('en-GB') : 'Not confirmed';
-    const lastUpdated = user.updated_at ? new Date(user.updated_at).toLocaleDateString('en-GB') : 'Not available';
+    // ── Success banner after a direct field update ──
+    const updateParam = new URLSearchParams(window.location.search).get('updated');
+    const updateMessages = {
+        'display-name': 'Your display name has been updated.',
+        'password': 'Your password has been updated.',
+    };
+    const successBanner = updateParam && updateMessages[updateParam] ? `
+        <div class="govuk-notification-banner govuk-notification-banner--success"
+             role="alert"
+             aria-labelledby="account-success-banner-title"
+             data-module="govuk-notification-banner">
+            <div class="govuk-notification-banner__header">
+                <h2 class="govuk-notification-banner__title" id="account-success-banner-title">
+                    Success
+                </h2>
+            </div>
+            <div class="govuk-notification-banner__content">
+                <p class="govuk-notification-banner__heading">
+                    ${updateMessages[updateParam]}
+                </p>
+            </div>
+        </div>
+    ` : '';
 
     updateContent(`
         <div class="govuk-!-padding-bottom-9">
             <div class="govuk-grid-row">
                 <div class="govuk-grid-column-two-thirds">
                     <h1 class="govuk-heading-xl">Your account</h1>
+
+                    ${successBanner}
 
                     <dl class="govuk-summary-list">
                         <div class="govuk-summary-list__row">
@@ -79,7 +111,7 @@ export async function renderAccount() {
                                 ••••••••
                             </dd>
                             <dd class="govuk-summary-list__actions">
-                                <a class="govuk-link" href="#">Change<span class="govuk-visually-hidden"> password</span></a>
+                                <a class="govuk-link" href="/c/password">Change<span class="govuk-visually-hidden"> password</span></a>
                             </dd>
                         </div>
                         <div class="govuk-summary-list__row">
