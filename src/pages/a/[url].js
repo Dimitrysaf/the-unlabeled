@@ -2,6 +2,8 @@ import { updateContent } from '../../components/Layout.js';
 import { renderError } from '../../components/ErrorPage.js';
 import { sampleArticleContent } from '../../data/~articleContent.test.js';
 import { getArticleBySlug } from '../../data/articles.js';
+import { checkIsAdmin } from '../../data/admin.js';
+import { renderMarkdown } from '../../lib/markdown.js';
 
 // ─────────────────────────────────────────────
 // MODULE REGISTRY
@@ -55,6 +57,24 @@ function buildBody(body = []) {
         </div>`;
 }
 
+function buildDraftBanner(articleId) {
+    return `
+        <div class="govuk-notification-banner" role="region" aria-labelledby="draft-banner-title"
+             data-module="govuk-notification-banner">
+            <div class="govuk-notification-banner__header">
+                <h2 class="govuk-notification-banner__title" id="draft-banner-title">Draft preview</h2>
+            </div>
+            <div class="govuk-notification-banner__content">
+                <p class="govuk-notification-banner__heading">
+                    This article is not published. Only admins can see this page.
+                </p>
+                <p class="govuk-body govuk-!-margin-bottom-0">
+                    <a class="govuk-link" href="/admin?edit=${articleId}">Edit in admin</a>
+                </p>
+            </div>
+        </div>`;
+}
+
 function buildPage(article, bodyHtml) {
     const { title = 'Untitled', subtitle = '', image = '', tags = [], author = {}, date = '' } = article;
 
@@ -63,6 +83,7 @@ function buildPage(article, bodyHtml) {
         : '';
 
     return `
+        ${article.is_draft ? buildDraftBanner(article.id) : ''}
         ${imageHtml}
         <div class="article-meta-row" style="align-items: center;">
             <div style="flex:1;">${buildBreadcrumb()}</div>
@@ -143,6 +164,12 @@ export async function renderArticlePage(slug) {
         return;
     }
 
+    if (articleMeta.is_draft) {
+        let isAdmin = false;
+        try { isAdmin = await checkIsAdmin(); } catch {}
+        if (!isAdmin) { renderError('404'); return; }
+    }
+
     // ── Interactive / code article ──
     if (articleMeta.code_module) {
         const loader = MODULE_REGISTRY[articleMeta.code_module];
@@ -155,7 +182,22 @@ export async function renderArticlePage(slug) {
         return;
     }
 
-    // ── Text article ── (body still from static file; move to DB when ready)
+    // ── 2. Markdown content ──
+    if (articleMeta.md_content) {
+        const html = renderMarkdown(articleMeta.md_content);
+        updateContent(buildPage(articleMeta, `<div class="article-body">${html}</div>`));
+        initArticleActions();
+        return;
+    }
+
+    // ── 3. Raw HTML content ──
+    if (articleMeta.html_content) {
+        updateContent(buildPage(articleMeta, `<div class="article-body">${articleMeta.html_content}</div>`));
+        initArticleActions();
+        return;
+    }
+
+    // ── 4. Legacy static text fallback ──
     const article = sampleArticleContent.slug === normalized ? sampleArticleContent : null;
     if (!article) { renderError('404'); return; }
 

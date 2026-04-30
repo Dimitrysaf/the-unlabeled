@@ -11,7 +11,9 @@
   "dependencies": {
     "@supabase/supabase-js": "^2.104.1",
     "@vercel/analytics": "^1.5.0",
-    "@vercel/speed-insights": "^1.2.0"
+    "@vercel/speed-insights": "^1.2.0",
+    "easymde": "^2.20.0",
+    "marked": "^18.0.2"
   },
   "devDependencies": {
     "vercel": "^51.6.1",

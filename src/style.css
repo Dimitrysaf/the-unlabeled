@@ -1435,3 +1435,188 @@ label:has(strong + .govuk-range:disabled) {
     transform: rotate(360deg);
   }
 }
+
+/* ── Admin editor layout ── */
+.admin-editor-grid {
+    display: grid;
+    grid-template-columns: 360px 1fr;
+    gap: 2rem;
+    align-items: start;
+}
+
+@media (max-width: 64em) {
+    .admin-editor-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+.admin-editor-meta {
+    position: sticky;
+    top: 1rem;
+}
+
+/* ── Markdown split editor ── */
+.admin-md-panels {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+}
+
+@media (max-width: 48em) {
+    .admin-md-panels {
+        grid-template-columns: 1fr;
+    }
+}
+
+.admin-md-pane {
+    display: flex;
+    flex-direction: column;
+}
+
+.admin-md-textarea {
+    flex: 1;
+    min-height: 480px;
+    resize: vertical;
+}
+
+.admin-md-preview {
+    min-height: 480px;
+    border: 2px solid #b1b4b6;
+    padding: 1rem;
+    background: #ffffff;
+    overflow-y: auto;
+}
+
+.admin-md-preview > *:first-child {
+    margin-top: 0 !important;
+}
+
+/* ── Admin list page ── */
+.admin-table-header {
+    display: flex;
+    justify-content: flex-end;
+    margin-bottom: 1rem;
+}
+
+/* Monospace slug display in table */
+.admin-slug {
+    font-family: monospace;
+    font-size: 0.8125rem;
+    color: #505a5f;
+}
+
+/* Prevent wrapping on date / actions columns */
+.admin-nowrap {
+    white-space: nowrap;
+}
+
+
+/* Red destructive link (delete) */
+.admin-link--danger {
+    color: #d4351c;
+    text-decoration: underline;
+}
+
+.admin-link--danger:hover {
+    color: #942514;
+    text-decoration-thickness: 3px;
+}
+
+.admin-link--danger:focus {
+    color: #0b0c0c;
+    background-color: #ffdd00;
+    outline: 3px solid #ffdd00;
+    box-shadow: 0 -2px #ffdd00, 0 4px #0b0c0c;
+    text-decoration: none;
+}
+
+
+/* ── Admin editor extras ── */
+
+/* Remove extra top padding inside govuk-details text for the optional fields panel */
+.admin-optional-fields {
+    padding-top: 0.5rem;
+}
+
+/* Monospace font for the raw HTML editor */
+.admin-code-textarea {
+    font-family: monospace;
+    font-size: 0.875rem;
+}
+
+/* ── EasyMDE — GOV.UK aesthetic overrides ── */
+.EasyMDEContainer .editor-toolbar {
+    background: #f3f2f1;
+    border: 2px solid #0b0c0c;
+    border-bottom: 1px solid #b1b4b6;
+    border-radius: 0;
+    opacity: 1;
+    padding: 4px 6px;
+}
+
+.EasyMDEContainer .editor-toolbar button {
+    color: #0b0c0c;
+    border-radius: 0;
+}
+
+.EasyMDEContainer .editor-toolbar button:hover,
+.EasyMDEContainer .editor-toolbar button.active {
+    background: #ffffff;
+    border-color: #0b0c0c;
+    color: #0b0c0c;
+}
+
+.EasyMDEContainer .editor-toolbar i.separator {
+    border-left-color: #b1b4b6;
+    border-right-color: transparent;
+}
+
+.EasyMDEContainer .CodeMirror {
+    font-family: monospace;
+    font-size: 0.9375rem;
+    border: 2px solid #0b0c0c;
+    border-top: none;
+    border-radius: 0;
+    padding: 0.5rem;
+    color: #0b0c0c;
+}
+
+.EasyMDEContainer .CodeMirror:focus-within {
+    outline: 3px solid #ffdd00;
+    outline-offset: 0;
+}
+
+.EasyMDEContainer .editor-preview,
+.EasyMDEContainer .editor-preview-side {
+    font-family: arial, sans-serif;
+    font-size: 1rem;
+    background: #ffffff;
+    border-radius: 0;
+}
+
+.EasyMDEContainer .editor-preview-side {
+    border: 2px solid #0b0c0c;
+    border-left-color: #b1b4b6;
+}
+
+.EasyMDEContainer .editor-statusbar {
+    display: none;
+}
+
+/* ── Markdown rendered styles ── */
+.md-code-block {
+    background: #f3f2f1;
+    border-left: 4px solid #b1b4b6;
+    padding: 1rem 1.25rem;
+    overflow-x: auto;
+    font-family: monospace;
+    font-size: 0.875rem;
+    margin: 1rem 0;
+}
+
+.md-code-inline {
+    background: #f3f2f1;
+    padding: 0.1em 0.4em;
+    font-family: monospace;
+    font-size: 0.875rem;
+}

@@ -14,6 +14,7 @@ import { renderAccount } from './pages/account.js';
 import { renderDeleteAccount } from './pages/delete-account.js';
 import { renderChange } from './pages/change.js';
 import { renderAuthConfirm } from './pages/auth-confirm.js';
+import { renderAdmin } from './pages/admin.js';
 import { readCookiePreferences } from './lib/cookiePreferences.js';
 
 let analyticsInitialized = false;
@@ -86,9 +87,15 @@ document.addEventListener('DOMContentLoaded', async () => {
         await renderChange(field);
     } else if (path === '/auth/confirm') {
         renderAuthConfirm();
+    } else if (path === '/admin') {
+        await renderAdmin();
     } else {
         renderError('404');
     }
+});
+
+window.addEventListener('popstate', () => {
+    if (window.location.pathname === '/admin') renderAdmin();
 });
 
 window.addEventListener('cookie-consent-updated', () => {

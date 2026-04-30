@@ -13,12 +13,12 @@
 
 import { from } from '../lib/supabase.js';
 
-/** Fetch all articles ordered by publish date. */
+/** Fetch all published (non-draft) articles ordered by publish date. */
 export async function getArticles() {
-    return from('articles', { order: 'published_at.desc' });
+    return from('articles', { is_draft: 'eq.false', order: 'published_at.desc' });
 }
 
-/** Fetch a single article by slug. Returns the article object or null. */
+/** Fetch a single article by slug (any draft status). Returns the article object or null. */
 export async function getArticleBySlug(slug) {
     const rows = await from('articles', {
         slug: `eq.${slug}`,
