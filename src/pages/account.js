@@ -49,7 +49,8 @@ export async function renderAccount() {
         ? new Date(user.updated_at).toLocaleDateString('en-GB') : 'Not available';
 
     // ── Success banner after a direct field update ──
-    const updateParam = new URLSearchParams(window.location.search).get('updated');
+    const searchParams = new URLSearchParams(window.location.search);
+    const updateParam = searchParams.get('updated');
     const updateMessages = {
         'display-name': 'Your display name has been updated.',
         'password': 'Your password has been updated.',
@@ -166,10 +167,20 @@ export async function renderAccount() {
 
                     <div class="govuk-!-margin-top-9">
                         <p class="govuk-error-message" id="sign-out-error" style="display:none">Failed to sign out. Please try again.</p>
-                        <button class="govuk-button govuk-button--warning" id="sign-out-btn">
-                            Sign out
-                        </button>
+                        <div class="govuk-button-group">
+                            <button class="govuk-button govuk-button--warning" id="sign-out-btn">
+                                Sign out
+                            </button>
+                        </div>
                     </div>
+
+                    <hr class="govuk-section-break govuk-section-break--m govuk-section-break--visible govuk-!-margin-top-6">
+
+                    <h2 class="govuk-heading-m govuk-!-margin-top-6">Danger zone</h2>
+                    <p class="govuk-body">Deleting your account is permanent and cannot be undone.</p>
+                    <a href="/account/delete" class="govuk-button govuk-button--warning" data-module="govuk-button">
+                        Delete account
+                    </a>
                 </div>
             </div>
         </div>

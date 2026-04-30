@@ -105,3 +105,10 @@ export async function confirmPasswordReset(token, newPassword) {
     });
     if (error) throw error;
 }
+
+// Delete the currently authenticated user's account.
+// Re-authentication (signIn) must be performed by the caller before this is called.
+export async function deleteAccount() {
+    const { error } = await supabase.rpc('delete_user');
+    if (error) throw error;
+}

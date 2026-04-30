@@ -141,12 +141,49 @@ function initSignupForm() {
 
         try {
             await signUp(email, password, { display_name: displayName });
-            window.location.href = '/login';
+            renderEmailSent(email);
         } catch (error) {
             showAuthErrorSummary(signupForm, error.message || 'Unable to create an account. Please try again.');
             resetButton(submitBtn, 'Sign up');
         }
     });
+}
+
+function renderEmailSent(email) {
+    updateContent(`
+        <div class="govuk-!-padding-bottom-9">
+            <div class="govuk-grid-row">
+                <div class="govuk-grid-column-two-thirds">
+
+                    <div class="govuk-notification-banner govuk-notification-banner--success"
+                         role="alert"
+                         aria-labelledby="signup-success-title"
+                         data-module="govuk-notification-banner">
+                        <div class="govuk-notification-banner__header">
+                            <h2 class="govuk-notification-banner__title" id="signup-success-title">
+                                Success
+                            </h2>
+                        </div>
+                        <div class="govuk-notification-banner__content">
+                            <p class="govuk-notification-banner__heading">
+                                A confirmation email has been sent to <strong>${escapeHtml(email)}</strong>
+                            </p>
+                        </div>
+                    </div>
+
+                    <h1 class="govuk-heading-xl">Check your email</h1>
+
+                    <p class="govuk-body">Click the confirmation link we sent to verify your address and activate your account.</p>
+                    <p class="govuk-body">If you do not receive an email within a few minutes, check your spam or junk folder.</p>
+
+                    <p class="govuk-body govuk-!-margin-top-6">
+                        Once confirmed, <a class="govuk-link" href="/login">sign in</a> to access your account.
+                    </p>
+
+                </div>
+            </div>
+        </div>
+    `);
 }
 
 function showAuthErrorSummary(form, message) {
@@ -157,4 +194,11 @@ function showAuthErrorSummary(form, message) {
     list.innerHTML = `<li><a href="#">${message}</a></li>`;
     summary.hidden = false;
     summary.focus();
+}
+
+function escapeHtml(str) {
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
 }

@@ -11,6 +11,7 @@ import { renderSearch } from './pages/search.js';
 import { renderLogin } from './pages/login.js';
 import { renderSignup } from './pages/signup.js';
 import { renderAccount } from './pages/account.js';
+import { renderDeleteAccount } from './pages/delete-account.js';
 import { renderChange } from './pages/change.js';
 import { renderAuthConfirm } from './pages/auth-confirm.js';
 import { readCookiePreferences } from './lib/cookiePreferences.js';
@@ -78,6 +79,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         await renderSignup();
     } else if (path === '/account') {
         await renderAccount();
+    } else if (path === '/account/delete') {
+        await renderDeleteAccount();
     } else if (path.startsWith('/c/')) {
         const field = path.replace('/c/', '').replace(/\/+$/, '');
         await renderChange(field);
