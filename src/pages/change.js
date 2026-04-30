@@ -25,10 +25,7 @@ const FIELD_CONFIG = {
         mode: 'direct',
         getCurrentValue: (user) =>
             user.user_metadata?.display_name || user.user_metadata?.name || '',
-        save: (value) => updateUser(
-            { email: value },
-            { emailRedirectTo: window.location.origin + '/auth/confirm' }
-        ),
+        save: (value) => updateUserProfile({ display_name: value }),
         validator: validateDisplayName,
         updatedKey: 'display-name',
     },

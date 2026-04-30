@@ -4,9 +4,14 @@
    This file contains only project-specific extensions.
    ============================================================ */
 
-/* ── Font — govuk-frontend v5 uses a CSS custom property for the font family.
-   GDS Transport is not available outside government domains so we set the
-   official GOV.UK fallback (arial) via the variable and on the body directly. ── */
+/* ── Font — GDS Transport is not available outside government domains.
+   Override all @font-face variants with local Arial so the browser never
+   requests the missing CDN font files. ── */
+@font-face { font-family: "GDS Transport"; src: local('Arial'); font-weight: 400; }
+@font-face { font-family: "GDS Transport"; src: local('Arial'); font-weight: 700; }
+@font-face { font-family: "GDS Transport Website"; src: local('Arial'); font-weight: 400; }
+@font-face { font-family: "GDS Transport Website"; src: local('Arial'); font-weight: 700; }
+
 :root {
   --govuk-font-family: arial, sans-serif;
 }
