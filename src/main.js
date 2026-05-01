@@ -1,6 +1,7 @@
 import { inject as injectAnalytics } from '@vercel/analytics';
 import { injectSpeedInsights } from '@vercel/speed-insights';
-import { initLayout } from './components/Layout.js';
+import { initLayout, updateNavigation } from './components/Layout.js';
+import { initRouter } from './router.js';
 import { renderHome } from './home.js';
 import { renderError } from './components/ErrorPage.js';
 import { renderArticlePage } from './pages/a/[url].js';
@@ -52,14 +53,8 @@ function redirectAuthHashIfNeeded() {
     return false;
 }
 
-document.addEventListener('DOMContentLoaded', async () => {
-    // Must run before initLayout so we don't render the wrong page first.
-    if (redirectAuthHashIfNeeded()) return;
-
-    initObservabilityIfAllowed();
-    initLayout();
-
-    const path = window.location.pathname;
+async function renderPage(fullPath) {
+    const path = fullPath.split('?')[0].split('#')[0];
 
     if (path === '/' || path === '/index.html') {
         await renderHome();
@@ -92,10 +87,17 @@ document.addEventListener('DOMContentLoaded', async () => {
     } else {
         renderError('404');
     }
-});
+}
 
-window.addEventListener('popstate', () => {
-    if (window.location.pathname === '/admin') renderAdmin();
+document.addEventListener('DOMContentLoaded', async () => {
+    // Must run before initLayout so we don't render the wrong page first.
+    if (redirectAuthHashIfNeeded()) return;
+
+    initObservabilityIfAllowed();
+    initLayout();
+    initRouter(renderPage, updateNavigation);
+
+    await renderPage(window.location.pathname + window.location.search);
 });
 
 window.addEventListener('cookie-consent-updated', () => {

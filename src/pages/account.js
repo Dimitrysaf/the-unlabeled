@@ -1,4 +1,5 @@
 import { updateContent } from '../components/Layout.js';
+import { navigate } from '../router.js';
 import { getCurrentUser, signOut } from '../lib/auth.js';
 
 export async function renderAccount() {
@@ -21,7 +22,7 @@ export async function renderAccount() {
     }
 
     if (!user) {
-        window.location.href = '/login';
+        navigate('/login');
         return;
     }
 
@@ -196,7 +197,7 @@ function initAccountPage() {
         signOutBtn.addEventListener('click', async () => {
             try {
                 await signOut();
-                window.location.href = '/';
+                navigate('/');
             } catch (error) {
                 console.error('Sign out error:', error);
                 const errEl = document.getElementById('sign-out-error');

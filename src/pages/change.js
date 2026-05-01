@@ -1,5 +1,6 @@
 import { updateContent } from '../components/Layout.js';
 import { renderError } from '../components/ErrorPage.js';
+import { navigate } from '../router.js';
 import { getCurrentUser, updateUser, updateUserProfile } from '../lib/auth.js';
 import {
     validateEmail,
@@ -71,7 +72,7 @@ export async function renderChange(field) {
     try {
         user = await getCurrentUser();
     } catch {
-        window.location.href = '/login';
+        navigate('/login');
         return;
     }
     if (!user) { window.location.href = '/login'; return; }
@@ -201,7 +202,7 @@ function initChangeForm(config) {
             if (config.mode === 'email-confirm') {
                 renderEmailSentPage(value);
             } else {
-                window.location.href = '/account?updated=' + encodeURIComponent(config.updatedKey || '');
+                navigate('/account?updated=' + encodeURIComponent(config.updatedKey || ''));
             }
         } catch (err) {
             const msg = err?.message || 'Something went wrong. Please try again later.';

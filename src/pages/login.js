@@ -1,4 +1,5 @@
 import { updateContent } from '../components/Layout.js';
+import { navigate } from '../router.js';
 import { getCurrentUser, signIn } from '../lib/auth.js';
 import { validateEmail, clearFieldErrors, setFieldError, setButtonLoading, resetButton, showErrorSummary } from '../lib/validation.js';
 
@@ -6,7 +7,7 @@ export async function renderLogin() {
     try {
         const user = await getCurrentUser();
         if (user) {
-            window.location.href = '/account';
+            navigate('/account');
             return;
         }
     } catch (error) {
@@ -116,7 +117,7 @@ function initLoginForm() {
 
         try {
             await signIn(email, password);
-            window.location.href = '/';
+            navigate('/');
         } catch (error) {
             showAuthErrorSummary(loginForm, error.message || 'Unable to sign in. Please check your details.');
             resetButton(submitBtn, 'Login');

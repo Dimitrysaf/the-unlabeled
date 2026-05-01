@@ -1,6 +1,7 @@
 import EasyMDE from 'easymde';
 import 'easymde/dist/easymde.min.css';
 import { updateContent } from '../components/Layout.js';
+import { navigate } from '../router.js';
 import { renderError } from '../components/ErrorPage.js';
 import { renderMarkdown } from '../lib/markdown.js';
 import {
@@ -45,8 +46,7 @@ export async function renderAdmin() {
 // ─────────────────────────────────────────────
 
 function go(search) {
-    history.pushState({}, '', '/admin' + (search ? '?' + search : ''));
-    renderAdmin();
+    navigate('/admin' + (search ? '?' + search : ''));
 }
 
 // ─────────────────────────────────────────────

@@ -1,5 +1,6 @@
 import { updateContent } from '../components/Layout.js';
 import { renderError } from '../components/ErrorPage.js';
+import { navigate } from '../router.js';
 import { getCurrentUser, signIn, signOut, deleteAccount } from '../lib/auth.js';
 import { setButtonLoading, resetButton } from '../lib/validation.js';
 
@@ -8,10 +9,10 @@ export async function renderDeleteAccount() {
     try {
         user = await getCurrentUser();
     } catch {
-        window.location.href = '/login';
+        navigate('/login');
         return;
     }
-    if (!user) { window.location.href = '/login'; return; }
+    if (!user) { navigate('/login'); return; }
 
     renderDeleteForm(user.email);
 }
@@ -205,7 +206,7 @@ function initDeleteForm(email) {
         try {
             await deleteAccount();
             await signOut();
-            window.location.href = '/?account-deleted=1';
+            navigate('/?account-deleted=1');
         } catch (err) {
             clearErrors();
             const msg = err?.message || 'Something went wrong. Please try again later.';

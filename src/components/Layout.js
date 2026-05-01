@@ -1,6 +1,8 @@
 import { renderLogo } from './Logo.js';
 import { getCurrentUser, onAuthStateChange, signOut } from '../lib/auth.js';
 import { readCookiePreferences, setSessionCookie, writeCookiePreferences } from '../lib/cookiePreferences.js';
+import { checkIsAdmin } from '../data/admin.js';
+import { navigate } from '../router.js';
 
 const baseMenuItems = [
     { label: 'Home', link: '/' },
@@ -8,11 +10,18 @@ const baseMenuItems = [
 ];
 
 let currentUser = null;
+let isAdmin = false;
+let authLoaded = false;
 
 function getMenuItems() {
     const items = [...baseMenuItems];
 
+    if (!authLoaded) return items;
+
     if (currentUser) {
+        if (isAdmin) {
+            items.push({ label: 'Dashboard', link: '/admin' });
+        }
         items.push({
             label: 'Account',
             link: '/account',
@@ -194,7 +203,7 @@ function _initSearchForm() {
         e.preventDefault();
         const q = form.querySelector('input[name="q"]').value.trim();
         if (q) {
-            window.location.href = '/search?q=' + encodeURIComponent(q);
+            navigate('/search?q=' + encodeURIComponent(q));
         }
     });
 }
@@ -277,9 +286,15 @@ function initAuth() {
     getCurrentUser().then(user => {
         currentUser = user;
         setSessionCookie(Boolean(user));
-        updateNavigation();
+        if (user) {
+            checkIsAdmin().then(result => { isAdmin = result; authLoaded = true; updateNavigation(); }).catch(() => { authLoaded = true; updateNavigation(); });
+        } else {
+            authLoaded = true;
+            updateNavigation();
+        }
     }).catch(() => {
         currentUser = null;
+        authLoaded = true;
         setSessionCookie(false);
         updateNavigation();
     });
@@ -288,11 +303,17 @@ function initAuth() {
     onAuthStateChange((event, session) => {
         currentUser = session?.user || null;
         setSessionCookie(Boolean(currentUser));
-        updateNavigation();
+        if (currentUser) {
+            checkIsAdmin().then(result => { isAdmin = result; authLoaded = true; updateNavigation(); }).catch(() => { isAdmin = false; authLoaded = true; updateNavigation(); });
+        } else {
+            isAdmin = false;
+            authLoaded = true;
+            updateNavigation();
+        }
     });
 }
 
-function updateNavigation() {
+export function updateNavigation() {
     const navList = document.getElementById('service-navigation');
     if (navList) {
         const currentPath = window.location.pathname;

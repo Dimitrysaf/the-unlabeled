@@ -1,4 +1,5 @@
 import { updateContent } from '../components/Layout.js';
+import { navigate } from '../router.js';
 import { getCurrentUser, signUp } from '../lib/auth.js';
 import { validateEmail, validateDisplayName, validatePassword, clearFieldErrors, setFieldError, setButtonLoading, resetButton, showErrorSummary } from '../lib/validation.js';
 
@@ -6,7 +7,7 @@ export async function renderSignup() {
     try {
         const user = await getCurrentUser();
         if (user) {
-            window.location.href = '/account';
+            navigate('/account');
             return;
         }
     } catch (error) {

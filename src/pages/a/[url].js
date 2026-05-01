@@ -1,5 +1,6 @@
 import { updateContent } from '../../components/Layout.js';
 import { renderError } from '../../components/ErrorPage.js';
+import { navigate } from '../../router.js';
 import { sampleArticleContent } from '../../data/~articleContent.test.js';
 import { getArticleBySlug } from '../../data/articles.js';
 import { checkIsAdmin } from '../../data/admin.js';
@@ -104,7 +105,7 @@ function initArticleActions() {
         backLink.addEventListener('click', e => {
             e.preventDefault();
             if (history.length > 1) history.back();
-            else window.location.href = '/';
+            else navigate('/');
         });
     }
 
