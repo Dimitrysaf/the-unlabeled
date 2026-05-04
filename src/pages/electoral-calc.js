@@ -345,6 +345,7 @@ export function getCalcHTML() {
 
             <h3 class="govuk-heading-m govuk-!-margin-bottom-2">Forecast by party</h3>
             <div class="prediction-cards" id="prediction-cards"></div>
+            <div id="prediction-uncertainty"></div>
 
             <div id="parliament-container" style="display:none;"></div>
             <div id="coalition-container" style="display:none;"></div>
@@ -719,7 +720,41 @@ function renderPrediction() {
     const momentum = computeMomentum(recentPolls, _partyIndices, total);
     const acceleration = computeTrendAcceleration(recentPolls, _partyIndices, total);
 
-    // ── Step 1: Weighted average with optional house-effect correction per poll ──
+    const options = {
+        abstentionRate,
+        useNDCorrection,
+        useSampleWeight,
+        useHouseEffects,
+        useLeadCompress,
+        useThresholdRisk,
+        momentumFactor,
+        reversionFactor,
+        momentumHorizonScale,
+        reversionHorizonScale,
+        horizonDays,
+    };
+
+    const forecast = getForecastOutcome(recentPolls, options);
+    const seats = forecast.seats;
+    const predicted = forecast.predicted;
+    const rawBase = forecast.rawBase;
+
+    const simulation = runSimulation(recentPolls, options);
+    const summary = summariseSimulation(simulation);
+
+    const confidenceScores = computeConfidenceScores(predicted, _volatility, total, Math.max(0, horizonDays));
+    renderPredictionCards(predicted, rawBase, seats, momentum, acceleration, confidenceScores, total, summary);
+    renderPredictionStats(predicted, rawBase);
+    renderParliament(seats);
+    renderCoalitions(seats);
+    renderUncertaintySummary(summary);
+}
+
+function getForecastOutcome(recentPolls, options) {
+    const { abstentionRate, useNDCorrection, useSampleWeight, useHouseEffects, useLeadCompress, useThresholdRisk, momentumFactor, reversionFactor, momentumHorizonScale, reversionHorizonScale } = options;
+    const total = recentPolls.length;
+    const momentum = computeMomentum(recentPolls, _partyIndices, total);
+
     const weightedSum = {};
     let totalWeight = 0;
 
@@ -745,7 +780,6 @@ function renderPrediction() {
 
     let base = { ...rawBase };
 
-    // ── Step 2: Momentum ──
     if (momentumFactor > 0) {
         for (const [party, slope] of Object.entries(momentum)) {
             if (base[party] !== undefined) {
@@ -754,7 +788,6 @@ function renderPrediction() {
         }
     }
 
-    // ── Step 3: Mean reversion ──
     if (reversionFactor > 0 && reversionHorizonScale > 0) {
         for (const [party, longAvg] of Object.entries(_longRunAvg)) {
             if (base[party] !== undefined && longAvg > 0) {
@@ -763,12 +796,10 @@ function renderPrediction() {
         }
     }
 
-    // ── Step 4: ND historical bias ──
     if (useNDCorrection && base['ND'] !== undefined) {
         base['ND'] = Math.max(0, base['ND'] + _ndBias);
     }
 
-    // ── Step 5: Lead compression ──
     if (useLeadCompress) {
         const sorted = Object.entries(base).sort(([, a], [, b]) => b - a);
         if (sorted.length >= 2) {
@@ -782,7 +813,6 @@ function renderPrediction() {
         }
     }
 
-    // ── Step 6: Abstention penalty ──
     const afterAbstention = {};
     for (const [party, b] of Object.entries(base)) {
         const vol = _volatility[party] || 0;
@@ -790,22 +820,107 @@ function renderPrediction() {
         afterAbstention[party] = Math.max(0, b - penalty);
     }
 
-    // ── Step 7: Normalise ──
     const sumAfter = Object.values(afterAbstention).reduce((a, b) => a + b, 0);
     let predicted = {};
     for (const p of Object.keys(afterAbstention)) {
         predicted[p] = sumAfter > 0 ? (afterAbstention[p] / sumAfter) * 100 : 0;
     }
 
-    // ── Step 8: Threshold risk redistribution ──
     if (useThresholdRisk) predicted = applyThresholdRisk(predicted, _volatility);
 
     const seats = allocateGreekSeats(predicted);
-    const confidence = computeConfidenceScores(predicted, _volatility, total, Math.max(0, horizonDays));
-    renderPredictionCards(predicted, rawBase, seats, momentum, acceleration, confidence, total);
-    renderPredictionStats(predicted, rawBase);
-    renderParliament(seats);
-    renderCoalitions(seats);
+    return { predicted, rawBase, seats };
+}
+
+function runSimulation(recentPolls, options, iterations = 1000) {
+    const parties = Object.keys(_partyIndices);
+    const partySeatResults = {};
+    const partyVoteResults = {};
+    const winnerCounts = {};
+    let majorityCount = 0;
+
+    parties.forEach(party => {
+        partySeatResults[party] = [];
+        partyVoteResults[party] = [];
+        winnerCounts[party] = 0;
+    });
+
+    for (let i = 0; i < iterations; i++) {
+        const noisyPolls = addNoiseToPolls(recentPolls);
+        const forecast = getForecastOutcome(noisyPolls, options);
+        const winner = getLargestParty(forecast.seats);
+        const hasMajority = Object.values(forecast.seats).some(s => s >= 151);
+
+        if (winner) winnerCounts[winner] = (winnerCounts[winner] || 0) + 1;
+        if (hasMajority) majorityCount += 1;
+
+        parties.forEach(party => {
+            partySeatResults[party].push(forecast.seats[party] || 0);
+            partyVoteResults[party].push(forecast.predicted[party] || 0);
+        });
+    }
+
+    return {
+        iterations,
+        winnerCounts,
+        majorityCount,
+        partySeatResults,
+        partyVoteResults,
+    };
+}
+
+function addNoiseToPolls(pollRows) {
+    return pollRows.map(row => {
+        const copy = [...row];
+        for (const [party, idx] of Object.entries(_partyIndices)) {
+            const value = parseFloat(row[idx]);
+            if (isNaN(value) || value <= 0) continue;
+            copy[idx] = (value + randomNormal(0, 2.5)).toFixed(2);
+        }
+        return copy;
+    });
+}
+
+function randomNormal(mean = 0, std = 1) {
+    let u = 0, v = 0;
+    while (u === 0) u = Math.random();
+    while (v === 0) v = Math.random();
+    return mean + std * Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v);
+}
+
+function percentile(arr, p) {
+    if (!arr.length) return 0;
+    const sorted = [...arr].sort((a, b) => a - b);
+    const idx = (p / 100) * (sorted.length - 1);
+    return sorted[Math.floor(idx)];
+}
+
+function getLargestParty(seats) {
+    const sorted = Object.entries(seats).sort(([, a], [, b]) => b - a);
+    return sorted.length ? sorted[0][0] : null;
+}
+
+function summariseSimulation(simulation) {
+    const partyStats = {};
+    for (const [party, seatResults] of Object.entries(simulation.partySeatResults)) {
+        partyStats[party] = {
+            median: percentile(seatResults, 50),
+            low: percentile(seatResults, 10),
+            high: percentile(seatResults, 90),
+        };
+    }
+
+    const winnerProbabilities = {};
+    for (const [party, count] of Object.entries(simulation.winnerCounts)) {
+        winnerProbabilities[party] = Math.round((count / simulation.iterations) * 100);
+    }
+
+    return {
+        iterations: simulation.iterations,
+        majorityProbability: Math.round((simulation.majorityCount / simulation.iterations) * 100),
+        winnerProbabilities,
+        partyStats,
+    };
 }
 
 
@@ -1048,7 +1163,7 @@ function renderCoalitions(seats) {
 // PREDICTION CARDS
 // ─────────────────────────────────────────────
 
-function renderPredictionCards(predicted, rawBase, seats, momentum, acceleration, confidence, windowSize) {
+function renderPredictionCards(predicted, rawBase, seats, momentum, acceleration, confidence, windowSize, summary) {
     const sorted = Object.entries(predicted)
         .sort(([, a], [, b]) => b - a)
         .filter(([, v]) => v >= 1.0);
@@ -1057,7 +1172,8 @@ function renderPredictionCards(predicted, rawBase, seats, momentum, acceleration
         const basePct = rawBase[party] || 0;
         const diff = pct - basePct;
         const vol = ((_volatility[party] || 0) * 100).toFixed(0);
-        const seat = seats[party] || 0;
+        const seatRange = summary?.partyStats?.[party];
+        const seat = seatRange ? seatRange.median : seats[party] || 0;
         const currentSeats = currentParliamentSeats[party] ?? 0;
         const seatDelta = seat - currentSeats;
         const seatDeltaSign = seatDelta > 0 ? '+' : '';
@@ -1085,6 +1201,9 @@ function renderPredictionCards(predicted, rawBase, seats, momentum, acceleration
         }
         const momentumColor = trendDelta > 0.35 ? '#00703c' : trendDelta < -0.35 ? '#d4351c' : '#505a5f';
 
+        const seatHtml = seat > 0 ? `${seat}` : '—';
+        const seatRangeHtml = seatRange ? ` <span class="seat-range">(${seatRange.low}–${seatRange.high})</span>` : '';
+
         return `
         <div class="prediction-card" style="border-top-color:${color};">
             <div class="prediction-card__pct" style="color:${color};">${pct.toFixed(1)}%</div>
@@ -1101,7 +1220,7 @@ function renderPredictionCards(predicted, rawBase, seats, momentum, acceleration
                 </div>
                 <div>Volatility: <strong>${vol}%</strong></div>
                 <div>Confidence: <strong>${confidencePct}%</strong></div>
-                <div>Seats: <strong style="color:${color};">${seat > 0 ? seat : '—'}</strong>
+                <div>Seats: <strong style="color:${color};">${seatHtml}</strong>${seatRangeHtml}
                     <span class="${seatDeltaClass}">(${seatDeltaSign}${seatDelta})</span>
                 </div>
             </div>
@@ -1175,6 +1294,28 @@ function renderPredictionStats(predicted, rawBase) {
                 <span class="pred-stat-legend-swatch pred-stat-legend-swatch--faded"></span>Poll average
             </div>
             ${rows}
+        </div>`;
+}
+
+function renderUncertaintySummary(summary) {
+    const container = document.getElementById('prediction-uncertainty');
+    if (!container) return;
+    if (!summary || !summary.iterations) {
+        container.innerHTML = '';
+        return;
+    }
+
+    const winners = Object.entries(summary.winnerProbabilities)
+        .sort(([, a], [, b]) => b - a)
+        .slice(0, 3)
+        .map(([party, pct]) => `<span style="font-weight:700;color:${partyColors[party] || '#0b0c0c'};">${party}</span> ${pct}%`)
+        .join(' · ');
+
+    container.innerHTML = `
+        <div class="uncertainty-panel govuk-body-s govuk-!-margin-bottom-3" style="border:1px solid #dfe1e4;padding:1rem;border-radius:0.35rem;background:#f7f7f7;">
+            <p><strong>Simulation uncertainty</strong> based on ${summary.iterations} poll-noise runs.</p>
+            <p>Largest party probabilities: ${winners}.</p>
+            <p><strong>Majority probability:</strong> ${summary.majorityProbability}%</p>
         </div>`;
 }
 
