@@ -53,8 +53,15 @@ function redirectAuthHashIfNeeded() {
     return false;
 }
 
+function setDocumentTitle(title = 'The Unlabeled') {
+    if (typeof document !== 'undefined') {
+        document.title = title;
+    }
+}
+
 async function renderPage(fullPath) {
     const path = fullPath.split('?')[0].split('#')[0];
+    setDocumentTitle();
 
     if (path === '/' || path === '/index.html') {
         await renderHome();

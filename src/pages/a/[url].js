@@ -99,6 +99,12 @@ function buildPage(article, bodyHtml) {
     `;
 }
 
+function setDocumentTitle(title) {
+    if (typeof document !== 'undefined') {
+        document.title = `The Unlabeled - ${title || 'Untitled'}`;
+    }
+}
+
 function initArticleActions() {
     const backLink = document.getElementById('article-back-link');
     if (backLink) {
@@ -164,6 +170,8 @@ export async function renderArticlePage(slug) {
         renderError('404');
         return;
     }
+
+    setDocumentTitle(articleMeta.title || 'Untitled');
 
     if (articleMeta.is_draft) {
         let isAdmin = false;
