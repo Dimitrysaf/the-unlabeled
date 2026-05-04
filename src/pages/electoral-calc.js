@@ -1308,15 +1308,20 @@ function renderUncertaintySummary(summary) {
     const winners = Object.entries(summary.winnerProbabilities)
         .sort(([, a], [, b]) => b - a)
         .slice(0, 3)
-        .map(([party, pct]) => `<span style="font-weight:700;color:${partyColors[party] || '#0b0c0c'};">${party}</span> ${pct}%`)
+        .map(([party, pct]) => `<strong style="color:${partyColors[party] || '#0b0c0c'};">${party}</strong> ${pct}%`)
         .join(' · ');
 
     container.innerHTML = `
-        <div class="uncertainty-panel govuk-body-s govuk-!-margin-bottom-3" style="border:1px solid #dfe1e4;padding:1rem;border-radius:0.35rem;background:#f7f7f7;">
-            <p><strong>Simulation uncertainty</strong> based on ${summary.iterations} poll-noise runs.</p>
-            <p>Largest party probabilities: ${winners}.</p>
-            <p><strong>Majority probability:</strong> ${summary.majorityProbability}%</p>
-        </div>`;
+        <details class="govuk-details govuk-!-margin-bottom-3">
+            <summary class="govuk-details__summary">
+                <span class="govuk-details__summary-text">Simulation uncertainty</span>
+            </summary>
+            <div class="govuk-details__text">
+                <p class="govuk-body-s">Based on ${summary.iterations} poll-noise runs.</p>
+                <p class="govuk-body-s">Largest party probabilities: ${winners}.</p>
+                <p class="govuk-body-s"><strong>Majority probability:</strong> ${summary.majorityProbability}%</p>
+            </div>
+        </details>`;
 }
 
 
