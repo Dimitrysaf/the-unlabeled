@@ -1173,7 +1173,7 @@ function renderPredictionCards(predicted, rawBase, seats, momentum, acceleration
         const diff = pct - basePct;
         const vol = ((_volatility[party] || 0) * 100).toFixed(0);
         const seatRange = summary?.partyStats?.[party];
-        const seat = seatRange ? seatRange.median : seats[party] || 0;
+        const seat = seats[party] || seatRange?.median || 0;
         const currentSeats = currentParliamentSeats[party] ?? 0;
         const seatDelta = seat - currentSeats;
         const seatDeltaSign = seatDelta > 0 ? '+' : '';
