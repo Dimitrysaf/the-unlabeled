@@ -387,9 +387,18 @@ function _initServiceNavFallback() {
     applyViewport(MOBILE_MQ);
 }
 
+function scrollContentIntoView(offset = 60) {
+    const slot = document.getElementById('main-content');
+    if (!slot) return;
+
+    const top = slot.getBoundingClientRect().top + window.pageYOffset - offset;
+    window.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
+}
+
 export function updateContent(html) {
     const slot = document.getElementById('main-content');
     if (slot) {
         slot.innerHTML = `<div class="govuk-width-container">${html}</div>`;
+        scrollContentIntoView();
     }
 }
