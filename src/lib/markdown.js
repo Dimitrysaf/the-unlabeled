@@ -22,19 +22,42 @@ function slugify(text) {
 function buildToc(headings) {
     if (!headings.length) return '';
 
-    const items = headings.map(({ depth, text, id }) => {
-        const indent = depth === 3 ? ' style="padding-left:1.25rem;"' : '';
-        return `<li${indent}><a class="govuk-link" href="#${id}">${text}</a></li>`;
-    });
+    const lines = ['<ul class="govuk-list govuk-!-margin-top-3 govuk-!-margin-bottom-0">'];
+
+    for (let i = 0; i < headings.length; i += 1) {
+        const { depth, text, id } = headings[i];
+        const nextDepth = headings[i + 1]?.depth;
+        const link = `<a class="govuk-link" href="#${id}">${text}</a>`;
+
+        if (depth === 2) {
+            lines.push(`  <li>${link}${nextDepth === 3 ? '' : '</li>'}`);
+        } else {
+            if (!headings[i - 1] || headings[i - 1].depth === 1) {
+                lines.push(`  <li>${link}</li>`);
+                continue;
+            }
+
+            if (headings[i - 1].depth !== 3) {
+                lines.push('    <ul class="govuk-list govuk-!-margin-top-0 govuk-!-margin-bottom-0">');
+            }
+            lines.push(`      <li class="article-toc__subitem"><span class="article-toc__dash" aria-hidden="true">— </span>${link}</li>`);
+            if (nextDepth !== 3) {
+                lines.push('    </ul>');
+                lines.push('  </li>');
+            }
+        }
+    }
+
+    lines.push('</ul>');
 
     return `
-<details class="article-toc govuk-!-margin-bottom-6">
-    <summary class="govuk-body" style="cursor:pointer;font-weight:700;">
-        Table of Contents
-    </summary>
-    <ul class="govuk-list govuk-list--bullet govuk-!-margin-top-3 govuk-!-margin-bottom-0">
-        ${items.join('\n        ')}
-    </ul>
+<details class="govuk-details govuk-!-margin-bottom-6 article-toc">
+  <summary class="govuk-details__summary">
+    <span class="govuk-details__summary-text">Table of contents</span>
+  </summary>
+  <div class="govuk-details__text">
+    ${lines.join('\n    ')}
+  </div>
 </details>
 `;
 }

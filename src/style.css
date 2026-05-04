@@ -1531,6 +1531,43 @@ label:has(strong + .govuk-range:disabled) {
 }
 
 
+.article-toc .govuk-list,
+.article-toc .govuk-list li,
+.article-toc .govuk-list ul {
+    list-style: none !important;
+    list-style-type: none !important;
+    margin: 0;
+    padding-left: 0 !important;
+}
+
+.article-toc .govuk-list li {
+    margin-top: 0.25rem;
+}
+
+.article-toc .govuk-list li::marker,
+.article-toc .govuk-list ul::marker {
+    content: none !important;
+}
+
+.article-toc__subitem {
+    position: relative;
+    margin-left: 1rem;
+    padding-left: 0.75rem;
+}
+
+.article-toc__dash {
+    color: #6f777b;
+    display: inline-block;
+    width: 1rem;
+    text-align: right;
+    margin-right: 0.5rem;
+    font-weight: 700;
+}
+
+.article-toc__subitem a {
+    color: #0b0c0c;
+}
+
 /* ── Admin editor extras ── */
 
 /* Remove extra top padding inside govuk-details text for the optional fields panel */
