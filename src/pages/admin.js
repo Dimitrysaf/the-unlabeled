@@ -591,6 +591,12 @@ function buildPayload(fd, contentType) {
     if (contentType === 'html') payload.html_content  = fd.get('html_content').trim() || null;
     if (contentType === 'code') payload.code_module   = fd.get('code_module').trim()  || null;
 
+    if (contentType === 'code') {
+        payload.slug = payload.code_module;
+    }
+
+    payload.link = payload.slug;
+
     const pubAt = fd.get('published_at');
     payload.published_at = pubAt ? new Date(pubAt).toISOString() : new Date().toISOString();
 

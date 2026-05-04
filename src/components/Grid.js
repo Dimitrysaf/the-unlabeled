@@ -14,7 +14,7 @@ function buildCard({ title, excerpt, image, tags = [], author, date, link = '#' 
                     ${meta ? `<span class="news-card__meta">${meta}</span>` : ''}
                 </div>
                 <h2 class="govuk-heading-m news-card__title">
-                    <a href="${link}" class="govuk-link govuk-link--no-visited-state">${title}</a>
+                    <a href="/a/${link}" class="govuk-link govuk-link--no-visited-state">${title}</a>
                 </h2>
                 ${excerpt ? `<p class="govuk-body-s news-card__excerpt">${excerpt}</p>` : ''}
             </div>

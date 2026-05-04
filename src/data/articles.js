@@ -15,7 +15,8 @@ import { from } from '../lib/supabase.js';
 
 /** Fetch all published (non-draft) articles ordered by publish date. */
 export async function getArticles() {
-    return from('articles', { is_draft: 'eq.false', order: 'published_at.desc' });
+    const articles = await from('articles', { is_draft: 'eq.false', order: 'published_at.desc' });
+    return articles.map(a => ({ ...a, link: a.link || a.slug }));
 }
 
 /** Fetch a single article by slug (any draft status). Returns the article object or null. */
@@ -24,7 +25,8 @@ export async function getArticleBySlug(slug) {
         slug: `eq.${slug}`,
         limit: '1',
     });
-    return rows[0] ?? null;
+    const article = rows[0] ?? null;
+    return article ? { ...article, link: article.link || article.slug } : null;
 }
 
 /** Full-text search across title, subtitle and excerpt (client-side). */
