@@ -7,6 +7,10 @@
       "config": {
         "distDir": "dist"
       }
+    },
+    {
+      "src": "api/sitemap.js",
+      "use": "@vercel/node"
     }
   ],
   "routes": [
@@ -16,7 +20,7 @@
     },
     {
       "src": "/sitemap.xml",
-      "dest": "/sitemap.xml"
+      "dest": "/api/sitemap"
     },
     {
       "src": "/favicon.png",
