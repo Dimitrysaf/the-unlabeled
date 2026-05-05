@@ -279,6 +279,13 @@ function renderAdminEditor(article) {
 
                     ${editorErrorSummary()}
 
+                    <div class="govuk-button-group govuk-!-margin-bottom-4 admin-button-group-top">
+                        <button class="govuk-button" type="button" id="admin-save-top-btn">
+                            ${isNew ? 'Create article' : 'Save changes'}
+                        </button>
+                        <a class="govuk-link" href="#" id="admin-cancel-top">Cancel</a>
+                    </div>
+
                     <div class="govuk-tabs" id="admin-tabs">
                         <h2 class="govuk-tabs__title">Editor sections</h2>
                         <ul class="govuk-tabs__list" role="tablist">
@@ -515,10 +522,25 @@ function initEditor(article) {
         if (e.target.value === 'md') easyMde.codemirror.refresh();
     });
 
-    const form         = document.getElementById('admin-form');
-    const saveBtn      = document.getElementById('admin-save-btn');
-    const errorSummary = document.getElementById('editor-error-summary');
-    const errorList    = document.getElementById('editor-error-list');
+    const form             = document.getElementById('admin-form');
+    const saveBtn          = document.getElementById('admin-save-btn');
+    const saveTopBtn       = document.getElementById('admin-save-top-btn');
+    const cancelTopBtn     = document.getElementById('admin-cancel-top');
+    const errorSummary     = document.getElementById('editor-error-summary');
+    const errorList        = document.getElementById('editor-error-list');
+
+    if (saveTopBtn) {
+        saveTopBtn.addEventListener('click', () => {
+            form.requestSubmit();
+        });
+    }
+
+    if (cancelTopBtn) {
+        cancelTopBtn.addEventListener('click', e => {
+            e.preventDefault();
+            go('');
+        });
+    }
 
     form.addEventListener('submit', async e => {
         e.preventDefault();
