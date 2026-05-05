@@ -43,13 +43,13 @@ function buildTags(tags = []) {
 
 function buildMeta(author, date) {
     if (!author?.name && !date) return '';
-    const authorText = author?.name ? `By ${author.name}` : '';
-    const dateText = date ? `at ${date}` : '';
+    const parts = [];
+    if (author?.name) parts.push(`By <strong>${author.name}</strong>`);
+    if (date) parts.push(`at <strong>${date}</strong>`);
     return `
-        <div class="article-meta-sidebar__meta govuk-body-s govuk-!-colour-secondary govuk-!-margin-bottom-4">
-            ${authorText ? `<p><strong>${authorText}</strong></p>` : ''}
-            ${dateText ? `<p><strong>${dateText}</strong></p>` : ''}
-        </div>`;
+        <p class="article-meta-sidebar__meta govuk-body-s govuk-!-colour-secondary govuk-!-margin-bottom-4">
+            ${parts.join(' ')}
+        </p>`;
 }
 
 function buildBody(body = []) {

@@ -1363,6 +1363,39 @@ label:has(strong + .govuk-range:disabled) {
     color: #000 !important;
   }
 
+  .article-markdown-layout,
+  .article-markdown-layout .article-body-column,
+  .article-meta-sidebar {
+    display: block !important;
+    width: auto !important;
+    max-width: none !important;
+  }
+
+  .article-meta-sidebar {
+    position: static !important;
+    top: auto !important;
+    margin: 0 0 1rem !important;
+    padding: 0 0 0 15px !important;
+  }
+
+  .article-meta-sidebar .article-meta-sidebar__meta {
+    display: inline-flex !important;
+    flex-wrap: wrap !important;
+    gap: 0.5rem !important;
+    align-items: baseline !important;
+    margin: 0 !important;
+  }
+
+  .article-meta-sidebar .article-meta-sidebar__meta p {
+    display: inline !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  .article-meta-sidebar .govuk-tag {
+    display: none !important;
+  }
+
   /* Article content */
   .article-image {
     max-height: 260px;
