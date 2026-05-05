@@ -15,12 +15,16 @@
   ],
   "routes": [
     {
+      "src": "/api/sitemap",
+      "dest": "/api/sitemap.js"
+    },
+    {
       "src": "/robots.txt",
       "dest": "/robots.txt"
     },
     {
       "src": "/sitemap.xml",
-      "dest": "/api/sitemap"
+      "dest": "/api/sitemap.js"
     },
     {
       "src": "/favicon.png",
