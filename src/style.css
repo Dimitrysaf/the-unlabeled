@@ -310,7 +310,7 @@ body {
   width: 100%;
   max-width: 100%;
   box-sizing: border-box;
-  overflow-x: hidden;
+  overflow-x: auto;
   margin-bottom: 1rem;
   border: 1px solid #b1b4b6;
   min-width: 0;
@@ -323,16 +323,20 @@ body {
   min-width: 0;
 }
 
-.table-scroll .govuk-table__cell,
-.table-scroll .govuk-table__header {
+.table-auto-layout {
+  table-layout: auto !important;
+}
+
+.table-truncate .govuk-table__cell,
+.table-truncate .govuk-table__header {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.table-scroll .govuk-table__cell a,
-.table-scroll .govuk-table__cell code,
-.table-scroll .admin-slug {
+.table-truncate .govuk-table__cell a,
+.table-truncate .govuk-table__cell code,
+.table-truncate .admin-slug {
   display: inline-block;
   max-width: 100%;
   overflow: hidden;

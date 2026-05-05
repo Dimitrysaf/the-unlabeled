@@ -96,7 +96,7 @@ async function showList() {
         <div class="admin-table-header">
             <button class="govuk-button govuk-!-margin-bottom-0" id="admin-new-btn">New article</button>
         </div>
-        <div class="table-scroll">
+        <div class="table-scroll table-truncate">
             <table class="govuk-table govuk-!-margin-bottom-0">
                 <caption class="govuk-table__caption govuk-visually-hidden">All articles</caption>
                 <thead class="govuk-table__head">

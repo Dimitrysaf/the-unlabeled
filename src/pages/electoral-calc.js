@@ -139,8 +139,8 @@ export function getCalcHTML() {
                 </button>
             </div>
             <div id="polls-table-body" hidden>
-                <div>
-                    <table class="govuk-table govuk-table--small-text-until-tablet">
+                <div class="table-scroll">
+                    <table class="govuk-table govuk-table--small-text-until-tablet table-auto-layout">
                         <thead class="govuk-table__head" id="polls-thead"></thead>
                         <tbody class="govuk-table__body" id="polls-tbody"></tbody>
                     </table>
