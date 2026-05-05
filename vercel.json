@@ -29,10 +29,5 @@
       "src": "/(.*)",
       "dest": "/index.html"
     }
-  ],
-  "functions": {
-    "src/pages/**/*.js": {
-      "runtime": "@vercel/node"
-    }
-  }
+  ]
 }
