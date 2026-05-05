@@ -17,6 +17,7 @@ import { renderChange } from './pages/change.js';
 import { renderAuthConfirm } from './pages/auth-confirm.js';
 import { renderAdmin } from './pages/admin.js';
 import { readCookiePreferences } from './lib/cookiePreferences.js';
+import { setMetaTags } from './lib/seo.js';
 
 let analyticsInitialized = false;
 
@@ -61,37 +62,102 @@ function setDocumentTitle(title = 'The Unlabeled') {
 
 async function renderPage(fullPath) {
     const path = fullPath.split('?')[0].split('#')[0];
-    setDocumentTitle();
 
     if (path === '/' || path === '/index.html') {
+        setMetaTags({
+            title: 'The Unlabeled - Latest Political Stories & Analysis',
+            description: 'Stay informed with the latest political analysis, data-driven insights, and evidence-based commentary from The Unlabeled.',
+            url: 'https://the-unlabeled.com/'
+        });
         await renderHome();
     } else if (path.startsWith('/a/')) {
         const slug = path.replace('/a/', '').replace(/\/+$/, '');
         await renderArticlePage(slug);
     } else if (path === '/search') {
+        setMetaTags({
+            title: 'Search Articles - The Unlabeled',
+            description: 'Search through our collection of political analysis and data journalism articles.',
+            url: 'https://the-unlabeled.com/search'
+        });
         await renderSearch();
     } else if (path === '/about') {
+        setMetaTags({
+            title: 'About Us - The Unlabeled',
+            description: 'Learn about our mission to provide evidence-based political analysis and data-driven insights.',
+            url: 'https://the-unlabeled.com/about'
+        });
         renderAbout();
     } else if (path === '/legal') {
+        setMetaTags({
+            title: 'Legal Information - The Unlabeled',
+            description: 'Legal notices, terms of service, and privacy policy for The Unlabeled.',
+            url: 'https://the-unlabeled.com/legal'
+        });
         renderLegal();
     } else if (path === '/cookies') {
+        setMetaTags({
+            title: 'Cookie Policy - The Unlabeled',
+            description: 'Information about how we use cookies and your privacy choices.',
+            url: 'https://the-unlabeled.com/cookies'
+        });
         renderCookies();
     } else if (path === '/login') {
+        setMetaTags({
+            title: 'Login - The Unlabeled',
+            description: 'Sign in to your account on The Unlabeled.',
+            url: 'https://the-unlabeled.com/login'
+        });
         await renderLogin();
     } else if (path === '/signup') {
+        setMetaTags({
+            title: 'Sign Up - The Unlabeled',
+            description: 'Create your account on The Unlabeled.',
+            url: 'https://the-unlabeled.com/signup'
+        });
         await renderSignup();
     } else if (path === '/account') {
+        setMetaTags({
+            title: 'My Account - The Unlabeled',
+            description: 'Manage your account settings and preferences.',
+            url: 'https://the-unlabeled.com/account'
+        });
         await renderAccount();
     } else if (path === '/account/delete') {
+        setMetaTags({
+            title: 'Delete Account - The Unlabeled',
+            description: 'Request account deletion from The Unlabeled.',
+            url: 'https://the-unlabeled.com/account/delete'
+        });
         await renderDeleteAccount();
     } else if (path.startsWith('/c/')) {
         const field = path.replace('/c/', '').replace(/\/+$/, '');
+        setMetaTags({
+            title: `Change ${field} - The Unlabeled`,
+            description: `Update your ${field} on The Unlabeled.`,
+            url: `https://the-unlabeled.com/c/${field}`
+        });
         await renderChange(field);
     } else if (path === '/auth/confirm') {
+        setMetaTags({
+            title: 'Confirm Authentication - The Unlabeled',
+            description: 'Complete your authentication process.',
+            url: 'https://the-unlabeled.com/auth/confirm'
+        });
         renderAuthConfirm();
     } else if (path === '/admin') {
+        setMetaTags({
+            title: 'Admin Panel - The Unlabeled',
+            description: 'Administrative tools and content management.',
+            url: 'https://the-unlabeled.com/admin',
+            robots: 'noindex, nofollow'
+        });
         await renderAdmin();
     } else {
+        setMetaTags({
+            title: 'Page Not Found - The Unlabeled',
+            description: 'The page you are looking for could not be found.',
+            url: window.location.href
+        });
         renderError('404');
     }
 }

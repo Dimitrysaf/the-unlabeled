@@ -6,7 +6,7 @@ function buildCard({ title, excerpt, image, tags = [], author, date, link = '#' 
     return `
         <article class="news-card${heroClass}">
             <div class="news-card__img-col">
-                ${image ? `<img class="news-card__img" src="${image}" alt="">` : ''}
+                ${image ? `<img class="news-card__img" src="${image}" alt="${title}" loading="lazy">` : ''}
             </div>
             <div class="news-card__body">
                 <div class="news-card__meta-top">

@@ -5,6 +5,7 @@ import { sampleArticleContent } from '../../data/~articleContent.test.js';
 import { getArticleBySlug } from '../../data/articles.js';
 import { checkIsAdmin } from '../../data/admin.js';
 import { renderMarkdown } from '../../lib/markdown.js';
+import { setMetaTags, addStructuredData } from '../../lib/seo.js';
 
 // ─────────────────────────────────────────────
 // MODULE REGISTRY
@@ -99,12 +100,6 @@ function buildPage(article, bodyHtml) {
     `;
 }
 
-function setDocumentTitle(title) {
-    if (typeof document !== 'undefined') {
-        document.title = `The Unlabeled - ${title || 'Untitled'}`;
-    }
-}
-
 function initArticleActions() {
     const backLink = document.getElementById('article-back-link');
     if (backLink) {
@@ -171,7 +166,44 @@ export async function renderArticlePage(slug) {
         return;
     }
 
-    setDocumentTitle(articleMeta.title || 'Untitled');
+    // Set SEO meta tags
+    const articleUrl = `https://the-unlabeled.com/a/${articleMeta.slug}`;
+    setMetaTags({
+        title: `${articleMeta.title} - The Unlabeled`,
+        description: articleMeta.excerpt || articleMeta.subtitle || 'Read this political analysis article on The Unlabeled.',
+        url: articleUrl,
+        image: articleMeta.image || '/favicon.png',
+        type: 'article'
+    });
+
+    // Add structured data for search engines
+    const structuredData = {
+        "@context": "https://schema.org",
+        "@type": "Article",
+        "headline": articleMeta.title,
+        "description": articleMeta.excerpt || articleMeta.subtitle,
+        "image": articleMeta.image ? [articleMeta.image] : [],
+        "datePublished": articleMeta.published_at,
+        "dateModified": articleMeta.updated_at,
+        "author": {
+            "@type": "Person",
+            "name": articleMeta.author?.name || "The Unlabeled"
+        },
+        "publisher": {
+            "@type": "Organization",
+            "name": "The Unlabeled",
+            "logo": {
+                "@type": "ImageObject",
+                "url": "https://the-unlabeled.com/favicon.png"
+            }
+        },
+        "mainEntityOfPage": {
+            "@type": "WebPage",
+            "@id": articleUrl
+        },
+        "keywords": articleMeta.tags?.map(tag => tag.label).join(', ') || ''
+    };
+    addStructuredData(structuredData);
 
     if (articleMeta.is_draft) {
         let isAdmin = false;
