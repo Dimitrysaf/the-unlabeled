@@ -42,14 +42,14 @@ function buildTags(tags = []) {
 }
 
 function buildMeta(author, date) {
-    const parts = [];
-    if (author?.name) parts.push(`<i class="fa-regular fa-user" aria-hidden="true"></i> ${author.name}`);
-    if (date) parts.push(`<i class="fa-regular fa-calendar" aria-hidden="true"></i> ${date}`);
-    if (!parts.length) return '';
+    if (!author?.name && !date) return '';
+    const authorText = author?.name ? `By ${author.name}` : '';
+    const dateText = date ? `at ${date}` : '';
     return `
-        <p class="govuk-body-s govuk-!-colour-secondary govuk-!-margin-bottom-4" style="display:flex; gap:1.5rem; flex-wrap:wrap;">
-            ${parts.map(p => `<span>${p}</span>`).join('')}
-        </p>`;
+        <div class="article-meta-sidebar__meta govuk-body-s govuk-!-colour-secondary govuk-!-margin-bottom-4">
+            ${authorText ? `<p><strong>${authorText}</strong></p>` : ''}
+            ${dateText ? `<p><strong>${dateText}</strong></p>` : ''}
+        </div>`;
 }
 
 function buildBody(body = []) {
@@ -77,8 +77,21 @@ function buildDraftBanner(articleId) {
         </div>`;
 }
 
-function buildPage(article, bodyHtml) {
+function buildMarkdownLayout(bodyHtml, sidebarHtml) {
+    return `
+        <div class="govuk-grid-row article-markdown-layout">
+            <aside class="govuk-grid-column-one-third article-meta-sidebar">
+                ${sidebarHtml}
+            </aside>
+            <div class="govuk-grid-column-two-thirds article-body-column">
+                ${bodyHtml}
+            </div>
+        </div>`;
+}
+
+function buildPage(article, bodyHtml, options = {}) {
     const { title = 'Untitled', subtitle = '', image = '', tags = [], author = {}, date = '' } = article;
+    const sidebarHtml = `${buildMeta(author, date)}${buildTags(tags)}`;
 
     const imageHtml = image
         ? `<img class="article-image" style="border-bottom: 3px solid #000;" src="${image}" alt="${title}">`
@@ -94,9 +107,7 @@ function buildPage(article, bodyHtml) {
         <h1 class="govuk-heading-xl govuk-!-margin-bottom-2">${title}</h1>
         ${subtitle ? `<p class="govuk-body-l govuk-!-colour-secondary govuk-!-margin-bottom-4">${subtitle}</p>` : ''}
         <hr class="govuk-section-break govuk-section-break--m govuk-section-break--visible">
-        ${buildMeta(author, date)}
-        ${buildTags(tags)}
-        ${bodyHtml}
+        ${options.markdown ? buildMarkdownLayout(bodyHtml, sidebarHtml) : `${sidebarHtml}${bodyHtml}`}
     `;
 }
 
@@ -226,7 +237,7 @@ export async function renderArticlePage(slug) {
     // ── 2. Markdown content ──
     if (articleMeta.md_content) {
         const html = renderMarkdown(articleMeta.md_content);
-        updateContent(buildPage(articleMeta, `<div class="article-body">${html}</div>`));
+        updateContent(buildPage(articleMeta, `<div class="article-body">${html}</div>`, { markdown: true }));
         initArticleActions();
         return;
     }
