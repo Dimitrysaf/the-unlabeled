@@ -1,4 +1,5 @@
 import { updateContent } from '../components/Layout.js';
+import './electoral-calc.css';
 
 const partyColors = {
     'ND': '#1d4e89',
