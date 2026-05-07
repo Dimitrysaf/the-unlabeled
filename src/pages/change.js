@@ -9,6 +9,7 @@ import {
     setButtonLoading,
     resetButton,
 } from '../lib/validation.js';
+import { escapeHtml, escapeAttr } from '../lib/escape.js';
 
 // ─────────────────────────────────────────────
 // FIELD CONFIG
@@ -246,17 +247,3 @@ function renderEmailSentPage(email) {
 // HELPERS
 // ─────────────────────────────────────────────
 
-function escapeAttr(str) {
-    return String(str)
-        .replace(/&/g, '&amp;')
-        .replace(/"/g, '&quot;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;');
-}
-
-function escapeHtml(str) {
-    return String(str)
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;');
-}

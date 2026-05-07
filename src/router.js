@@ -1,5 +1,6 @@
 let _renderPage = null;
 let _onNavigate = null;
+let _hasNavigated = false;
 
 export function initRouter(renderPageFn, onNavigateFn) {
     _renderPage = renderPageFn;
@@ -29,12 +30,17 @@ export function initRouter(renderPageFn, onNavigateFn) {
     });
 }
 
+/** Returns true if the router has performed at least one in-app navigation. */
+export function hasNavigated() {
+    return _hasNavigated;
+}
+
 export function navigate(path) {
     const currentBase = window.location.pathname + window.location.search;
     const newBase = path.split('#')[0];
 
     if (newBase === currentBase && path.includes('#')) {
-        history.pushState({}, '', path);
+        history.pushState({ _path: path }, '', path);
         const id = path.split('#')[1];
         const target = document.getElementById(id);
         if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -42,9 +48,9 @@ export function navigate(path) {
     }
 
     if (window.location.pathname + window.location.search !== path) {
-        history.pushState({}, '', path);
+        history.pushState({ _path: path }, '', path);
     }
-    window.scrollTo(0, 0);
+    _hasNavigated = true;
     if (_onNavigate) _onNavigate();
     _renderPage(path);
 }

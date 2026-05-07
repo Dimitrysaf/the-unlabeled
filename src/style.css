@@ -695,10 +695,12 @@ body {
 /* ── Article image ── */
 .article-image {
   width: 100%;
+  aspect-ratio: 16 / 9;
   max-height: 440px;
   object-fit: cover;
   display: block;
   margin-bottom: 1.5rem;
+  border-bottom: 3px solid #000;
 }
 
 .article-body {
@@ -707,6 +709,10 @@ body {
   overflow-x: auto;
   min-width: 0;
   word-break: break-word;
+}
+
+.article-body__lede {
+  font-size: 1.1rem;
 }
 
 .article-body .govuk-table,
@@ -840,9 +846,13 @@ label:has(strong + .govuk-range:disabled) {
   display: flex;
   flex-wrap: wrap;
   justify-content: space-between;
-  align-items: flex-start;
+  align-items: center;
   gap: 1rem;
   margin: 1rem 0;
+}
+
+.article-meta-row__breadcrumb {
+  flex: 1;
 }
 
 .article-markdown-layout {

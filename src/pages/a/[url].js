@@ -1,11 +1,11 @@
 import { updateContent } from '../../components/Layout.js';
 import { renderError } from '../../components/ErrorPage.js';
-import { navigate } from '../../router.js';
-import { sampleArticleContent } from '../../data/~articleContent.test.js';
+import { navigate, hasNavigated } from '../../router.js';
 import { getArticleBySlug } from '../../data/articles.js';
 import { checkIsAdmin } from '../../data/admin.js';
 import { renderMarkdown } from '../../lib/markdown.js';
 import { setMetaTags, addStructuredData } from '../../lib/seo.js';
+import { sanitizeHtml } from '../../lib/sanitize.js';
 
 // ─────────────────────────────────────────────
 // MODULE REGISTRY
@@ -55,7 +55,7 @@ function buildMeta(author, date) {
 function buildBody(body = []) {
     return `
         <div class="article-body">
-            ${body.map((p, i) => `<p class="govuk-body"${i === 0 ? ' style="font-size:1.1rem;"' : ''}>${p}</p>`).join('')}
+            ${body.map((p, i) => `<p class="govuk-body${i === 0 ? ' article-body__lede' : ''}">${p}</p>`).join('')}
         </div>`;
 }
 
@@ -94,14 +94,14 @@ function buildPage(article, bodyHtml, options = {}) {
     const sidebarHtml = `${buildMeta(author, date)}${buildTags(tags)}`;
 
     const imageHtml = image
-        ? `<img class="article-image" style="border-bottom: 3px solid #000;" src="${image}" alt="${title}">`
+        ? `<img class="article-image" src="${image}" alt="${title}">`
         : '';
 
     return `
         ${article.is_draft ? buildDraftBanner(article.id) : ''}
         ${imageHtml}
-        <div class="article-meta-row" style="align-items: center;">
-            <div style="flex:1;">${buildBreadcrumb()}</div>
+        <div class="article-meta-row">
+            <div class="article-meta-row__breadcrumb">${buildBreadcrumb()}</div>
             <div>${buildShare()}</div>
         </div>
         <h1 class="govuk-heading-xl govuk-!-margin-bottom-2">${title}</h1>
@@ -116,7 +116,7 @@ function initArticleActions() {
     if (backLink) {
         backLink.addEventListener('click', e => {
             e.preventDefault();
-            if (history.length > 1) history.back();
+            if (hasNavigated()) history.back();
             else navigate('/');
         });
     }
@@ -222,15 +222,19 @@ export async function renderArticlePage(slug) {
         if (!isAdmin) { renderError('404'); return; }
     }
 
-    // ── Interactive / code article ──
+    // ── 1. Interactive / code article ──
     if (articleMeta.code_module) {
         const loader = MODULE_REGISTRY[articleMeta.code_module];
         if (!loader) { renderError('404'); return; }
-
-        const mod = await loader();
-        updateContent(buildPage(articleMeta, mod.getCalcHTML()));
-        initArticleActions();
-        mod.initCalc();
+        try {
+            const mod = await loader();
+            updateContent(buildPage(articleMeta, mod.getCalcHTML()));
+            initArticleActions();
+            mod.initCalc();
+        } catch (err) {
+            console.error('[article] module load failed:', err);
+            renderError('500');
+        }
         return;
     }
 
@@ -244,15 +248,10 @@ export async function renderArticlePage(slug) {
 
     // ── 3. Raw HTML content ──
     if (articleMeta.html_content) {
-        updateContent(buildPage(articleMeta, `<div class="article-body">${articleMeta.html_content}</div>`));
+        updateContent(buildPage(articleMeta, `<div class="article-body">${sanitizeHtml(articleMeta.html_content)}</div>`));
         initArticleActions();
         return;
     }
 
-    // ── 4. Legacy static text fallback ──
-    const article = sampleArticleContent.slug === normalized ? sampleArticleContent : null;
-    if (!article) { renderError('404'); return; }
-
-    updateContent(buildPage(article, buildBody(article.body)));
-    initArticleActions();
+    renderError('404');
 }

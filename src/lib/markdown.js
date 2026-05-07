@@ -1,4 +1,5 @@
 import { marked } from 'marked';
+import { escapeHtml } from './escape.js';
 
 // ─────────────────────────────────────────────
 // SLUG HELPER
@@ -206,11 +207,3 @@ export function renderMarkdown(md) {
     return withToc === body ? toc + body : withToc;
 }
 
-function escapeHtml(str) {
-    return String(str)
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#39;');
-}

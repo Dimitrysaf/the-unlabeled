@@ -1,3 +1,5 @@
+import { escapeAttr } from '../lib/escape.js';
+
 function buildCard({ title, excerpt, image, tags = [], author, date, link = '#' }, isHero = false) {
     const category = tags[0]?.label ?? '';
     const meta = [author?.name, date].filter(Boolean).join(' · ');
@@ -6,7 +8,7 @@ function buildCard({ title, excerpt, image, tags = [], author, date, link = '#' 
     return `
         <article class="news-card${heroClass}">
             <div class="news-card__img-col">
-                ${image ? `<img class="news-card__img" src="${image}" alt="${title}" loading="lazy">` : ''}
+                ${image ? `<img class="news-card__img" src="${image}" alt="${escapeAttr(title)}" loading="lazy">` : ''}
             </div>
             <div class="news-card__body">
                 <div class="news-card__meta-top">

@@ -3,6 +3,7 @@ import { renderError } from '../components/ErrorPage.js';
 import { navigate } from '../router.js';
 import { getCurrentUser, signIn, signOut, deleteAccount } from '../lib/auth.js';
 import { setButtonLoading, resetButton } from '../lib/validation.js';
+import { escapeHtml } from '../lib/escape.js';
 
 export async function renderDeleteAccount() {
     let user;
@@ -216,9 +217,3 @@ function initDeleteForm(email) {
     });
 }
 
-function escapeHtml(str) {
-    return String(str)
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;');
-}
