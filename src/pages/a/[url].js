@@ -6,6 +6,7 @@ import { checkIsAdmin } from '../../data/admin.js';
 import { renderMarkdown } from '../../lib/markdown.js';
 import { setMetaTags, addStructuredData } from '../../lib/seo.js';
 import { sanitizeHtml } from '../../lib/sanitize.js';
+import { renderEngagementSection } from '../../components/Comments.js';
 
 // ─────────────────────────────────────────────
 // MODULE REGISTRY
@@ -38,7 +39,7 @@ function buildTags(tags = []) {
             ${tags.map(({ label }) =>
         `<strong class="govuk-tag govuk-tag--blue govuk-!-margin-right-1">${label}</strong>`
     ).join('')}
-        </p>`;
+        </p><br><div id="vote-container"></div>`;
 }
 
 function buildMeta(author, date) {
@@ -50,13 +51,6 @@ function buildMeta(author, date) {
         <p class="article-meta-sidebar__meta govuk-body-s govuk-!-colour-secondary govuk-!-margin-bottom-4">
             ${parts.join(' ')}
         </p>`;
-}
-
-function buildBody(body = []) {
-    return `
-        <div class="article-body">
-            ${body.map((p, i) => `<p class="govuk-body${i === 0 ? ' article-body__lede' : ''}">${p}</p>`).join('')}
-        </div>`;
 }
 
 function buildDraftBanner(articleId) {
@@ -82,6 +76,7 @@ function buildMarkdownLayout(bodyHtml, sidebarHtml) {
         <div class="govuk-grid-row article-markdown-layout">
             <aside class="govuk-grid-column-one-third article-meta-sidebar">
                 ${sidebarHtml}
+                <div id="vote-container" class="govuk-!-margin-top-4"></div>
             </aside>
             <div class="govuk-grid-column-two-thirds article-body-column">
                 ${bodyHtml}
@@ -89,6 +84,15 @@ function buildMarkdownLayout(bodyHtml, sidebarHtml) {
         </div>`;
 }
 
+/**
+ * Wraps article content.
+ * Includes a #article-engagement div at the bottom — populated asynchronously
+ * by loadEngagement() after the article body is in the DOM.
+ *
+ * Vote widget placement:
+ *   markdown  → inside .article-meta-sidebar (sticky left column)
+ *   other     → inside .article-meta-row__end (far right of the meta row)
+ */
 function buildPage(article, bodyHtml, options = {}) {
     const { title = 'Untitled', subtitle = '', image = '', tags = [], author = {}, date = '' } = article;
     const sidebarHtml = `${buildMeta(author, date)}${buildTags(tags)}`;
@@ -97,17 +101,26 @@ function buildPage(article, bodyHtml, options = {}) {
         ? `<img class="article-image" src="${image}" alt="${title}">`
         : '';
 
+    // For markdown the vote widget lives in the sidebar; for all other layouts
+    // it sits below the share actions, right-aligned in the meta row.
+    const metaRowRight = options.markdown
+        ? `<div>${buildShare()}</div>`
+        : `<div class="article-meta-row__end">
+               ${buildShare()}
+           </div>`;
+
     return `
         ${article.is_draft ? buildDraftBanner(article.id) : ''}
         ${imageHtml}
         <div class="article-meta-row">
             <div class="article-meta-row__breadcrumb">${buildBreadcrumb()}</div>
-            <div>${buildShare()}</div>
+            ${metaRowRight}
         </div>
         <h1 class="govuk-heading-xl govuk-!-margin-bottom-2">${title}</h1>
         ${subtitle ? `<p class="govuk-body-l govuk-!-colour-secondary govuk-!-margin-bottom-4">${subtitle}</p>` : ''}
         <hr class="govuk-section-break govuk-section-break--m govuk-section-break--visible">
         ${options.markdown ? buildMarkdownLayout(bodyHtml, sidebarHtml) : `${sidebarHtml}${bodyHtml}`}
+        <div id="article-engagement"></div>
     `;
 }
 
@@ -130,7 +143,7 @@ function initArticleActions() {
                 const original = copyBtn.textContent;
                 copyBtn.textContent = 'Copied!';
                 setTimeout(() => { copyBtn.textContent = original; }, 2000);
-            } catch {}
+            } catch { }
         });
     }
 
@@ -141,6 +154,15 @@ function initArticleActions() {
             window.print();
         });
     }
+}
+
+/**
+ * Kick off the engagement section (votes + comments) after the article is
+ * in the DOM.  The engagement section loads independently of article content.
+ */
+function loadEngagement(articleId) {
+    const el = document.getElementById('article-engagement');
+    if (el) renderEngagementSection(articleId, el);
 }
 
 function buildLoadingShell() {
@@ -160,7 +182,6 @@ function buildLoadingShell() {
 export async function renderArticlePage(slug) {
     const normalized = slug?.toLowerCase?.().trim();
 
-    // Show loading skeleton while we hit the DB
     updateContent(buildLoadingShell());
 
     let articleMeta;
@@ -177,48 +198,40 @@ export async function renderArticlePage(slug) {
         return;
     }
 
-    // Set SEO meta tags
+    // SEO
     const articleUrl = `https://the-unlabeled.com/a/${articleMeta.slug}`;
     setMetaTags({
         title: `${articleMeta.title} - The Unlabeled`,
         description: articleMeta.excerpt || articleMeta.subtitle || 'Read this political analysis article on The Unlabeled.',
         url: articleUrl,
         image: articleMeta.image || '/favicon.png',
-        type: 'article'
+        type: 'article',
     });
 
-    // Add structured data for search engines
-    const structuredData = {
-        "@context": "https://schema.org",
-        "@type": "Article",
-        "headline": articleMeta.title,
-        "description": articleMeta.excerpt || articleMeta.subtitle,
-        "image": articleMeta.image ? [articleMeta.image] : [],
-        "datePublished": articleMeta.published_at,
-        "dateModified": articleMeta.updated_at,
-        "author": {
-            "@type": "Person",
-            "name": articleMeta.author?.name || "The Unlabeled"
+    addStructuredData({
+        '@context': 'https://schema.org',
+        '@type': 'Article',
+        headline: articleMeta.title,
+        description: articleMeta.excerpt || articleMeta.subtitle,
+        image: articleMeta.image ? [articleMeta.image] : [],
+        datePublished: articleMeta.published_at,
+        dateModified: articleMeta.updated_at,
+        author: {
+            '@type': 'Person',
+            name: articleMeta.author?.name || 'The Unlabeled',
         },
-        "publisher": {
-            "@type": "Organization",
-            "name": "The Unlabeled",
-            "logo": {
-                "@type": "ImageObject",
-                "url": "https://the-unlabeled.com/favicon.png"
-            }
+        publisher: {
+            '@type': 'Organization',
+            name: 'The Unlabeled',
+            logo: { '@type': 'ImageObject', url: 'https://the-unlabeled.com/favicon.png' },
         },
-        "mainEntityOfPage": {
-            "@type": "WebPage",
-            "@id": articleUrl
-        },
-        "keywords": articleMeta.tags?.map(tag => tag.label).join(', ') || ''
-    };
-    addStructuredData(structuredData);
+        mainEntityOfPage: { '@type': 'WebPage', '@id': articleUrl },
+        keywords: articleMeta.tags?.map(t => t.label).join(', ') || '',
+    });
 
     if (articleMeta.is_draft) {
         let isAdmin = false;
-        try { isAdmin = await checkIsAdmin(); } catch {}
+        try { isAdmin = await checkIsAdmin(); } catch { }
         if (!isAdmin) { renderError('404'); return; }
     }
 
@@ -231,6 +244,7 @@ export async function renderArticlePage(slug) {
             updateContent(buildPage(articleMeta, mod.getCalcHTML()));
             initArticleActions();
             mod.initCalc();
+            loadEngagement(articleMeta.id);
         } catch (err) {
             console.error('[article] module load failed:', err);
             renderError('500');
@@ -241,15 +255,24 @@ export async function renderArticlePage(slug) {
     // ── 2. Markdown content ──
     if (articleMeta.md_content) {
         const html = renderMarkdown(articleMeta.md_content);
-        updateContent(buildPage(articleMeta, `<div class="article-body">${html}</div>`, { markdown: true }));
+        updateContent(buildPage(
+            articleMeta,
+            `<div class="article-body">${html}</div>`,
+            { markdown: true }
+        ));
         initArticleActions();
+        loadEngagement(articleMeta.id);
         return;
     }
 
     // ── 3. Raw HTML content ──
     if (articleMeta.html_content) {
-        updateContent(buildPage(articleMeta, `<div class="article-body">${sanitizeHtml(articleMeta.html_content)}</div>`));
+        updateContent(buildPage(
+            articleMeta,
+            `<div class="article-body">${sanitizeHtml(articleMeta.html_content)}</div>`
+        ));
         initArticleActions();
+        loadEngagement(articleMeta.id);
         return;
     }
 
