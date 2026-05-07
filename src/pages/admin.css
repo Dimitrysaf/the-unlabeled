@@ -1,0 +1,225 @@
+/* ── Admin-only styles ────────────────────────────────────────
+   Imported by src/pages/admin.js — only loads on /admin.
+   ─────────────────────────────────────────────────────────── */
+
+/* ── Admin table utilities ── */
+.table-auto-layout {
+  table-layout: auto !important;
+}
+
+.table-truncate .govuk-table__cell,
+.table-truncate .govuk-table__header {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.table-truncate .govuk-table__cell a,
+.table-truncate .govuk-table__cell code,
+.table-truncate .admin-slug {
+  display: inline-block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ── Admin list header ── */
+.admin-table-header,
+#admin-list-body {
+  min-width: 0;
+}
+
+#admin-list-body {
+  overflow-x: hidden;
+}
+
+.admin-table-header {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 1rem;
+}
+
+/* ── Admin typography ── */
+.admin-slug {
+  font-family: monospace;
+  font-size: 0.8125rem;
+  color: var(--c-secondary);
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  max-width: 100%;
+  display: inline-block;
+}
+
+.admin-nowrap {
+  white-space: nowrap;
+}
+
+/* ── Admin links ── */
+.admin-link--danger {
+  color: var(--c-red);
+  text-decoration: underline;
+}
+
+.admin-link--danger:hover {
+  color: #942514;
+  text-decoration-thickness: 3px;
+}
+
+.admin-link--danger:focus {
+  color: var(--c-black);
+  background-color: var(--c-yellow);
+  outline: 3px solid var(--c-yellow);
+  box-shadow: 0 -2px var(--c-yellow), 0 4px var(--c-black);
+  text-decoration: none;
+}
+
+/* ── Admin editor grid ── */
+.admin-editor-grid {
+  display: grid;
+  grid-template-columns: 360px 1fr;
+  gap: 2rem;
+  align-items: start;
+  min-width: 0;
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+@media (max-width: 64em) {
+  .admin-editor-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.admin-editor-meta {
+  position: sticky;
+  top: 1rem;
+}
+
+/* ── Admin markdown split editor ── */
+.admin-md-panels {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  min-width: 0;
+  width: 100%;
+  overflow-x: auto;
+}
+
+@media (max-width: 48em) {
+  .admin-md-panels {
+    grid-template-columns: 1fr;
+  }
+}
+
+.admin-md-pane {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.admin-md-textarea {
+  flex: 1;
+  min-height: 480px;
+  resize: vertical;
+}
+
+.admin-md-preview {
+  min-height: 480px;
+  border: 2px solid var(--c-border);
+  padding: 1rem;
+  background: #fff;
+  overflow-x: auto;
+  overflow-y: auto;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.admin-md-preview .govuk-table,
+.admin-md-preview .md-code-block {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  overflow-x: auto;
+  margin: 1rem 0;
+}
+
+.admin-md-preview .govuk-table__cell,
+.admin-md-preview .govuk-table__header {
+  word-break: break-word;
+  white-space: normal;
+}
+
+.admin-md-preview > *:first-child {
+  margin-top: 0 !important;
+}
+
+/* ── Admin extras ── */
+.admin-optional-fields {
+  padding-top: 0.5rem;
+}
+
+.admin-code-textarea {
+  font-family: monospace;
+  font-size: 0.875rem;
+}
+
+/* ── EasyMDE — GOV.UK aesthetic overrides ── */
+.EasyMDEContainer .editor-toolbar {
+  background: var(--c-light);
+  border: 2px solid var(--c-black);
+  border-bottom: 1px solid var(--c-border);
+  border-radius: 0;
+  opacity: 1;
+  padding: 4px 6px;
+}
+
+.EasyMDEContainer .editor-toolbar button {
+  color: var(--c-black);
+  border-radius: 0;
+}
+
+.EasyMDEContainer .editor-toolbar button:hover,
+.EasyMDEContainer .editor-toolbar button.active {
+  background: #fff;
+  border-color: var(--c-black);
+  color: var(--c-black);
+}
+
+.EasyMDEContainer .editor-toolbar i.separator {
+  border-left-color: var(--c-border);
+  border-right-color: transparent;
+}
+
+.EasyMDEContainer .CodeMirror {
+  font-family: monospace;
+  font-size: 0.9375rem;
+  border: 2px solid var(--c-black);
+  border-top: none;
+  border-radius: 0;
+  padding: 0.5rem;
+  color: var(--c-black);
+}
+
+.EasyMDEContainer .CodeMirror:focus-within {
+  outline: 3px solid var(--c-yellow);
+  outline-offset: 0;
+}
+
+.EasyMDEContainer .editor-preview,
+.EasyMDEContainer .editor-preview-side {
+  font-family: arial, sans-serif;
+  font-size: 1rem;
+  background: #fff;
+  border-radius: 0;
+}
+
+.EasyMDEContainer .editor-preview-side {
+  border: 2px solid var(--c-black);
+  border-left-color: var(--c-border);
+}
+
+.EasyMDEContainer .editor-statusbar {
+  display: none;
+}
