@@ -1,7 +1,7 @@
 import { renderLogo } from './Logo.js';
 import { getCurrentUser, onAuthStateChange, signOut } from '../lib/auth.js';
 import { readCookiePreferences, setSessionCookie, writeCookiePreferences } from '../lib/cookiePreferences.js';
-import { checkIsAdmin } from '../data/admin.js';
+import { checkIsAdmin, clearAdminCache } from '../data/admin.js';
 import { navigate } from '../router.js';
 
 const baseMenuItems = [
@@ -306,6 +306,7 @@ function initAuth() {
         if (currentUser) {
             checkIsAdmin().then(result => { isAdmin = result; authLoaded = true; updateNavigation(); }).catch(() => { isAdmin = false; authLoaded = true; updateNavigation(); });
         } else {
+            clearAdminCache();
             isAdmin = false;
             authLoaded = true;
             updateNavigation();
@@ -387,18 +388,11 @@ function _initServiceNavFallback() {
     applyViewport(MOBILE_MQ);
 }
 
-function scrollContentIntoView(offset = 60) {
-    const slot = document.getElementById('main-content');
-    if (!slot) return;
-
-    const top = slot.getBoundingClientRect().top + window.pageYOffset - offset;
-    window.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
-}
-
 export function updateContent(html) {
     const slot = document.getElementById('main-content');
     if (slot) {
         slot.innerHTML = `<div class="govuk-width-container">${html}</div>`;
-        scrollContentIntoView();
+        const top = slot.getBoundingClientRect().top + window.pageYOffset - 60;
+        window.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
     }
 }

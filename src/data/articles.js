@@ -11,12 +11,25 @@
  * }
  */
 
-import { from } from '../lib/supabase.js';
+import { from, supabase } from '../lib/supabase.js';
+
+const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+let _articlesCache = null; // { data: Article[], ts: number }
+
+function normalize(a) {
+    return { ...a, link: a.link || a.slug };
+}
 
 /** Fetch all published (non-draft) articles ordered by publish date. */
 export async function getArticles() {
+    const now = Date.now();
+    if (_articlesCache && now - _articlesCache.ts < CACHE_TTL) {
+        return _articlesCache.data;
+    }
     const articles = await from('articles', { is_draft: 'eq.false', order: 'published_at.desc' });
-    return articles.map(a => ({ ...a, link: a.link || a.slug }));
+    const data = articles.map(normalize);
+    _articlesCache = { data, ts: now };
+    return data;
 }
 
 /** Fetch a single article by slug (any draft status). Returns the article object or null. */
@@ -26,18 +39,20 @@ export async function getArticleBySlug(slug) {
         limit: '1',
     });
     const article = rows[0] ?? null;
-    return article ? { ...article, link: article.link || article.slug } : null;
+    return article ? normalize(article) : null;
 }
 
-/** Full-text search across title, subtitle and excerpt (client-side). */
+/** Server-side search across title, subtitle, excerpt, and tags. */
 export async function searchArticles(query) {
-    const q = query.toLowerCase().trim();
+    const q = query.trim();
     if (!q) return [];
-    const all = await getArticles();
-    return all.filter(a =>
-        a.title?.toLowerCase().includes(q) ||
-        a.subtitle?.toLowerCase().includes(q) ||
-        a.excerpt?.toLowerCase().includes(q) ||
-        a.tags?.some(t => t.label?.toLowerCase().includes(q))
-    );
+    const pattern = `%${q}%`;
+    const { data, error } = await supabase
+        .from('articles')
+        .select('*')
+        .eq('is_draft', false)
+        .or(`title.ilike.${pattern},subtitle.ilike.${pattern},excerpt.ilike.${pattern},tags::text.ilike.${pattern}`)
+        .order('published_at', { ascending: false });
+    if (error) throw error;
+    return (data ?? []).map(normalize);
 }

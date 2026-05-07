@@ -3,6 +3,7 @@ import { updateContent } from '../components/Layout.js';
 import { navigate } from '../router.js';
 import { renderError } from '../components/ErrorPage.js';
 import { renderMarkdown } from '../lib/markdown.js';
+import { escapeHtml, escapeAttr } from '../lib/escape.js';
 import {
     checkIsAdmin,
     getAllArticles,
@@ -701,17 +702,3 @@ function debounce(fn, ms) {
     return (...args) => { clearTimeout(t); t = setTimeout(() => fn(...args), ms); };
 }
 
-function escapeHtml(str) {
-    return String(str ?? '')
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;');
-}
-
-function escapeAttr(str) {
-    return String(str ?? '')
-        .replace(/&/g, '&amp;')
-        .replace(/"/g, '&quot;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;');
-}

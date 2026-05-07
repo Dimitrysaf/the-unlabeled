@@ -2,20 +2,7 @@ import { inject as injectAnalytics } from '@vercel/analytics';
 import { injectSpeedInsights } from '@vercel/speed-insights';
 import { initLayout, updateNavigation } from './components/Layout.js';
 import { initRouter } from './router.js';
-import { renderHome } from './home.js';
 import { renderError } from './components/ErrorPage.js';
-import { renderArticlePage } from './pages/a/[url].js';
-import { renderAbout } from './pages/about.js';
-import { renderLegal } from './pages/legal.js';
-import { renderCookies } from './pages/cookies.js';
-import { renderSearch } from './pages/search.js';
-import { renderLogin } from './pages/login.js';
-import { renderSignup } from './pages/signup.js';
-import { renderAccount } from './pages/account.js';
-import { renderDeleteAccount } from './pages/delete-account.js';
-import { renderChange } from './pages/change.js';
-import { renderAuthConfirm } from './pages/auth-confirm.js';
-import { renderAdmin } from './pages/admin.js';
 import { readCookiePreferences } from './lib/cookiePreferences.js';
 import { setMetaTags } from './lib/seo.js';
 
@@ -69,9 +56,11 @@ async function renderPage(fullPath) {
             description: 'Stay informed with the latest political analysis, data-driven insights, and evidence-based commentary from The Unlabeled.',
             url: 'https://the-unlabeled.com/'
         });
+        const { renderHome } = await import('./home.js');
         await renderHome();
     } else if (path.startsWith('/a/')) {
         const slug = path.replace('/a/', '').replace(/\/+$/, '');
+        const { renderArticlePage } = await import('./pages/a/[url].js');
         await renderArticlePage(slug);
     } else if (path === '/search') {
         setMetaTags({
@@ -79,6 +68,7 @@ async function renderPage(fullPath) {
             description: 'Search through our collection of political analysis and data journalism articles.',
             url: 'https://the-unlabeled.com/search'
         });
+        const { renderSearch } = await import('./pages/search.js');
         await renderSearch();
     } else if (path === '/about') {
         setMetaTags({
@@ -86,6 +76,7 @@ async function renderPage(fullPath) {
             description: 'Learn about our mission to provide evidence-based political analysis and data-driven insights.',
             url: 'https://the-unlabeled.com/about'
         });
+        const { renderAbout } = await import('./pages/about.js');
         renderAbout();
     } else if (path === '/legal') {
         setMetaTags({
@@ -93,6 +84,7 @@ async function renderPage(fullPath) {
             description: 'Legal notices, terms of service, and privacy policy for The Unlabeled.',
             url: 'https://the-unlabeled.com/legal'
         });
+        const { renderLegal } = await import('./pages/legal.js');
         renderLegal();
     } else if (path === '/cookies') {
         setMetaTags({
@@ -100,6 +92,7 @@ async function renderPage(fullPath) {
             description: 'Information about how we use cookies and your privacy choices.',
             url: 'https://the-unlabeled.com/cookies'
         });
+        const { renderCookies } = await import('./pages/cookies.js');
         renderCookies();
     } else if (path === '/login') {
         setMetaTags({
@@ -107,6 +100,7 @@ async function renderPage(fullPath) {
             description: 'Sign in to your account on The Unlabeled.',
             url: 'https://the-unlabeled.com/login'
         });
+        const { renderLogin } = await import('./pages/login.js');
         await renderLogin();
     } else if (path === '/signup') {
         setMetaTags({
@@ -114,6 +108,7 @@ async function renderPage(fullPath) {
             description: 'Create your account on The Unlabeled.',
             url: 'https://the-unlabeled.com/signup'
         });
+        const { renderSignup } = await import('./pages/signup.js');
         await renderSignup();
     } else if (path === '/account') {
         setMetaTags({
@@ -121,6 +116,7 @@ async function renderPage(fullPath) {
             description: 'Manage your account settings and preferences.',
             url: 'https://the-unlabeled.com/account'
         });
+        const { renderAccount } = await import('./pages/account.js');
         await renderAccount();
     } else if (path === '/account/delete') {
         setMetaTags({
@@ -128,6 +124,7 @@ async function renderPage(fullPath) {
             description: 'Request account deletion from The Unlabeled.',
             url: 'https://the-unlabeled.com/account/delete'
         });
+        const { renderDeleteAccount } = await import('./pages/delete-account.js');
         await renderDeleteAccount();
     } else if (path.startsWith('/c/')) {
         const field = path.replace('/c/', '').replace(/\/+$/, '');
@@ -136,6 +133,7 @@ async function renderPage(fullPath) {
             description: `Update your ${field} on The Unlabeled.`,
             url: `https://the-unlabeled.com/c/${field}`
         });
+        const { renderChange } = await import('./pages/change.js');
         await renderChange(field);
     } else if (path === '/auth/confirm') {
         setMetaTags({
@@ -143,6 +141,7 @@ async function renderPage(fullPath) {
             description: 'Complete your authentication process.',
             url: 'https://the-unlabeled.com/auth/confirm'
         });
+        const { renderAuthConfirm } = await import('./pages/auth-confirm.js');
         renderAuthConfirm();
     } else if (path === '/admin') {
         setMetaTags({
@@ -151,6 +150,7 @@ async function renderPage(fullPath) {
             url: 'https://the-unlabeled.com/admin',
             robots: 'noindex, nofollow'
         });
+        const { renderAdmin } = await import('./pages/admin.js');
         await renderAdmin();
     } else {
         setMetaTags({

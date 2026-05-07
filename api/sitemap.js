@@ -7,11 +7,11 @@ const SUPABASE_URL = process.env.VITE_SUPABASE_URL;
 const SUPABASE_ANON_KEY = process.env.VITE_SUPABASE_ANON_KEY;
 
 const STATIC_PAGES = [
-    { loc: '/', lastmod: '2026-05-05', changefreq: 'daily',   priority: '1.0' },
-    { loc: '/about',   lastmod: '2026-05-05', changefreq: 'monthly',  priority: '0.8' },
-    { loc: '/search',  lastmod: '2026-05-05', changefreq: 'weekly',   priority: '0.6' },
-    { loc: '/legal',   lastmod: '2026-05-05', changefreq: 'yearly',   priority: '0.3' },
-    { loc: '/cookies', lastmod: '2026-05-05', changefreq: 'yearly',   priority: '0.3' },
+    { loc: '/',        changefreq: 'daily',   priority: '1.0' },
+    { loc: '/about',   changefreq: 'monthly', priority: '0.8' },
+    { loc: '/search',  changefreq: 'weekly',  priority: '0.6' },
+    { loc: '/legal',   changefreq: 'yearly',  priority: '0.3' },
+    { loc: '/cookies', changefreq: 'yearly',  priority: '0.3' },
 ];
 
 const BASE_URL = 'https://the-unlabeled.com';
@@ -25,11 +25,11 @@ function toW3CDate(dateStr) {
     }
 }
 
-function buildXml(staticPages, articles) {
-    const staticUrls = staticPages.map(({ loc, lastmod, changefreq, priority }) => `
+function buildXml(staticPages, articles, today) {
+    const staticUrls = staticPages.map(({ loc, changefreq, priority }) => `
   <url>
     <loc>${BASE_URL}${loc}</loc>
-    <lastmod>${lastmod}</lastmod>
+    <lastmod>${today}</lastmod>
     <changefreq>${changefreq}</changefreq>
     <priority>${priority}</priority>
   </url>`).join('');
@@ -68,7 +68,8 @@ export default async function handler(req, res) {
         }
 
         const articles = await response.json();
-        const xml = buildXml(STATIC_PAGES, articles);
+        const today = new Date().toISOString().split('T')[0];
+        const xml = buildXml(STATIC_PAGES, articles, today);
 
         res.setHeader('Content-Type', 'application/xml; charset=utf-8');
         // Cache for 1 hour — fresh enough for new articles, not hammering Supabase
@@ -78,7 +79,8 @@ export default async function handler(req, res) {
     } catch (err) {
         console.error('[sitemap] Failed to generate:', err);
         // Fallback: return static pages only rather than a 500
-        const xml = buildXml(STATIC_PAGES, []);
+        const today = new Date().toISOString().split('T')[0];
+        const xml = buildXml(STATIC_PAGES, [], today);
         res.setHeader('Content-Type', 'application/xml; charset=utf-8');
         res.status(200).send(xml);
     }

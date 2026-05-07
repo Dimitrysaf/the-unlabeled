@@ -1,8 +1,12 @@
 import { supabase } from '../lib/supabase.js';
 
+let _adminCache = null; // { userId: string, result: boolean }
+
 export async function checkIsAdmin() {
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return false;
+    if (!user) { _adminCache = null; return false; }
+
+    if (_adminCache?.userId === user.id) return _adminCache.result;
 
     const { data, error } = await supabase
         .from('admin_users')
@@ -10,7 +14,13 @@ export async function checkIsAdmin() {
         .eq('user_id', user.id)
         .maybeSingle();
 
-    return !error && data !== null;
+    const result = !error && data !== null;
+    _adminCache = { userId: user.id, result };
+    return result;
+}
+
+export function clearAdminCache() {
+    _adminCache = null;
 }
 
 export async function getAllArticles() {

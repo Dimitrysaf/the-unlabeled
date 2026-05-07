@@ -2,6 +2,7 @@ import { updateContent } from '../components/Layout.js';
 import { navigate } from '../router.js';
 import { getCurrentUser, signUp } from '../lib/auth.js';
 import { validateEmail, validateDisplayName, validatePassword, clearFieldErrors, setFieldError, setButtonLoading, resetButton, showErrorSummary } from '../lib/validation.js';
+import { escapeHtml } from '../lib/escape.js';
 
 export async function renderSignup() {
     try {
@@ -197,9 +198,3 @@ function showAuthErrorSummary(form, message) {
     summary.focus();
 }
 
-function escapeHtml(str) {
-    return String(str)
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;');
-}

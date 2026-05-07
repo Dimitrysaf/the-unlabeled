@@ -1,4 +1,5 @@
 import { updateContent } from '../components/Layout.js';
+import { escapeHtml } from '../lib/escape.js';
 
 // ─────────────────────────────────────────────
 // ENTRY POINT
@@ -205,9 +206,3 @@ function getFriendlyError(error, code, description) {
         : 'An unexpected error occurred. Please try again from your account settings.';
 }
 
-function escapeHtml(str) {
-    return String(str)
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;');
-}
