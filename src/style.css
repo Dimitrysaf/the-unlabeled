@@ -563,18 +563,8 @@ body {
   outline-offset: 0;
 }
 
-/* Mobile — stacked layout + expanding search input */
+/* Mobile — narrower search input, stays inline with logo */
 @media (max-width: 40em) {
-  .header-inner {
-    flex-wrap: wrap;
-  }
-
-  .header-search {
-    order: 3;
-    width: 100%;
-    margin-top: 1rem;
-  }
-
   .header-search__input {
     width: 110px;
     transition: width 0.2s ease;
