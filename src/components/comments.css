@@ -14,7 +14,8 @@
    ─────────────────────────────────────────────────────────────────────────── */
 
 .vote-widget {
-  display: inline-flex;
+  display: flex;
+  width: 100%;
   align-items: stretch;
   margin-bottom: 30px; /* govuk spacing-6 */
 }
@@ -65,6 +66,7 @@
 
 .vote-widget__score {
   display: inline-flex;
+  flex: 1;
   align-items: center;
   justify-content: center;
   min-width: 44px;

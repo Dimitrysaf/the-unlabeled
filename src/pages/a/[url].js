@@ -39,7 +39,21 @@ function buildTags(tags = []) {
             ${tags.map(({ label }) =>
         `<strong class="govuk-tag govuk-tag--blue govuk-!-margin-right-1">${label}</strong>`
     ).join('')}
-        </p><br><div id="vote-container"></div>`;
+        </p>`;
+}
+
+function buildArticleInfoRow(article) {
+    const { tags = [], author = {}, date = '' } = article;
+    return `
+        <div class="article-info-row">
+            <div class="article-info-row__meta">
+                ${buildMeta(author, date)}
+                ${buildTags(tags)}
+            </div>
+            <div class="article-info-row__vote">
+                <div id="vote-container"></div>
+            </div>
+        </div>`;
 }
 
 function buildMeta(author, date) {
@@ -119,7 +133,7 @@ function buildPage(article, bodyHtml, options = {}) {
         <h1 class="govuk-heading-xl govuk-!-margin-bottom-2">${title}</h1>
         ${subtitle ? `<p class="govuk-body-l govuk-!-colour-secondary govuk-!-margin-bottom-4">${subtitle}</p>` : ''}
         <hr class="govuk-section-break govuk-section-break--m govuk-section-break--visible">
-        ${options.markdown ? buildMarkdownLayout(bodyHtml, sidebarHtml) : `${sidebarHtml}${bodyHtml}`}
+        ${options.markdown ? buildMarkdownLayout(bodyHtml, sidebarHtml) : `${buildArticleInfoRow(article)}${bodyHtml}`}
         <div id="article-engagement"></div>
     `;
 }

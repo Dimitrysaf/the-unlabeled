@@ -436,6 +436,36 @@ body {
   }
 }
 
+/* ── Article info row (HTML / Module articles) ── */
+.article-info-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1.5rem;
+  margin-bottom: 1rem;
+}
+
+.article-info-row__meta {
+  flex: 1;
+}
+
+.article-info-row__vote {
+  flex-shrink: 0;
+  width: 130px;
+  display: flex;
+  align-items: flex-start;
+}
+
+@media (max-width: 40em) {
+  .article-info-row {
+    flex-direction: column;
+  }
+
+  .article-info-row__vote {
+    width: 100%;
+  }
+}
+
 /* ── Article ToC ── */
 .article-toc .govuk-list,
 .article-toc .govuk-list li,
