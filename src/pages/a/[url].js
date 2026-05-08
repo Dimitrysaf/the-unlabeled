@@ -39,7 +39,7 @@ function buildTags(tags = []) {
             ${tags.map(({ label }) =>
         `<strong class="govuk-tag govuk-tag--blue govuk-!-margin-right-1">${label}</strong>`
     ).join('')}
-        </p><br><div id="vote-container"></div>`;
+        </p>`;
 }
 
 function buildMeta(author, date) {
