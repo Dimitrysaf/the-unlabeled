@@ -1,31 +1,29 @@
+// src/lib/markdown.js
 import { marked } from 'marked';
 import { escapeHtml } from './escape.js';
 
-// ─────────────────────────────────────────────
-// SLUG HELPER
-// matches GitHub/marked default slug behaviour
-// ─────────────────────────────────────────────
+// ── Slug helper ──────────────────────────────────────────────────────────────
+// Matches GitHub/marked default slug behaviour so heading IDs are consistent
+// with what the ToC links point to.
 
 function slugify(text) {
     return text
         .toLowerCase()
-        .replace(/<[^>]+>/g, '')       // strip inline HTML (<code>, <strong>, etc.)
-        .replace(/[^\w\s-]/g, '')      // remove punctuation: —, (, ), :, ?, !, etc.
+        .replace(/<[^>]+>/g, '')
+        .replace(/[^\w\s-]/g, '')
         .trim()
-        .replace(/\s+/g, '-')          // spaces → hyphens
-        .replace(/-+/g, '-');          // collapse consecutive hyphens
+        .replace(/\s+/g, '-')
+        .replace(/-+/g, '-');
 }
 
-// ─────────────────────────────────────────────
-// TOC BUILDER
-// ─────────────────────────────────────────────
+// ── Table of contents builder ────────────────────────────────────────────────
 
 function buildToc(headings) {
     if (!headings.length) return '';
 
     const lines = ['<ul class="govuk-list govuk-!-margin-top-3 govuk-!-margin-bottom-0">'];
 
-    for (let i = 0; i < headings.length; i += 1) {
+    for (let i = 0; i < headings.length; i++) {
         const { depth, text, id } = headings[i];
         const nextDepth = headings[i + 1]?.depth;
         const link = `<a class="govuk-link" href="#${id}">${text}</a>`;
@@ -37,7 +35,6 @@ function buildToc(headings) {
                 lines.push(`  <li>${link}</li>`);
                 continue;
             }
-
             if (headings[i - 1].depth !== 3) {
                 lines.push('    <ul class="govuk-list govuk-!-margin-top-0 govuk-!-margin-bottom-0">');
             }
@@ -63,9 +60,7 @@ function buildToc(headings) {
 `;
 }
 
-// ─────────────────────────────────────────────
-// RENDERER
-// ─────────────────────────────────────────────
+// ── GOV.UK renderer ──────────────────────────────────────────────────────────
 
 const renderer = {
     heading({ text, depth, tokens }) {
@@ -78,25 +73,20 @@ const renderer = {
             6: 'govuk-heading-s',
         };
         const rendered = this.parser.parseInline(tokens);
-        // text = raw string (no HTML) — safe to slugify
-        // rendered = HTML string — what the user sees
         const id = slugify(text);
         return `<h${depth} id="${id}" class="${classes[depth] || 'govuk-heading-m'}">${rendered}</h${depth}>\n`;
     },
 
     paragraph({ tokens }) {
-        const rendered = this.parser.parseInline(tokens);
-        return `<p class="govuk-body">${rendered}</p>\n`;
+        return `<p class="govuk-body">${this.parser.parseInline(tokens)}</p>\n`;
     },
 
     list({ items, ordered }) {
         const tag = ordered ? 'ol' : 'ul';
-        const cls = ordered
-            ? 'govuk-list govuk-list--number'
-            : 'govuk-list govuk-list--bullet';
+        const cls = ordered ? 'govuk-list govuk-list--number' : 'govuk-list govuk-list--bullet';
         const body = items.map(item => {
             const rendered = this.parser.parse(item.tokens);
-            // strip wrapping <p> that paragraph() adds — invalid inside <li>
+            // Strip wrapping <p> — invalid inside <li>.
             const inner = rendered.replace(/^<p[^>]*>(.*)<\/p>\n?$/s, '$1');
             return `<li>${inner}</li>\n`;
         }).join('');
@@ -104,14 +94,13 @@ const renderer = {
     },
 
     blockquote({ tokens }) {
-        const rendered = this.parser.parse(tokens);
-        return `<div class="govuk-inset-text">${rendered}</div>\n`;
+        return `<div class="govuk-inset-text">${this.parser.parse(tokens)}</div>\n`;
     },
 
     link({ href, title, tokens }) {
         const t = title ? ` title="${title}"` : '';
         const rendered = this.parser.parseInline(tokens);
-        const isExternal = href && (href.startsWith('http://') || href.startsWith('https://'));
+        const isExternal = href?.startsWith('http://') || href?.startsWith('https://');
         const external = isExternal ? ' target="_blank" rel="noopener noreferrer"' : '';
         return `<a class="govuk-link" href="${href}"${t}${external}>${rendered}</a>`;
     },
@@ -135,18 +124,15 @@ const renderer = {
     },
 
     strong({ tokens }) {
-        const rendered = this.parser.parseInline(tokens);
-        return `<strong>${rendered}</strong>`;
+        return `<strong>${this.parser.parseInline(tokens)}</strong>`;
     },
 
     em({ tokens }) {
-        const rendered = this.parser.parseInline(tokens);
-        return `<em>${rendered}</em>`;
+        return `<em>${this.parser.parseInline(tokens)}</em>`;
     },
 
     del({ tokens }) {
-        const rendered = this.parser.parseInline(tokens);
-        return `<del>${rendered}</del>`;
+        return `<del>${this.parser.parseInline(tokens)}</del>`;
     },
 
     table({ header, rows }) {
@@ -177,33 +163,24 @@ const renderer = {
 
 marked.use({ gfm: true, breaks: true, renderer });
 
-// ─────────────────────────────────────────────
-// EXPORTS
-// ─────────────────────────────────────────────
+// ── Public API ───────────────────────────────────────────────────────────────
 
+/**
+ * Converts Markdown to HTML with GOV.UK styling and an auto-generated ToC.
+ * The ToC is injected immediately after the first <h1>, or prepended if none.
+ */
 export function renderMarkdown(md) {
     if (!md) return '';
 
-    // ── 1. Collect h2/h3 headings for ToC via the lexer ──
-    // Runs on raw markdown — no extra DB call, no HTML parsing.
     const headings = [];
     for (const token of marked.lexer(md)) {
         if (token.type === 'heading' && token.depth >= 2 && token.depth <= 3) {
-            headings.push({
-                depth: token.depth,
-                text: token.text,        // raw, no HTML — used as link label
-                id: slugify(token.text), // must match what heading renderer produces
-            });
+            headings.push({ depth: token.depth, text: token.text, id: slugify(token.text) });
         }
     }
 
-    // ── 2. Render body ──
     const body = marked.parse(md);
-
-    // ── 3. Inject ToC immediately after the opening <h1> ──
-    // Falls back to prepending if the article has no h1.
     const toc = buildToc(headings);
     const withToc = body.replace(/(<h1[^>]*>.*?<\/h1>\n?)/s, `$1${toc}`);
     return withToc === body ? toc + body : withToc;
 }
-

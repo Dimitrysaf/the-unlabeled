@@ -1,3 +1,6 @@
+// src/components/Logo.js
+
+/** Returns the site logo as an HTML string. */
 export function renderLogo() {
     return `
         <a href="/" class="govuk-header__link govuk-header__link--homepage" aria-label="The Unlabeled — Home">

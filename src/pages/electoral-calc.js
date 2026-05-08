@@ -1,72 +1,45 @@
+// src/pages/electoral-calc.js
+// Entry point and orchestration layer. Imports pure logic from sub-modules.
 import { updateContent } from '../components/Layout.js';
 import './electoral-calc.css';
 
-const partyColors = {
-    'ND': '#1d4e89',
-    'SYRIZA': '#ff4b4b',
-    'PASOK': '#00a14b',
-    'KKE': '#ed1c24',
-    'SP': '#c1a01b',
-    'EL': '#0d3b66',
-    'NIKI': '#5e4b3c',
-    'PE': '#8a2be2',
-    'M25': '#e20074',
-    'FL': '#0097a7',
-    'NA': '#ff1744',
-    'DPK': '#424242',
-};
+import { partyColors, forecastDefaults } from './electoral-calc/constants.js';
+import {
+    allocateGreekSeats, applyThresholdRisk,
+    computeHouseEffects, computeMomentum, computeTrendAcceleration,
+    computeLongRunAverage, computeNDBias, computeVolatility, computeConfidenceScores,
+    parseSampleSize, parseInputDate, parsePollDate,
+    getHorizonDaysFromRows, getMomentumHorizonScale, getReversionHorizonScale,
+    getAutoMomentumPercent, getAutoReversionPercent,
+    filterPollsByDateWindow, parseCSV,
+    randomNormal, getLargestParty, summariseSimulation,
+} from './electoral-calc/model.js';
+import { createPollsChart } from './electoral-calc/chart.js';
+import {
+    renderParliament, renderCoalitions, renderPredictionCards,
+    renderPredictionStats, renderUncertaintySummary, renderHouseEffectsTable,
+} from './electoral-calc/render.js';
 
-// Current parliamentary seats by party abbreviation (for seat gain/loss deltas).
-// Source baseline: Hellenic Parliament composition (as reflected on Wikipedia, accessed 2026-04-28).
-const currentParliamentSeats = {
-    ND: 156,
-    SYRIZA: 25,
-    PASOK: 32,
-    KKE: 21,
-    SP: 2,
-    EL: 11,
-    NIKI: 8,
-    PE: 5,
-    M25: 0,
-    FL: 0,
-    NA: 0,
-    DPK: 0,
-};
+// ── Module-level state (populated by loadPolls → initPredictions) ─────────
 
 let _pollRows = [], _partyIndices = {}, _volatility = {}, _ndBias = 0;
 let _houseEffects = {}, _longRunAvg = {};
 
-const forecastDefaults = {
-    abstentionPct: 35,
-    pollBase: '180d',
-    electionDate: '2027-05-05',
-    useSampleWeight: true,
-    useNDCorrection: true,
-    useHouseEffects: true,
-    useLeadCompression: true,
-    useThresholdRisk: true,
-    momentumPct: 50,
-    reversionPct: 20,
-};
-
-
-// ─────────────────────────────────────────────
-// TEMPLATE  (pure HTML — no updateContent call)
-// ─────────────────────────────────────────────
+// ── HTML template ─────────────────────────────────────────────────────────
 
 export function getCalcHTML() {
     const skeletonLegend = [
-        { c: '#1d4e89' }, 
+        { c: '#1d4e89' },
         { c: '#00a14b' },
         { c: '#ff4b4b' },
-        { c: '#ed1c24' }, 
-        { c: '#0d3b66' }, 
-        { c: '#8a2be2' }, 
-        { c: '#e20074' }, 
+        { c: '#ed1c24' },
+        { c: '#0d3b66' },
+        { c: '#8a2be2' },
+        { c: '#e20074' },
         { c: '#0097a7' },
     ].map(p => `<span class="ec-skeleton__legend-item" style="--c:${p.c}"></span>`).join('');
 
-    // Fake chart polylines — static ghost of what the real chart will look like.
+    // Static ghost lines shown while data loads.
     const fakeLines = [
         { pts: '0,215 60,190 130,170 200,182 280,145 360,130 440,138 520,115 620,105 720,98 824,88', c: '#1d4e89', o: 0.22 },
         { pts: '0,148 60,155 130,140 200,152 280,158 360,145 440,150 520,143 620,148 720,140 824,145', c: '#00a14b', o: 0.18 },
@@ -382,11 +355,9 @@ export function getCalcHTML() {
     `;
 }
 
+// ── Init ──────────────────────────────────────────────────────────────────
 
-// ─────────────────────────────────────────────
-// INIT  (attaches events and kicks off data load — call after HTML is in DOM)
-// ─────────────────────────────────────────────
-
+/** Attaches events and kicks off data load — call after HTML is in the DOM. */
 export function initCalc() {
     loadPolls();
     document.getElementById('download-btn').addEventListener('click', () => {
@@ -394,11 +365,7 @@ export function initCalc() {
     });
 }
 
-
-// ─────────────────────────────────────────────
-// STANDALONE PAGE RENDER  (for the /electoral-calc direct route)
-// ─────────────────────────────────────────────
-
+/** Renders the full page for the standalone /electoral-calc route. */
 export function renderElectoralCalc() {
     updateContent(`
         <div class="govuk-!-padding-top-2 govuk-!-padding-bottom-9">
@@ -416,10 +383,7 @@ export function renderElectoralCalc() {
     initCalc();
 }
 
-
-// ─────────────────────────────────────────────
-// DATA LOADING
-// ─────────────────────────────────────────────
+// ── Data loading ──────────────────────────────────────────────────────────
 
 function loadPolls() {
     fetch('/polls.csv')
@@ -471,120 +435,7 @@ function loadPolls() {
         });
 }
 
-
-// ─────────────────────────────────────────────
-// CHART
-// ─────────────────────────────────────────────
-
-function createPollsChart(headers, rows) {
-    const pollRows = rows.filter(r => !r[0].toLowerCase().includes('election'));
-    const pts = [...pollRows].reverse();
-    const n = pts.length;
-    if (!n) return;
-
-    const partyDefs = headers.reduce((acc, h, i) => {
-        if (partyColors[h]) acc.push({ name: h, idx: i });
-        return acc;
-    }, []);
-
-    const series = partyDefs.map(p => {
-        const values = pts.map(r => { const v = parseFloat(r[p.idx]); return isNaN(v) || v === 0 ? null : v; });
-        const recent = values.slice(-20).filter(v => v !== null);
-        const avg = recent.length ? recent.reduce((s, v) => s + v, 0) / recent.length : 0;
-        return { name: p.name, color: partyColors[p.name], values, avg };
-    }).filter(s => s.avg >= 2.5).sort((a, b) => b.avg - a.avg);
-
-    const W = 880, H = 320;
-    const ml = 44, mr = 12, mt = 12, mb = 58;
-    const pw = W - ml - mr, ph = H - mt - mb;
-
-    const maxY = Math.ceil(Math.max(...series.flatMap(s => s.values.map(v => v || 0))) / 5) * 5;
-    const xOf = i => n > 1 ? (i / (n - 1)) * pw : pw / 2;
-    const yOf = v => ph - (v / maxY) * ph;
-
-    let gridHtml = '';
-    for (let v = 0; v <= maxY; v += 5) {
-        const y = yOf(v).toFixed(1);
-        gridHtml += `<line x1="0" y1="${y}" x2="${pw}" y2="${y}" stroke="${v === 0 ? '#b1b4b6' : '#f3f2f1'}" stroke-width="1"/>`;
-        gridHtml += `<text x="-6" y="${(+y + 4).toFixed(1)}" text-anchor="end" font-size="11" fill="#505a5f" font-family="arial,sans-serif">${v}%</text>`;
-    }
-
-    let xLabelHtml = '';
-    const xCount = Math.min(8, n);
-    for (let i = 0; i < xCount; i++) {
-        const idx = xCount > 1 ? Math.round(i * (n - 1) / (xCount - 1)) : 0;
-        xLabelHtml += `<text transform="translate(${xOf(idx).toFixed(1)},${(ph + 12).toFixed(1)}) rotate(-35)"
-            text-anchor="end" dominant-baseline="hanging"
-            font-size="11" fill="#505a5f" font-family="arial,sans-serif">${pts[idx][3] || ''}</text>`;
-    }
-
-    let linesHtml = '';
-    series.forEach(s => {
-        let d = '';
-        s.values.forEach((v, i) => {
-            if (v === null) return;
-            const x = xOf(i).toFixed(1), y = yOf(v).toFixed(1);
-            d += (i === 0 || s.values[i - 1] === null) ? `M ${x} ${y}` : ` L ${x} ${y}`;
-        });
-        if (d) linesHtml += `<path d="${d}" fill="none" stroke="${s.color}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>`;
-    });
-
-    const container = document.getElementById('pollsChart');
-    container.style.position = 'relative';
-    container.innerHTML = `
-        <svg id="polls-svg" width="100%" height="100%" viewBox="0 0 ${W} ${H}" style="display:block;overflow:visible;" aria-label="Polling trends">
-            <g transform="translate(${ml},${mt})">
-                ${gridHtml}${linesHtml}
-                <line id="polls-crosshair" x1="0" y1="0" x2="0" y2="${ph}" stroke="#0b0c0c" stroke-width="1" stroke-dasharray="4,3" opacity="0" pointer-events="none"/>
-                <rect id="polls-hit" x="0" y="0" width="${pw}" height="${ph}" fill="transparent" style="cursor:crosshair;"/>
-                ${xLabelHtml}
-            </g>
-        </svg>
-        <div id="polls-tooltip" style="display:none;position:absolute;background:#fff;border:1px solid #0b0c0c;padding:8px 12px;font-size:12px;font-family:arial,sans-serif;pointer-events:none;z-index:10;min-width:130px;box-shadow:2px 2px 0 #0b0c0c;"></div>`;
-
-    container.insertAdjacentHTML('afterend', `
-        <div class="parliament-legend" style="margin-bottom:1.5rem;">
-            ${series.map(s => `
-            <span class="parliament-legend-item">
-                <span style="display:inline-block;width:18px;height:2px;background:${s.color};vertical-align:middle;margin-right:2px;"></span>
-                <strong style="color:${s.color}">${s.name}</strong>
-            </span>`).join('')}
-        </div>`);
-
-    const svg = document.getElementById('polls-svg');
-    const xhair = document.getElementById('polls-crosshair');
-    const tip = document.getElementById('polls-tooltip');
-    const hit = document.getElementById('polls-hit');
-
-    hit.addEventListener('mousemove', e => {
-        const rect = svg.getBoundingClientRect();
-        const mouseX = (e.clientX - rect.left) * (W / rect.width) - ml;
-        const idx = Math.max(0, Math.min(n - 1, Math.round((mouseX / pw) * (n - 1))));
-        const cx = xOf(idx).toFixed(1);
-        xhair.setAttribute('x1', cx); xhair.setAttribute('x2', cx); xhair.setAttribute('opacity', '0.5');
-
-        tip.innerHTML = `<div style="font-weight:700;margin-bottom:6px;color:#0b0c0c;">${pts[idx][3] || ''}</div>` +
-            series.map(s => {
-                const v = s.values[idx];
-                return `<div style="display:flex;justify-content:space-between;gap:12px;">
-                    <span><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${s.color};margin-right:4px;vertical-align:middle;"></span>${s.name}</span>
-                    <strong style="color:${s.color}">${v != null ? v.toFixed(1) + '%' : '—'}</strong>
-                </div>`;
-            }).join('');
-        tip.style.display = 'block';
-
-        const cRect = container.getBoundingClientRect();
-        let tx = e.clientX - cRect.left + 14, ty = e.clientY - cRect.top - 16;
-        if (tx + 160 > cRect.width) tx -= 172;
-        tip.style.left = tx + 'px'; tip.style.top = ty + 'px';
-    });
-    hit.addEventListener('mouseleave', () => { xhair.setAttribute('opacity', '0'); tip.style.display = 'none'; });
-}
-
-
-// ─────────────────────────────────────────────
-// PREDICTIONS INIT
-// ─────────────────────────────────────────────
+// ── Predictions init ──────────────────────────────────────────────────────
 
 function initPredictions(headers, rows) {
     _partyIndices = headers.reduce((acc, h, i) => {
@@ -665,10 +516,7 @@ function applyForecastDefaults() {
     document.getElementById('reversion-value').textContent = String(forecastDefaults.reversionPct);
 }
 
-
-// ─────────────────────────────────────────────
-// RENDER PREDICTION
-// ─────────────────────────────────────────────
+// ── Forecast engine ───────────────────────────────────────────────────────
 
 function renderPrediction() {
     const abstentionRate = parseInt(document.getElementById('abstention-slider').value) / 100;
@@ -744,7 +592,7 @@ function renderPrediction() {
     const summary = summariseSimulation(simulation);
 
     const confidenceScores = computeConfidenceScores(predicted, _volatility, total, Math.max(0, horizonDays));
-    renderPredictionCards(predicted, rawBase, seats, momentum, acceleration, confidenceScores, total, summary);
+    renderPredictionCards(predicted, rawBase, seats, momentum, acceleration, confidenceScores, total, summary, _volatility);
     renderPredictionStats(predicted, rawBase);
     renderParliament(seats);
     renderCoalitions(seats);
@@ -861,13 +709,7 @@ function runSimulation(recentPolls, options, iterations = 1000) {
         });
     }
 
-    return {
-        iterations,
-        winnerCounts,
-        majorityCount,
-        partySeatResults,
-        partyVoteResults,
-    };
+    return { iterations, winnerCounts, majorityCount, partySeatResults, partyVoteResults };
 }
 
 function addNoiseToPolls(pollRows) {
@@ -880,730 +722,4 @@ function addNoiseToPolls(pollRows) {
         }
         return copy;
     });
-}
-
-function randomNormal(mean = 0, std = 1) {
-    let u = 0, v = 0;
-    while (u === 0) u = Math.random();
-    while (v === 0) v = Math.random();
-    return mean + std * Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v);
-}
-
-function percentile(arr, p) {
-    if (!arr.length) return 0;
-    const sorted = [...arr].sort((a, b) => a - b);
-    const idx = (p / 100) * (sorted.length - 1);
-    return sorted[Math.floor(idx)];
-}
-
-function getLargestParty(seats) {
-    const sorted = Object.entries(seats).sort(([, a], [, b]) => b - a);
-    return sorted.length ? sorted[0][0] : null;
-}
-
-function summariseSimulation(simulation) {
-    const partyStats = {};
-    for (const [party, seatResults] of Object.entries(simulation.partySeatResults)) {
-        partyStats[party] = {
-            median: percentile(seatResults, 50),
-            low: percentile(seatResults, 10),
-            high: percentile(seatResults, 90),
-        };
-    }
-
-    const winnerProbabilities = {};
-    for (const [party, count] of Object.entries(simulation.winnerCounts)) {
-        winnerProbabilities[party] = Math.round((count / simulation.iterations) * 100);
-    }
-
-    return {
-        iterations: simulation.iterations,
-        majorityProbability: Math.round((simulation.majorityCount / simulation.iterations) * 100),
-        winnerProbabilities,
-        partyStats,
-    };
-}
-
-
-// ─────────────────────────────────────────────
-// THRESHOLD RISK
-// ─────────────────────────────────────────────
-
-function applyThresholdRisk(predicted, volatility) {
-    const THRESHOLD = 3.0;
-    const result = { ...predicted };
-    let redistributed = 0;
-
-    for (const [party, pct] of Object.entries(predicted)) {
-        if (pct >= THRESHOLD && pct < 7.0) {
-            const vol = volatility[party] || 0;
-            const dist = pct - THRESHOLD;
-            const failProb = Math.max(0, Math.min(0.75, vol * 0.5 * (1 - dist / 4)));
-            const expectedLoss = pct * failProb;
-            result[party] = pct - expectedLoss;
-            redistributed += expectedLoss;
-        }
-    }
-
-    if (redistributed > 0) {
-        const safeParties = Object.entries(predicted).filter(([, v]) => v >= 7.0);
-        const safeTotal = safeParties.reduce((s, [, v]) => s + v, 0);
-        for (const [party, pct] of safeParties) {
-            result[party] = (result[party] || pct) + redistributed * (pct / safeTotal);
-        }
-    }
-
-    const total = Object.values(result).reduce((a, b) => a + b, 0);
-    for (const p of Object.keys(result)) result[p] = total > 0 ? (result[p] / total) * 100 : 0;
-    return result;
-}
-
-
-// ─────────────────────────────────────────────
-// ELECTORAL LAW
-// ─────────────────────────────────────────────
-
-function allocateGreekSeats(predicted) {
-    const TOTAL = 300, THRESHOLD = 3.0;
-    const eligible = Object.entries(predicted)
-        .filter(([, v]) => v >= THRESHOLD)
-        .sort((a, b) => b[1] - a[1]);
-
-    if (!eligible.length) return {};
-
-    const winnerParty = eligible[0][0];
-    const winnerPct = eligible[0][1];
-
-    let bonus = 0;
-    if (winnerPct >= 25.0) bonus = Math.min(20 + Math.floor((winnerPct - 25.0) / 0.5), 50);
-
-    const remaining = TOTAL - bonus;
-    const totalPct = eligible.reduce((s, [, v]) => s + v, 0);
-    const quotas = {};
-    const seats = {};
-
-    eligible.forEach(([party, pct]) => {
-        const exact = (pct / totalPct) * remaining;
-        quotas[party] = exact;
-        seats[party] = Math.floor(exact);
-    });
-
-    let allocated = Object.values(seats).reduce((a, b) => a + b, 0);
-    const remainders = Object.entries(quotas)
-        .map(([p, q]) => [p, q - Math.floor(q)])
-        .sort((a, b) => b[1] - a[1]);
-
-    for (let i = 0; i < remaining - allocated; i++) seats[remainders[i][0]]++;
-    seats[winnerParty] += bonus;
-    return seats;
-}
-
-
-// ─────────────────────────────────────────────
-// PARLIAMENT
-// ─────────────────────────────────────────────
-
-function renderParliament(seats) {
-    const container = document.getElementById('parliament-container');
-    if (!container) return;
-    container.style.display = 'block';
-
-    const sorted = Object.entries(seats).sort((a, b) => b[1] - a[1]);
-    const hasMajority = sorted.some(([, c]) => c >= 151);
-
-    const seatList = [];
-    sorted.forEach(([party, count]) => { for (let i = 0; i < count; i++) seatList.push(party); });
-
-    const arcs = [
-        { r: 80, count: 20 },
-        { r: 100, count: 25 },
-        { r: 120, count: 30 },
-        { r: 140, count: 33 },
-        { r: 160, count: 35 },
-        { r: 180, count: 37 },
-        { r: 200, count: 38 },
-        { r: 220, count: 40 },
-        { r: 240, count: 42 },
-    ];
-
-    const cx = 240, cy = 240;
-    let svg = `<svg viewBox="0 0 480 240" class="parliament-svg" aria-label="Parliament seat diagram">`;
-
-    // Keep the same hemicycle positions, but assign party colors by columns (vertical),
-    // not row-by-row arc scans (horizontal).
-    const posByArc = arcs.map(() => []);
-    arcs.forEach((arc, arcIdx) => {
-        for (let i = 0; i < arc.count; i++) {
-            const angle = Math.PI - (i * (Math.PI / (arc.count - 1)));
-            posByArc[arcIdx].push({
-                x: cx + arc.r * Math.cos(angle),
-                y: cy - arc.r * Math.sin(angle),
-            });
-        }
-    });
-
-    const maxCols = Math.max(...arcs.map(a => a.count));
-    const verticalOrder = [];
-    for (let col = 0; col < maxCols; col++) {
-        for (let arcIdx = 0; arcIdx < arcs.length; arcIdx++) {
-            if (col < posByArc[arcIdx].length) verticalOrder.push(posByArc[arcIdx][col]);
-        }
-    }
-
-    for (let idx = 0; idx < Math.min(300, verticalOrder.length); idx++) {
-        const pos = verticalOrder[idx];
-        const party = seatList[idx];
-        const color = partyColors[party] || '#b1b4b6';
-        svg += `<circle cx="${pos.x.toFixed(1)}" cy="${pos.y.toFixed(1)}" r="5.5" fill="${color}"><title>${party}</title></circle>`;
-    }
-    svg += `</svg>`;
-
-    const legend = sorted.map(([p, s]) => `
-        <span class="parliament-legend-item">
-            <span class="parliament-dot" style="background:${partyColors[p] || '#b1b4b6'};"></span>
-            <strong style="color:${partyColors[p] || '#0b0c0c'}">${p}</strong>: ${s}
-        </span>`).join('');
-
-    container.innerHTML = `
-        <div class="parliament-panel ${hasMajority ? 'majority-glow' : ''}">
-            <h3 class="govuk-heading-m govuk-!-text-align-centre govuk-!-margin-bottom-1">Parliament composition</h3>
-            <p class="govuk-body-s govuk-!-text-align-centre govuk-!-colour-secondary govuk-!-margin-top-0 govuk-!-margin-bottom-3">(300 seats)</p>
-            <div class="parliament-wrapper">${svg}</div>
-            <div class="parliament-legend">${legend}</div>
-            <p class="govuk-body-s govuk-!-text-align-centre govuk-!-colour-secondary govuk-!-margin-top-3 govuk-!-margin-bottom-0">
-                Seat projection only - not final election results.
-            </p>
-        </div>`;
-}
-
-
-// ─────────────────────────────────────────────
-// COALITION ANALYSIS
-// ─────────────────────────────────────────────
-
-function renderCoalitions(seats) {
-    const container = document.getElementById('coalition-container');
-    if (!container) return;
-    container.style.display = 'block';
-
-    const parties = Object.entries(seats).filter(([, s]) => s > 0);
-    const MAJORITY = 151;
-
-    function getCombinations(arr, k) {
-        if (k === 1) return arr.map(x => [x]);
-        const result = [];
-        for (let i = 0; i <= arr.length - k; i++) {
-            getCombinations(arr.slice(i + 1), k - 1).forEach(combo => result.push([arr[i], ...combo]));
-        }
-        return result;
-    }
-
-    const minimal = [];
-    const seen = new Set();
-
-    for (let size = 2; size <= parties.length; size++) {
-        for (const combo of getCombinations(parties, size)) {
-            const total = combo.reduce((s, [, c]) => s + c, 0);
-            if (total < MAJORITY) continue;
-
-            const isMinimal = !minimal.some(m =>
-                m.parties.length < combo.length &&
-                m.parties.every(([p]) => combo.some(([p2]) => p2 === p))
-            );
-            if (!isMinimal) continue;
-
-            const key = combo.map(([p]) => p).sort().join('+');
-            if (!seen.has(key)) {
-                seen.add(key);
-                minimal.push({ parties: combo, seats: total });
-            }
-        }
-        if (minimal.length >= 10) break;
-    }
-
-    if (!minimal.length) {
-        container.innerHTML = `
-            <div class="coalition-panel">
-                <h3 class="govuk-heading-m">Coalition analysis</h3>
-                <p class="govuk-body govuk-!-colour-secondary">
-                    No majority coalition is possible with the current forecast.
-                </p>
-            </div>`;
-        return;
-    }
-
-    minimal.sort((a, b) => a.parties.length - b.parties.length || b.seats - a.seats);
-
-    const rows = minimal.slice(0, 8).map(c => {
-        const overMajority = c.seats - MAJORITY;
-        const partyTags = c.parties
-            .map(([p, s]) => `<span class="coalition-party-tag" style="border-color:${partyColors[p] || '#0b0c0c'};color:${partyColors[p] || '#0b0c0c'};">${p}&nbsp;(${s})</span>`)
-            .join('');
-        return `
-        <div class="coalition-row">
-            <div class="coalition-parties">${partyTags}</div>
-            <div class="coalition-meta">
-                <span class="coalition-seats">${c.seats} seats</span>
-                <strong class="govuk-tag govuk-tag--green coalition-surplus">+${overMajority}</strong>
-            </div>
-        </div>`;
-    }).join('');
-
-    container.innerHTML = `
-        <div class="coalition-panel">
-            <h3 class="govuk-heading-m">Possible majority coalitions</h3>
-            <p class="govuk-body-s govuk-!-colour-secondary govuk-!-margin-bottom-4">
-                Minimum party combinations reaching ${MAJORITY} seats. Does not imply political feasibility.
-            </p>
-            ${rows}
-        </div>`;
-}
-
-
-// ─────────────────────────────────────────────
-// PREDICTION CARDS
-// ─────────────────────────────────────────────
-
-function renderPredictionCards(predicted, rawBase, seats, momentum, acceleration, confidence, windowSize, summary) {
-    const sorted = Object.entries(predicted)
-        .sort(([, a], [, b]) => b - a)
-        .filter(([, v]) => v >= 1.0);
-
-    document.getElementById('prediction-cards').innerHTML = sorted.map(([party, pct]) => {
-        const basePct = rawBase[party] || 0;
-        const diff = pct - basePct;
-        const vol = ((_volatility[party] || 0) * 100).toFixed(0);
-        const seatRange = summary?.partyStats?.[party];
-        const seat = seats[party] || seatRange?.median || 0;
-        const currentSeats = currentParliamentSeats[party] ?? 0;
-        const seatDelta = seat - currentSeats;
-        const seatDeltaSign = seatDelta > 0 ? '+' : '';
-        const seatDeltaClass = seatDelta > 0 ? 'text-up' : seatDelta < 0 ? 'text-down' : '';
-        const color = partyColors[party] || '#0b0c0c';
-        const diffSign = diff >= 0 ? '+' : '−';
-        const diffClass = diff >= 0 ? 'text-up' : 'text-down';
-
-        const slope = momentum[party] || 0;
-        const accel = acceleration[party] || 0;
-        const confidencePct = confidence?.[party] ?? 50;
-        const trendDelta = slope * Math.max((windowSize || 1) - 1, 1);
-        const accelDelta = accel * Math.max((windowSize || 1) - 1, 1);
-
-        let momentumIconHtml, momentumLabel;
-        if (Math.abs(trendDelta) < 0.35) {
-            momentumIconHtml = getMomentumIconSvg('stable');
-            momentumLabel = 'Stable';
-        } else if (trendDelta > 0) {
-            momentumIconHtml = getMomentumIconSvg(accelDelta > 0.2 ? 'up-fast' : 'up');
-            momentumLabel = accelDelta > 0.2 ? 'Rising fast' : 'Rising';
-        } else {
-            momentumIconHtml = getMomentumIconSvg(accelDelta < -0.2 ? 'down-fast' : 'down');
-            momentumLabel = accelDelta < -0.2 ? 'Falling fast' : 'Falling';
-        }
-        const momentumColor = trendDelta > 0.35 ? '#00703c' : trendDelta < -0.35 ? '#d4351c' : '#505a5f';
-
-        const seatHtml = seat > 0 ? `${seat}` : '—';
-        const seatRangeHtml = seatRange ? ` <span class="seat-range">(${seatRange.low}–${seatRange.high})</span>` : '';
-
-        return `
-        <div class="prediction-card" style="border-top-color:${color};">
-            <div class="prediction-card__pct" style="color:${color};">${pct.toFixed(1)}%</div>
-            <div class="prediction-card__party">${party}</div>
-            <div class="prediction-card__momentum" style="color:${momentumColor};">
-                <span class="prediction-card__momentum-icon" aria-hidden="true">${momentumIconHtml}</span>
-                <span class="govuk-visually-hidden">${momentumLabel}</span>
-                <span>${momentumLabel}</span>
-            </div>
-            <hr class="prediction-card__divider">
-            <div class="prediction-card__details">
-                <div>Poll avg: <strong>${basePct.toFixed(1)}%</strong>
-                    <span class="${diffClass}">${diffSign}${Math.abs(diff).toFixed(1)}%</span>
-                </div>
-                <div>Volatility: <strong>${vol}%</strong></div>
-                <div>Confidence: <strong>${confidencePct}%</strong></div>
-                <div>Seats: <strong style="color:${color};">${seatHtml}</strong>${seatRangeHtml}
-                    <span class="${seatDeltaClass}">(${seatDeltaSign}${seatDelta})</span>
-                </div>
-            </div>
-        </div>`;
-    }).join('');
-}
-
-function getMomentumIconSvg(state) {
-    if (state === 'up-fast') {
-        return `<svg viewBox="0 0 16 16" width="14" height="14" fill="currentColor"><path d="M8 2l4 4H9v8H7V6H4l4-4z"/><path d="M13 4l3 3h-2v6h-2V7h-2l3-3z"/></svg>`;
-    }
-    if (state === 'up') {
-        return `<svg viewBox="0 0 16 16" width="14" height="14" fill="currentColor"><path d="M8 2l4 4H9v8H7V6H4l4-4z"/></svg>`;
-    }
-    if (state === 'down-fast') {
-        return `<svg viewBox="0 0 16 16" width="14" height="14" fill="currentColor"><path d="M8 14l-4-4h3V2h2v8h3l-4 4z"/><path d="M13 12l-3-3h2V3h2v6h2l-3 3z"/></svg>`;
-    }
-    if (state === 'down') {
-        return `<svg viewBox="0 0 16 16" width="14" height="14" fill="currentColor"><path d="M8 14l-4-4h3V2h2v8h3l-4 4z"/></svg>`;
-    }
-    return `<svg viewBox="0 0 16 16" width="14" height="14" fill="currentColor"><path d="M2 9h12v-2H2v2z"/></svg>`;
-}
-
-
-// ─────────────────────────────────────────────
-// FORECAST VS POLL STATS
-// ─────────────────────────────────────────────
-
-function renderPredictionStats(predicted, rawBase) {
-    const sorted = Object.entries(predicted)
-        .sort(([, a], [, b]) => b - a)
-        .filter(([, v]) => v >= 1.0);
-
-    const maxVal = Math.max(...sorted.map(([p, v]) => Math.max(v, rawBase[p] || 0)));
-
-    const rows = sorted.map(([party, forecast]) => {
-        const poll = rawBase[party] || 0;
-        const delta = forecast - poll;
-        const deltaSign = delta >= 0 ? '+' : '−';
-        const deltaClass = delta >= 0 ? 'text-up' : 'text-down';
-        const color = partyColors[party] || '#0b0c0c';
-        const forecastW = maxVal > 0 ? (forecast / maxVal) * 100 : 0;
-        const pollW = maxVal > 0 ? (poll / maxVal) * 100 : 0;
-
-        return `
-        <div class="pred-stat-row">
-            <div class="pred-stat-label">${party}</div>
-            <div class="pred-stat-bars">
-                <div class="pred-stat-bar pred-stat-bar--forecast"
-                     style="width:${forecastW.toFixed(1)}%;background:${color};"
-                     title="2027 Forecast: ${forecast.toFixed(1)}%"></div>
-                <div class="pred-stat-bar pred-stat-bar--poll"
-                     style="width:${pollW.toFixed(1)}%;background:${color}33;"
-                     title="Poll average: ${poll.toFixed(1)}%"></div>
-            </div>
-            <div class="pred-stat-values">
-                <span class="pred-stat-forecast" style="color:${color};">${forecast.toFixed(1)}%</span>
-                <span class="pred-stat-sep">vs</span>
-                <span class="pred-stat-poll">${poll.toFixed(1)}%</span>
-                <span class="pred-stat-delta ${deltaClass}">${deltaSign}${Math.abs(delta).toFixed(1)}%</span>
-            </div>
-        </div>`;
-    }).join('');
-
-    const container = document.getElementById('prediction-stats');
-    if (!container) return;
-    container.innerHTML = `
-        <div class="pred-stat-panel">
-            <div class="pred-stat-legend">
-                <span class="pred-stat-legend-swatch pred-stat-legend-swatch--solid"></span>2027 Forecast
-                <span class="pred-stat-legend-swatch pred-stat-legend-swatch--faded"></span>Poll average
-            </div>
-            ${rows}
-        </div>`;
-}
-
-function renderUncertaintySummary(summary) {
-    const container = document.getElementById('prediction-uncertainty');
-    if (!container) return;
-    if (!summary || !summary.iterations) {
-        container.innerHTML = '';
-        return;
-    }
-
-    const winners = Object.entries(summary.winnerProbabilities)
-        .sort(([, a], [, b]) => b - a)
-        .slice(0, 3)
-        .map(([party, pct]) => `<strong style="color:${partyColors[party] || '#0b0c0c'};">${party}</strong> ${pct}%`)
-        .join(' · ');
-
-    container.innerHTML = `
-        <details class="govuk-details govuk-!-margin-bottom-3">
-            <summary class="govuk-details__summary">
-                <span class="govuk-details__summary-text">Simulation uncertainty</span>
-            </summary>
-            <div class="govuk-details__text">
-                <p class="govuk-body-s">Based on ${summary.iterations} poll-noise runs.</p>
-                <p class="govuk-body-s">Largest party probabilities: ${winners}.</p>
-                <p class="govuk-body-s"><strong>Majority probability:</strong> ${summary.majorityProbability}%</p>
-            </div>
-        </details>`;
-}
-
-
-// ─────────────────────────────────────────────
-// HOUSE EFFECTS TABLE
-// ─────────────────────────────────────────────
-
-function renderHouseEffectsTable(houseEffects, partyIndices) {
-    const container = document.getElementById('house-effects-table');
-    if (!container) return;
-
-    const parties = Object.keys(partyIndices);
-    const firms = Object.keys(houseEffects);
-
-    if (!firms.length) {
-        container.innerHTML = '<p class="govuk-body-s">Not enough data to compute house effects (need ≥3 polls per firm).</p>';
-        return;
-    }
-
-    const theadCells = ['Firm', ...parties].map(h => {
-        const color = partyColors[h];
-        const style = color ? `color:${color};border-bottom:3px solid ${color};` : '';
-        return `<th scope="col" class="govuk-table__header" style="font-size:0.75rem;white-space:nowrap;${style}">${h}</th>`;
-    }).join('');
-
-    const tbody = firms.map(firm => {
-        const cells = parties.map(party => {
-            const e = houseEffects[firm]?.[party];
-            if (e === undefined) return `<td class="govuk-table__cell house-effects-cell">—</td>`;
-            const color = Math.abs(e) < 0.5 ? '#505a5f' : e > 0 ? '#00703c' : '#d4351c';
-            const bold = Math.abs(e) > 0.5 ? 'font-weight:700;' : '';
-            const sign = e > 0 ? '+' : '';
-            return `<td class="govuk-table__cell house-effects-cell" style="color:${color};${bold}">${sign}${e.toFixed(1)}</td>`;
-        }).join('');
-        return `<tr class="govuk-table__row">
-            <td class="govuk-table__cell" style="font-size:0.75rem;white-space:nowrap;">${firm}</td>
-            ${cells}
-        </tr>`;
-    }).join('');
-
-    container.innerHTML = `
-        <p class="govuk-body-s govuk-!-colour-secondary">
-            Positive = firm overestimates a party vs. the cross-firm mean. Values in percentage points.
-            Only firms with ≥3 polls shown.
-        </p>
-        <div style="overflow-x:auto;">
-            <table class="govuk-table" style="font-size:0.8125rem;">
-                <thead class="govuk-table__head"><tr class="govuk-table__row">${theadCells}</tr></thead>
-                <tbody class="govuk-table__body">${tbody}</tbody>
-            </table>
-        </div>`;
-}
-
-
-// ─────────────────────────────────────────────
-// STATISTICAL HELPERS
-// ─────────────────────────────────────────────
-
-function computeHouseEffects(pollRows, partyIndices) {
-    const firms = {};
-    pollRows.forEach(row => {
-        const firm = row[0].split('/')[0].trim();
-        if (!firms[firm]) firms[firm] = [];
-        firms[firm].push(row);
-    });
-
-    const overallAvg = {};
-    for (const [party, idx] of Object.entries(partyIndices)) {
-        const vals = pollRows.map(r => parseFloat(r[idx])).filter(v => !isNaN(v) && v > 0);
-        overallAvg[party] = vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : 0;
-    }
-
-    const effects = {};
-    for (const [firm, rows] of Object.entries(firms)) {
-        if (rows.length < 3) continue;
-        effects[firm] = {};
-        for (const [party, idx] of Object.entries(partyIndices)) {
-            const vals = rows.map(r => parseFloat(r[idx])).filter(v => !isNaN(v) && v > 0);
-            if (!vals.length) continue;
-            const firmAvg = vals.reduce((a, b) => a + b, 0) / vals.length;
-            effects[firm][party] = firmAvg - overallAvg[party];
-        }
-    }
-    return effects;
-}
-
-function computeMomentum(pollRows, partyIndices, N) {
-    const recent = pollRows.slice(-Math.max(N, 3));
-    const n = recent.length;
-    if (n < 3) return {};
-
-    const momentum = {};
-    for (const [party, idx] of Object.entries(partyIndices)) {
-        const pts = recent
-            .map((r, i) => ({ x: i, y: parseFloat(r[idx]) }))
-            .filter(p => !isNaN(p.y) && p.y > 0);
-
-        if (pts.length < 3) { momentum[party] = 0; continue; }
-
-        const xMean = pts.reduce((s, p) => s + p.x, 0) / pts.length;
-        const yMean = pts.reduce((s, p) => s + p.y, 0) / pts.length;
-        const num = pts.reduce((s, p) => s + (p.x - xMean) * (p.y - yMean), 0);
-        const den = pts.reduce((s, p) => s + (p.x - xMean) ** 2, 0);
-        momentum[party] = den > 0 ? num / den : 0;
-    }
-    return momentum;
-}
-
-function computeTrendAcceleration(pollRows, partyIndices, N) {
-    const half = Math.max(3, Math.floor(N / 2));
-    const recent = computeMomentum(pollRows.slice(-half), partyIndices, half);
-    const older = computeMomentum(pollRows.slice(-N, -half), partyIndices, N - half);
-    const result = {};
-    for (const party of Object.keys(recent)) {
-        result[party] = (recent[party] || 0) - (older[party] || 0);
-    }
-    return result;
-}
-
-function computeLongRunAverage(pollRows, partyIndices) {
-    const avg = {};
-    for (const [party, idx] of Object.entries(partyIndices)) {
-        const vals = pollRows.map(r => parseFloat(r[idx])).filter(v => !isNaN(v) && v > 0);
-        avg[party] = vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : 0;
-    }
-    return avg;
-}
-
-function computeNDBias(electionRows, pollRows, partyIndices, party) {
-    const idx = partyIndices[party];
-    if (idx === undefined || !electionRows.length) return 0;
-    const biases = [];
-    for (const elRow of electionRows) {
-        const result = parseFloat(elRow[idx]);
-        const electionDate = parsePollDate(elRow[3]);
-        if (isNaN(result)) continue;
-        if (!electionDate) continue;
-        const priorPolls = pollRows
-            .filter(r => {
-                const pollDate = parsePollDate(r[3]);
-                return pollDate && pollDate <= electionDate;
-            })
-            .slice(-10);
-        if (!priorPolls.length) continue;
-        const avg = priorPolls.reduce((sum, r) => sum + (parseFloat(r[idx]) || 0), 0) / priorPolls.length;
-        biases.push(result - avg);
-    }
-    return biases.length ? biases.reduce((a, b) => a + b, 0) / biases.length : 0;
-}
-
-function computeVolatility(pollRows, partyIndices) {
-    const raw = {};
-    for (const [party, idx] of Object.entries(partyIndices)) {
-        const vals = pollRows.map(r => parseFloat(r[idx])).filter(v => !isNaN(v) && v > 0);
-        if (vals.length < 2) { raw[party] = 0; continue; }
-        const min = Math.min(...vals), max = Math.max(...vals);
-        const mean = vals.reduce((a, b) => a + b, 0) / vals.length;
-        raw[party] = mean > 0 ? (max - min) / mean : 0;
-    }
-    const maxVol = Math.max(...Object.values(raw));
-    const result = {};
-    for (const p of Object.keys(raw)) result[p] = maxVol > 0 ? raw[p] / maxVol : 0;
-    return result;
-}
-
-function computeConfidenceScores(predicted, volatility, sampleCount, horizonDays) {
-    const horizonPenalty = Math.min(20, horizonDays / 18);
-    const sampleBonus = Math.min(12, Math.sqrt(Math.max(sampleCount, 1)) * 2.2);
-    const result = {};
-
-    for (const party of Object.keys(predicted)) {
-        const volPenalty = (volatility[party] || 0) * 28;
-        const base = 82 - volPenalty - horizonPenalty + sampleBonus;
-        result[party] = Math.max(35, Math.min(95, Math.round(base)));
-    }
-    return result;
-}
-
-function parseSampleSize(str) {
-    if (!str) return 1000;
-    const n = parseInt(str.replace(/[^0-9]/g, ''));
-    return isNaN(n) || n === 0 ? 1000 : n;
-}
-
-function parseInputDate(str) {
-    if (!str) return null;
-    const d = new Date(str);
-    return Number.isNaN(d.getTime()) ? null : d;
-}
-
-function parsePollDate(str) {
-    if (!str) return null;
-    const m = str.trim().match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
-    if (!m) return null;
-    const day = parseInt(m[1], 10);
-    const month = parseInt(m[2], 10) - 1;
-    const year = parseInt(m[3], 10);
-    const d = new Date(year, month, day);
-    if (Number.isNaN(d.getTime())) return null;
-    return d;
-}
-
-function getLatestPollDate(pollRows) {
-    const dates = pollRows.map(r => parsePollDate(r[3])).filter(Boolean);
-    if (!dates.length) return null;
-    return dates.reduce((max, d) => d > max ? d : max, dates[0]);
-}
-
-function getHorizonDaysFromRows(recentPolls, electionDateRaw) {
-    const latestPollDate = getLatestPollDate(recentPolls);
-    const electionDate = parseInputDate(electionDateRaw);
-    if (!latestPollDate || !electionDate) return 0;
-    const msPerDay = 24 * 60 * 60 * 1000;
-    return Math.round((electionDate - latestPollDate) / msPerDay);
-}
-
-function getMomentumHorizonScale(days) {
-    const d = Math.max(0, days);
-    // Keep short horizons conservative while allowing moderate projection extension.
-    return Math.min(1.6, 0.6 + d / 365);
-}
-
-function getReversionHorizonScale(days) {
-    const d = Math.max(0, days);
-    // Mean reversion grows with horizon and saturates around one year.
-    return Math.min(1, d / 365);
-}
-
-function getAutoMomentumPercent(days) {
-    const d = Math.max(0, days);
-    // Short horizons lean on trend more; long horizons taper momentum.
-    const pct = 70 - Math.min(40, Math.round(d / 14));
-    return Math.max(30, Math.min(70, pct));
-}
-
-function getAutoReversionPercent(days) {
-    const d = Math.max(0, days);
-    // Longer horizons rely more on mean reversion.
-    const pct = 10 + Math.min(50, Math.round(d / 7));
-    return Math.max(10, Math.min(60, pct));
-}
-
-function filterPollsByDateWindow(pollRows, windowValue) {
-    const allWithDates = pollRows
-        .map(row => ({ row, date: parsePollDate(row[3]) }))
-        .filter(item => item.date)
-        .sort((a, b) => a.date - b.date);
-
-    const allChronologicalRows = allWithDates.map(item => item.row);
-    if (windowValue === 'all') return allChronologicalRows.length ? allChronologicalRows : pollRows;
-
-    const days = parseInt(windowValue, 10);
-    if (Number.isNaN(days) || days <= 0) return allChronologicalRows.length ? allChronologicalRows : pollRows;
-
-    if (!allWithDates.length) return pollRows;
-
-    const latestDate = allWithDates[allWithDates.length - 1].date;
-    const cutoff = new Date(latestDate);
-    cutoff.setDate(cutoff.getDate() - days);
-
-    const filtered = allWithDates
-        .filter(item => item.date >= cutoff)
-        .map(item => item.row);
-
-    // Keep UX resilient: if no rows match a very narrow window, fall back to most recent poll.
-    return filtered.length ? filtered : [allWithDates[allWithDates.length - 1].row];
-}
-
-function parseCSV(text) {
-    const lines = text.trim().split('\n').map(l => l.replace(/\r$/, ''));
-    const headers = lines[0].split(',').map(h => h.trim().replace(/^"|"$/g, ''));
-    const rows = lines.slice(1).map(line => {
-        const cols = [];
-        let current = '', inQuotes = false;
-        for (const char of line) {
-            if (char === '"') inQuotes = !inQuotes;
-            else if (char === ',' && !inQuotes) { cols.push(current.trim().replace(/^"|"$/g, '')); current = ''; }
-            else current += char;
-        }
-        cols.push(current.trim().replace(/^"|"$/g, ''));
-        return cols;
-    });
-    return { headers, rows };
 }

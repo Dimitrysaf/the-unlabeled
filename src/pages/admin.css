@@ -1,6 +1,4 @@
-/* ── Admin-only styles ────────────────────────────────────────
-   Imported by src/pages/admin.js — only loads on /admin.
-   ─────────────────────────────────────────────────────────── */
+/* src/pages/admin.css — only loads on /admin */
 
 /* ── Admin table utilities ── */
 .table-auto-layout {

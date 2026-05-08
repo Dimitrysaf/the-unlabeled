@@ -1,3 +1,4 @@
+// src/pages/a/[url].js
 import { updateContent } from '../../components/Layout.js';
 import { renderError } from '../../components/ErrorPage.js';
 import { navigate, hasNavigated } from '../../router.js';
@@ -8,17 +9,13 @@ import { setMetaTags, addStructuredData } from '../../lib/seo.js';
 import { sanitizeHtml } from '../../lib/sanitize.js';
 import { renderEngagementSection } from '../../components/Comments.js';
 
-// ─────────────────────────────────────────────
-// MODULE REGISTRY
-// ─────────────────────────────────────────────
+// ── Module registry ───────────────────────────────────────────────────────
 const MODULE_REGISTRY = {
     'electoral-calc': () => import('../electoral-calc.js'),
 };
 
 
-// ─────────────────────────────────────────────
-// SHARED BUILDERS
-// ─────────────────────────────────────────────
+// ── Builders ──────────────────────────────────────────────────────────────
 
 function buildBreadcrumb() {
     return `<a class="govuk-back-link" href="/" id="article-back-link">Back</a>`;
@@ -175,9 +172,7 @@ function buildLoadingShell() {
 }
 
 
-// ─────────────────────────────────────────────
-// ROUTER
-// ─────────────────────────────────────────────
+// ── Entry point ───────────────────────────────────────────────────────────
 
 export async function renderArticlePage(slug) {
     const normalized = slug?.toLowerCase?.().trim();

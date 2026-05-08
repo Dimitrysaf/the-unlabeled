@@ -1,3 +1,4 @@
+// src/pages/about.js
 import { updateContent } from '../components/Layout.js';
 
 export function renderAbout() {

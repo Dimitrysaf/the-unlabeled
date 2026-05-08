@@ -1,7 +1,4 @@
-/* ── Electoral-calc–only styles ──────────────────────────────
-   Imported by src/pages/electoral-calc.js — only loads on
-   the electoral-calculator article page.
-   ─────────────────────────────────────────────────────────── */
+/* src/pages/electoral-calc.css — only loads on the electoral-calculator page */
 
 /* ── Chart wrapper ── */
 .chart-wrapper {

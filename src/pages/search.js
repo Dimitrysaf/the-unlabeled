@@ -1,3 +1,4 @@
+// src/pages/search.js
 import { updateContent } from '../components/Layout.js';
 import { renderGrid } from '../components/Grid.js';
 import { searchArticles } from '../data/articles.js';

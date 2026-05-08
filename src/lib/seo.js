@@ -1,74 +1,58 @@
-/**
- * SEO utilities for dynamic meta tag updates
- */
+// src/lib/seo.js
 
+const DEFAULTS = {
+    title: 'The Unlabeled',
+    description: 'A political blog and data initiative providing analysis, facts, and commentary rooted in evidence that mainstream media often overlooks.',
+    keywords: 'politics, political analysis, data journalism, facts, unlabeled data, evidence-based politics',
+    url: '',
+    image: '/favicon.png',
+    type: 'website',
+    robots: 'index, follow',
+};
+
+/** Updates all relevant <meta> and <link> tags for the current page. */
 export function setMetaTags(meta) {
-    const defaults = {
-        title: 'The Unlabeled',
-        description: 'A political blog and data initiative providing analysis, facts, and commentary rooted in evidence that mainstream media often overlooks.',
-        keywords: 'politics, political analysis, data journalism, facts, unlabeled data, evidence-based politics',
-        url: window.location.href,
-        image: '/favicon.png',
-        type: 'website',
-        robots: 'index, follow'
-    };
+    const config = { ...DEFAULTS, url: window.location.href, ...meta };
 
-    const config = { ...defaults, ...meta };
-
-    // Title
     document.title = config.title;
-
-    // Meta description
-    updateMetaTag('name', 'description', config.description);
-
-    // Keywords
-    updateMetaTag('name', 'keywords', config.keywords);
-
-    // Robots
-    updateMetaTag('name', 'robots', config.robots);
-
-    // Canonical
-    updateLinkTag('canonical', config.url);
-
-    // Open Graph
-    updateMetaTag('property', 'og:title', config.title);
-    updateMetaTag('property', 'og:description', config.description);
-    updateMetaTag('property', 'og:url', config.url);
-    updateMetaTag('property', 'og:image', config.image);
-    updateMetaTag('property', 'og:type', config.type);
-
-    // Twitter
-    updateMetaTag('property', 'twitter:title', config.title);
-    updateMetaTag('property', 'twitter:description', config.description);
-    updateMetaTag('property', 'twitter:url', config.url);
-    updateMetaTag('property', 'twitter:image', config.image);
+    updateMeta('name', 'description', config.description);
+    updateMeta('name', 'keywords', config.keywords);
+    updateMeta('name', 'robots', config.robots);
+    updateLink('canonical', config.url);
+    updateMeta('property', 'og:title', config.title);
+    updateMeta('property', 'og:description', config.description);
+    updateMeta('property', 'og:url', config.url);
+    updateMeta('property', 'og:image', config.image);
+    updateMeta('property', 'og:type', config.type);
+    updateMeta('property', 'twitter:title', config.title);
+    updateMeta('property', 'twitter:description', config.description);
+    updateMeta('property', 'twitter:url', config.url);
+    updateMeta('property', 'twitter:image', config.image);
 }
 
-function updateMetaTag(attr, value, content) {
-    let meta = document.querySelector(`meta[${attr}="${value}"]`);
-    if (!meta) {
-        meta = document.createElement('meta');
-        meta.setAttribute(attr, value);
-        document.head.appendChild(meta);
+function updateMeta(attr, value, content) {
+    let el = document.querySelector(`meta[${attr}="${value}"]`);
+    if (!el) {
+        el = document.createElement('meta');
+        el.setAttribute(attr, value);
+        document.head.appendChild(el);
     }
-    meta.content = content;
+    el.content = content;
 }
 
-function updateLinkTag(rel, href) {
-    let link = document.querySelector(`link[rel="${rel}"]`);
-    if (!link) {
-        link = document.createElement('link');
-        link.rel = rel;
-        document.head.appendChild(link);
+function updateLink(rel, href) {
+    let el = document.querySelector(`link[rel="${rel}"]`);
+    if (!el) {
+        el = document.createElement('link');
+        el.rel = rel;
+        document.head.appendChild(el);
     }
-    link.href = href;
+    el.href = href;
 }
 
+/** Replaces the page's JSON-LD structured data block. */
 export function addStructuredData(data) {
-    // Remove existing structured data
-    const existing = document.querySelector('script[type="application/ld+json"]');
-    if (existing) existing.remove();
-
+    document.querySelector('script[type="application/ld+json"]')?.remove();
     const script = document.createElement('script');
     script.type = 'application/ld+json';
     script.textContent = JSON.stringify(data);

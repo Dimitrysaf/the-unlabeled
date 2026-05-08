@@ -1,3 +1,4 @@
+// src/components/Grid.js
 import { escapeAttr } from '../lib/escape.js';
 
 function buildCard({ title, excerpt, image, tags = [], author, date, link = '#' }, isHero = false) {
@@ -38,11 +39,11 @@ function buildSkeletons(n = 3) {
         </div>`).join('');
 }
 
+/** Renders a grid of article cards or a skeleton loader. */
 export function renderGrid(articles = [], config = {}) {
     const { loading = false } = config;
     if (loading) return `<div class="news-list">${buildSkeletons(3)}</div>`;
     if (!articles.length) return `<div class="empty-state"><p class="govuk-body">No articles found.</p></div>`;
-
     const cards = articles.map((article, i) => buildCard(article, i === 0));
     return `<div class="news-list">${cards.join('')}</div>`;
 }

@@ -1,3 +1,4 @@
+// src/pages/login.js
 import { updateContent } from '../components/Layout.js';
 import { navigate } from '../router.js';
 import { getCurrentUser, signIn } from '../lib/auth.js';

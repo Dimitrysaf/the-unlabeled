@@ -1,7 +1,6 @@
-/* ============================================================
-   THE UNLABELED — GOV.UK Design System base layer
-   Route-specific styles: admin.css, electoral-calc.css
-   ============================================================ */
+/* src/style.css
+   Base layer — GOV.UK Design System tokens, shared components.
+   Route-specific styles live in admin.css and electoral-calc.css. */
 
 /* ── Colour tokens ─────────────────────────────────────────── */
 :root {

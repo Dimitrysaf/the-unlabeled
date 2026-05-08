@@ -1,3 +1,6 @@
+// src/lib/escape.js
+
+/** Escapes HTML entities for safe innerHTML insertion. */
 export function escapeHtml(str) {
     return String(str ?? '')
         .replace(/&/g, '&amp;')
@@ -7,6 +10,7 @@ export function escapeHtml(str) {
         .replace(/'/g, '&#39;');
 }
 
+/** Escapes only the characters unsafe inside HTML attribute values. */
 export function escapeAttr(str) {
     return String(str ?? '')
         .replace(/&/g, '&amp;')

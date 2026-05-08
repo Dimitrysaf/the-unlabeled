@@ -1,12 +1,6 @@
-/* ============================================================
-   comments.css
-   Contains ONLY styles that have no GOV.UK equivalent:
-     – Vote widget  (no govuk pattern exists)
-     – Comment thread indentation / borders
-     – Reply button  (button element with govuk-link appearance)
-     – Character-count right-alignment tweak
-   Everything else in the HTML uses govuk- classes directly.
-   ============================================================ */
+/* src/components/comments.css
+   Non-GOV.UK styles: vote widget, comment thread, reply button, form tweaks.
+   Everything else in the HTML uses govuk- classes directly. */
 
 
 /* ── Vote Widget ──────────────────────────────────────────────────────────────

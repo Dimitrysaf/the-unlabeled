@@ -1,3 +1,4 @@
+// src/components/ErrorPage.js
 import { updateContent } from './Layout.js';
 
 const ERROR_MESSAGES = {
@@ -6,9 +7,9 @@ const ERROR_MESSAGES = {
     '505': 'The HTTP version is not supported.',
 };
 
+/** Renders an error page into the main content area. */
 export function renderError(code = 'Unknown') {
     const message = ERROR_MESSAGES[code] || 'An unknown error occurred.';
-
     updateContent(`
         <div class="govuk-!-padding-top-6">
             <h1 class="govuk-heading-l">

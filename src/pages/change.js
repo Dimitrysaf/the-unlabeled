@@ -1,3 +1,4 @@
+// src/pages/change.js
 import { updateContent } from '../components/Layout.js';
 import { renderError } from '../components/ErrorPage.js';
 import { navigate } from '../router.js';
@@ -11,9 +12,7 @@ import {
 } from '../lib/validation.js';
 import { escapeHtml, escapeAttr } from '../lib/escape.js';
 
-// ─────────────────────────────────────────────
-// FIELD CONFIG
-// ─────────────────────────────────────────────
+// ── Field config ──────────────────────────────────────────────────────────
 
 const FIELD_CONFIG = {
     'display-name': {
@@ -61,9 +60,7 @@ const FIELD_CONFIG = {
     },
 };
 
-// ─────────────────────────────────────────────
-// ENTRY POINT
-// ─────────────────────────────────────────────
+// ── Entry point ───────────────────────────────────────────────────────────
 
 export async function renderChange(field) {
     const config = FIELD_CONFIG[field];
@@ -81,9 +78,7 @@ export async function renderChange(field) {
     renderChangeForm(config, config.getCurrentValue(user));
 }
 
-// ─────────────────────────────────────────────
-// FORM PAGE
-// ─────────────────────────────────────────────
+// ── Form page ─────────────────────────────────────────────────────────────
 
 function renderChangeForm(config, currentValue) {
     updateContent(`
@@ -145,9 +140,7 @@ function renderChangeForm(config, currentValue) {
     initChangeForm(config);
 }
 
-// ─────────────────────────────────────────────
-// FORM LOGIC
-// ─────────────────────────────────────────────
+// ── Form logic ────────────────────────────────────────────────────────────
 
 function initChangeForm(config) {
     const form = document.getElementById('change-form');
@@ -170,14 +163,12 @@ function initChangeForm(config) {
     }
 
     function showError(message) {
-        // Inline field error
         group.classList.add('govuk-form-group--error');
         input.classList.add('govuk-input--error');
         input.setAttribute('aria-invalid', 'true');
         errorText.textContent = message;
         errorMsg.hidden = false;
 
-        // Error summary
         errorList.innerHTML = `<li><a href="#change-field">${escapeHtml(message)}</a></li>`;
         errorSummary.hidden = false;
         errorSummary.setAttribute('tabindex', '-1');
@@ -213,9 +204,7 @@ function initChangeForm(config) {
     });
 }
 
-// ─────────────────────────────────────────────
-// EMAIL SENT PAGE
-// ─────────────────────────────────────────────
+// ── Email sent page ───────────────────────────────────────────────────────
 
 function renderEmailSentPage(email) {
     updateContent(`
@@ -242,8 +231,3 @@ function renderEmailSentPage(email) {
         </div>
     `);
 }
-
-// ─────────────────────────────────────────────
-// HELPERS
-// ─────────────────────────────────────────────
-

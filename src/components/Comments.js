@@ -1,37 +1,23 @@
-/**
- * Comments & vote-widget component.
- *
- * Entry point: renderEngagementSection(articleId, containerEl)
- *
- * Layout order: vote widget → "Comments (N)" → submit form → comment list.
- *
- * Features:
- *  - Post top-level comments and inline replies
- *  - Edit your own comments inline
- *  - Delete your own comments (with GOV.UK inline warning confirmation)
- *  - Reply form is structurally identical to the main form
- *  - All interactions wired via event delegation on the list element
- */
+// src/components/Comments.js
+//
+// Entry point: renderEngagementSection(articleId, containerEl)
+//
+// Layout order: vote widget → "Comments (N)" → submit form → comment list.
+// Features: post, edit, delete (with inline confirmation), and threaded replies.
+// All list interactions use event delegation on a single listener.
 
 import './comments.css';
 import { navigate } from '../router.js';
 import { getCurrentUser } from '../lib/auth.js';
 import { escapeHtml, escapeAttr } from '../lib/escape.js';
 import {
-    getComments,
-    postComment,
-    editComment,
-    deleteComment,
-    getVoteScore,
-    getUserVote,
-    castVote,
+    getComments, postComment, editComment, deleteComment,
+    getVoteScore, getUserVote, castVote,
 } from '../data/comments.js';
 
 const MAX_CHARS = 500;
 
-// ─────────────────────────────────────────────
-// HELPERS
-// ─────────────────────────────────────────────
+// ── Helpers ──────────────────────────────────────────────────────────────────
 
 function formatDateTime(isoString) {
     const d = new Date(isoString);
@@ -40,6 +26,7 @@ function formatDateTime(isoString) {
     return `${time} on ${date}`;
 }
 
+/** Converts a flat comment array into a tree of { ...comment, replies: [] } nodes. */
 function buildCommentTree(comments) {
     const map = {};
     const roots = [];
@@ -61,23 +48,15 @@ function getDisplayName(user) {
     );
 }
 
-// ─────────────────────────────────────────────
-// HTML BUILDERS
-// ─────────────────────────────────────────────
+// ── HTML builders ─────────────────────────────────────────────────────────────
 
-/**
- * A single comment node.
- *
- * Own comments gain Edit · Delete action links.
- * raw content stored in data-content so the edit form can pre-fill without
- * having to un-escape HTML entities from the DOM.
- */
+/** A single comment node including nested replies and action buttons for the owner. */
 function buildComment(comment, depth, currentUserId) {
-    const id = escapeHtml(comment.id);
-    const name = escapeHtml(comment.display_name || 'Anonymous');
+    const id      = escapeHtml(comment.id);
+    const name    = escapeHtml(comment.display_name || 'Anonymous');
     const timeStr = escapeHtml(formatDateTime(comment.created_at));
     const content = escapeHtml(comment.content || '');
-    const isOwn = currentUserId && comment.user_id === currentUserId;
+    const isOwn   = currentUserId && comment.user_id === currentUserId;
 
     const ownActions = isOwn ? `
         <span class="comment__action-sep" aria-hidden="true">·</span>
@@ -112,15 +91,9 @@ function buildComment(comment, depth, currentUserId) {
                 ${ownActions}
             </div>
 
-            <!-- Inline edit form (injected on demand) -->
             <div class="comment__edit-slot govuk-!-margin-top-3" hidden></div>
-
-            <!-- Delete confirmation (injected on demand) -->
             <div class="comment__delete-confirm govuk-!-margin-top-3" hidden></div>
-
-            <!-- Inline reply form (injected on demand) -->
-            <div class="comment__reply-slot govuk-!-margin-top-3"
-                 data-slot="${id}" hidden></div>
+            <div class="comment__reply-slot govuk-!-margin-top-3" data-slot="${id}" hidden></div>
 
             ${repliesHtml}
         </div>`;
@@ -128,45 +101,35 @@ function buildComment(comment, depth, currentUserId) {
 
 /**
  * The comment / reply submission form.
- *
- * parentId = null  →  main form   →  "Commenting as: <name>"
- * parentId set     →  reply form  →  "Replying to <parentAuthor> as <name>"
- *
- * Structure follows the GOV.UK form pattern exactly:
- * govuk-form-group > govuk-label (visually hidden) > govuk-textarea
- * govuk-error-message, govuk-hint counter, govuk-button-group
+ * parentId = null  →  main form (shown above the list)
+ * parentId set     →  reply form (injected inline)
  */
 function buildCommentForm(user, { parentId = null, parentAuthor = '' } = {}) {
-    const name = escapeHtml(getDisplayName(user));
+    const name    = escapeHtml(getDisplayName(user));
     const isReply = parentId !== null;
-    const pid = isReply ? escapeHtml(parentId) : '';
-    const sfx = pid ? `-${pid}` : '';
+    const pid     = isReply ? escapeHtml(parentId) : '';
+    const sfx     = pid ? `-${pid}` : '';
     const fieldId = `comment-text${sfx}`;
     const groupId = `comment-group${sfx}`;
     const errorId = `comment-error${sfx}`;
-    const sumId = `comment-summary${sfx}`;
+    const sumId   = `comment-summary${sfx}`;
     const sumList = `comment-summary-list${sfx}`;
 
     const byline = isReply
-        ? `Replying to <strong>${escapeHtml(parentAuthor)}</strong>
-           as <strong>${name}</strong>`
+        ? `Replying to <strong>${escapeHtml(parentAuthor)}</strong> as <strong>${name}</strong>`
         : `Commenting as: <strong>${name}</strong>`;
 
     return `
-        <form class="comment-form" novalidate
-              data-parent-id="${pid}">
+        <form class="comment-form" novalidate data-parent-id="${pid}">
 
-            <p class="govuk-hint comment-form__byline govuk-!-margin-bottom-3">
-                ${byline}
-            </p>
+            <p class="govuk-hint comment-form__byline govuk-!-margin-bottom-3">${byline}</p>
 
             <div class="govuk-error-summary" data-module="govuk-error-summary"
                  id="${sumId}" hidden role="alert" tabindex="-1">
                 <div>
                     <h2 class="govuk-error-summary__title">There is a problem</h2>
                     <div class="govuk-error-summary__body">
-                        <ul class="govuk-list govuk-error-summary__list"
-                            id="${sumList}"></ul>
+                        <ul class="govuk-list govuk-error-summary__list" id="${sumList}"></ul>
                     </div>
                 </div>
             </div>
@@ -194,38 +157,25 @@ function buildCommentForm(user, { parentId = null, parentAuthor = '' } = {}) {
             </div>
 
             <div class="govuk-button-group govuk-!-margin-bottom-0">
-                <button class="govuk-button govuk-button--secondary govuk-!-margin-bottom-0"
-                        type="submit">
+                <button class="govuk-button govuk-button--secondary govuk-!-margin-bottom-0" type="submit">
                     ${isReply ? 'Post reply' : 'Send'}
                 </button>
-                ${isReply
-            ? `<a class="govuk-link comment-form__cancel" href="#">Cancel</a>`
-            : ''}
+                ${isReply ? `<a class="govuk-link comment-form__cancel" href="#">Cancel</a>` : ''}
             </div>
 
         </form>`;
 }
 
-/**
- * Inline edit form injected into .comment__edit-slot.
- * Pre-fills the textarea with the comment's existing content.
- */
+/** Inline edit form pre-filled with the comment's current content. */
 function buildEditForm(commentId, existingContent) {
-    const id = escapeHtml(commentId);
-    const content = escapeAttr(existingContent);
+    const id  = escapeHtml(commentId);
     const len = existingContent.length;
 
     return `
         <div class="govuk-form-group" id="edit-group-${id}">
-            <label class="govuk-visually-hidden" for="edit-text-${id}">
-                Edit your comment
-            </label>
-            <textarea
-                class="govuk-textarea"
-                id="edit-text-${id}"
-                rows="4"
-                maxlength="${MAX_CHARS}"
-            >${escapeHtml(existingContent)}</textarea>
+            <label class="govuk-visually-hidden" for="edit-text-${id}">Edit your comment</label>
+            <textarea class="govuk-textarea" id="edit-text-${id}" rows="4"
+                      maxlength="${MAX_CHARS}">${escapeHtml(existingContent)}</textarea>
             <p class="govuk-error-message" id="edit-error-${id}" hidden>
                 <span class="govuk-visually-hidden">Error:</span>
                 <span class="comment-form__error-text"></span>
@@ -236,22 +186,13 @@ function buildEditForm(commentId, existingContent) {
         </div>
         <div class="govuk-button-group govuk-!-margin-bottom-0">
             <button type="button"
-                    class="govuk-button govuk-button--secondary govuk-!-margin-bottom-0
-                           comment__save-btn"
-                    data-comment-id="${id}">
-                Save changes
-            </button>
-            <button type="button"
-                    class="comment__reply-btn comment__cancel-edit-btn">
-                Cancel
-            </button>
+                    class="govuk-button govuk-button--secondary govuk-!-margin-bottom-0 comment__save-btn"
+                    data-comment-id="${id}">Save changes</button>
+            <button type="button" class="comment__reply-btn comment__cancel-edit-btn">Cancel</button>
         </div>`;
 }
 
-/**
- * Inline delete confirmation injected into .comment__delete-confirm.
- * Uses the GOV.UK warning-text component for the destructive action prompt.
- */
+/** GOV.UK warning confirmation injected before a destructive delete. */
 function buildDeleteConfirm() {
     return `
         <div class="govuk-warning-text govuk-!-margin-bottom-2">
@@ -263,79 +204,62 @@ function buildDeleteConfirm() {
         </div>
         <div class="govuk-button-group govuk-!-margin-bottom-0">
             <button type="button"
-                    class="govuk-button govuk-button--warning govuk-!-margin-bottom-0
-                           comment__confirm-delete-btn">
+                    class="govuk-button govuk-button--warning govuk-!-margin-bottom-0 comment__confirm-delete-btn">
                 Delete comment
             </button>
-            <button type="button"
-                    class="comment__reply-btn comment__cancel-delete-btn">
-                Cancel
-            </button>
+            <button type="button" class="comment__reply-btn comment__cancel-delete-btn">Cancel</button>
         </div>`;
 }
 
-/** Vote widget. **/
+/** Vote widget with optimistic up/down toggling. */
 function buildVoteWidget(score, userVote) {
-    const upActive = userVote === 1;
+    const upActive   = userVote === 1;
     const downActive = userVote === -1;
     const scoreClass = score > 0 ? ' vote-widget__score--positive'
-        : score < 0 ? ' vote-widget__score--negative'
-            : '';
+        : score < 0 ? ' vote-widget__score--negative' : '';
+
     return `
         <div class="vote-widget" role="group" aria-label="Vote on this article">
-            <button type="button"
-                    class="vote-widget__btn vote-widget__btn--up"
-                    aria-label="Upvote this article"
-                    aria-pressed="${upActive}">
-                <svg width="11" height="10" viewBox="0 0 11 10" fill="none"
-                     aria-hidden="true" focusable="false">
+            <button type="button" class="vote-widget__btn vote-widget__btn--up"
+                    aria-label="Upvote this article" aria-pressed="${upActive}">
+                <svg width="11" height="10" viewBox="0 0 11 10" fill="none" aria-hidden="true" focusable="false">
                     <path d="M5.5 0L11 10H0L5.5 0Z" fill="currentColor"/>
                 </svg>
             </button>
             <span class="vote-widget__score${scoreClass}"
-                  aria-live="polite" aria-label="Current score: ${score}">
-                ${score}
-            </span>
-            <button type="button"
-                    class="vote-widget__btn vote-widget__btn--down"
-                    aria-label="Downvote this article"
-                    aria-pressed="${downActive}">
-                <svg width="11" height="10" viewBox="0 0 11 10" fill="none"
-                     aria-hidden="true" focusable="false">
+                  aria-live="polite" aria-label="Current score: ${score}">${score}</span>
+            <button type="button" class="vote-widget__btn vote-widget__btn--down"
+                    aria-label="Downvote this article" aria-pressed="${downActive}">
+                <svg width="11" height="10" viewBox="0 0 11 10" fill="none" aria-hidden="true" focusable="false">
                     <path d="M5.5 10L0 0H11L5.5 10Z" fill="currentColor"/>
                 </svg>
             </button>
         </div>`;
 }
 
-// ─────────────────────────────────────────────
-// VOTE WIDGET
-// ─────────────────────────────────────────────
+// ── Vote widget mount ─────────────────────────────────────────────────────────
 
 function mountVoteWidget(container, { articleId, initialScore, initialUserVote }) {
-    let score = initialScore;
+    let score    = initialScore;
     let userVote = initialUserVote;
 
-    const rerender = () => {
-        container.innerHTML = buildVoteWidget(score, userVote);
-        bindButtons();
-    };
+    const rerender = () => { container.innerHTML = buildVoteWidget(score, userVote); bindButtons(); };
 
     const handleVote = async (targetVote) => {
         const user = await getCurrentUser().catch(() => null);
         if (!user) { navigate('/login'); return; }
 
         const newVote = userVote === targetVote ? null : targetVote;
-        const delta = (newVote ?? 0) - (userVote ?? 0);
+        const delta   = (newVote ?? 0) - (userVote ?? 0);
 
-        score += delta;   // optimistic
+        score += delta;
         userVote = newVote;
         rerender();
 
         try {
             await castVote(articleId, newVote);
         } catch (err) {
-            score -= delta; // revert
+            score -= delta;
             userVote = targetVote;
             rerender();
             console.error('[votes]', err);
@@ -343,36 +267,31 @@ function mountVoteWidget(container, { articleId, initialScore, initialUserVote }
     };
 
     const bindButtons = () => {
-        container.querySelector('.vote-widget__btn--up')
-            ?.addEventListener('click', () => handleVote(1));
-        container.querySelector('.vote-widget__btn--down')
-            ?.addEventListener('click', () => handleVote(-1));
+        container.querySelector('.vote-widget__btn--up')?.addEventListener('click', () => handleVote(1));
+        container.querySelector('.vote-widget__btn--down')?.addEventListener('click', () => handleVote(-1));
     };
 
     rerender();
 }
 
-// ─────────────────────────────────────────────
-// COMMENT FORM MOUNT
-// ─────────────────────────────────────────────
+// ── Comment form mount ────────────────────────────────────────────────────────
 
 /**
- * Wire up character counting, validation and submission for any .comment-form.
+ * Wires character counting, validation, and submission for any .comment-form.
  * Works for both the main form and injected reply forms.
  */
 function mountCommentForm(formEl, { articleId, parentId, displayName, onSuccess }) {
     if (!formEl) return;
-
-    const pid = parentId || null;
-    const sfx = pid ? `-${pid}` : '';
+    const pid      = parentId || null;
+    const sfx      = pid ? `-${pid}` : '';
     const textarea = formEl.querySelector('textarea');
-    const group = formEl.querySelector(`#comment-group${sfx}`);
-    const errorEl = formEl.querySelector(`#comment-error${sfx}`);
+    const group    = formEl.querySelector(`#comment-group${sfx}`);
+    const errorEl  = formEl.querySelector(`#comment-error${sfx}`);
     const errorText = formEl.querySelector('.comment-form__error-text');
     const counterEl = formEl.querySelector('.comment-form__counter-current');
     const counterBox = formEl.querySelector('.comment-form__counter');
-    const summary = formEl.querySelector(`#comment-summary${sfx}`);
-    const sumList = formEl.querySelector(`#comment-summary-list${sfx}`);
+    const summary  = formEl.querySelector(`#comment-summary${sfx}`);
+    const sumList  = formEl.querySelector(`#comment-summary-list${sfx}`);
     const submitBtn = formEl.querySelector('[type="submit"]');
 
     textarea?.addEventListener('input', () => {
@@ -395,22 +314,19 @@ function mountCommentForm(formEl, { articleId, parentId, displayName, onSuccess 
         textarea?.classList.add('govuk-textarea--error');
         if (errorText) errorText.textContent = msg;
         if (errorEl) errorEl.hidden = false;
-        if (sumList) sumList.innerHTML =
-            `<li><a href="#comment-text${sfx}">${escapeHtml(msg)}</a></li>`;
+        if (sumList) sumList.innerHTML = `<li><a href="#comment-text${sfx}">${escapeHtml(msg)}</a></li>`;
         if (summary) { summary.hidden = false; summary.focus(); }
     };
 
     formEl.addEventListener('submit', async e => {
         e.preventDefault();
         clearError();
-
         const content = textarea?.value?.trim() ?? '';
         if (!content) { showError('Enter a comment before sending.'); textarea?.focus(); return; }
         if (content.length > MAX_CHARS) { showError(`Comments must be ${MAX_CHARS} characters or fewer.`); return; }
 
         submitBtn.disabled = true;
-        submitBtn.textContent = 'Sending\u2026';
-
+        submitBtn.textContent = 'Sending…';
         try {
             await postComment({ articleId, content, parentId: pid, displayName });
             onSuccess();
@@ -423,38 +339,25 @@ function mountCommentForm(formEl, { articleId, parentId, displayName, onSuccess 
     });
 }
 
-// ─────────────────────────────────────────────
-// LIST INTERACTIONS — event delegation
-// ─────────────────────────────────────────────
+// ── List interactions (event delegation) ─────────────────────────────────────
 
-/**
- * Single delegated listener on the list element covers:
- *   Reply · Edit · Delete · Save · Cancel (edit) · Confirm delete · Cancel (delete)
- *   Reply form cancel · Character counter updates in edit/reply textareas
- */
 function initListInteractions(listEl, { user, articleId, displayName, onSuccess }) {
-
-    // ── Character counter for any textarea inside the list ──
     listEl.addEventListener('input', e => {
         if (e.target.tagName !== 'TEXTAREA') return;
-        const form = e.target.closest('.comment-form, .comment__edit-slot');
+        const form    = e.target.closest('.comment-form, .comment__edit-slot');
         const counter = form?.querySelector('.comment-form__counter-current');
-        const box = form?.querySelector('.comment-form__counter');
-        const len = e.target.value.length;
+        const box     = form?.querySelector('.comment-form__counter');
+        const len     = e.target.value.length;
         if (counter) counter.textContent = len;
         box?.classList.toggle('comment-form__counter--over', len >= MAX_CHARS);
         e.target.classList.toggle('govuk-textarea--error', len > MAX_CHARS);
     });
 
-    // ── Reply form submit (delegated) ──
+    // Safety net — reply form submit is handled by mountCommentForm
     listEl.addEventListener('submit', e => {
-        if (!e.target.matches('.comment-form')) return;
-        e.preventDefault();
-        // mountCommentForm already attached the submit handler — this is just
-        // a safety net to prevent native submission if somehow it fires.
+        if (e.target.matches('.comment-form')) e.preventDefault();
     });
 
-    // ── Button clicks (delegated) ──
     listEl.addEventListener('click', e => {
         const btn = e.target.closest('button, a');
         if (!btn) return;
@@ -469,23 +372,17 @@ function initListInteractions(listEl, { user, articleId, displayName, onSuccess 
 
             if (!user) { navigate('/login'); return; }
 
-            const parentId = btn.dataset.parentId;
+            const parentId     = btn.dataset.parentId;
             const parentAuthor = btn.dataset.parentAuthor || '';
             const slot = listEl.querySelector(`.comment__reply-slot[data-slot="${parentId}"]`);
             if (!slot) return;
 
             if (!slot.hidden) { slot.hidden = true; slot.innerHTML = ''; return; }
 
-            // Close all other reply slots first
-            listEl.querySelectorAll('.comment__reply-slot').forEach(s => {
-                s.hidden = true; s.innerHTML = '';
-            });
-
+            listEl.querySelectorAll('.comment__reply-slot').forEach(s => { s.hidden = true; s.innerHTML = ''; });
             slot.hidden = false;
             slot.innerHTML = buildCommentForm(user, { parentId, parentAuthor });
-            mountCommentForm(slot.querySelector('.comment-form'), {
-                articleId, parentId, displayName, onSuccess,
-            });
+            mountCommentForm(slot.querySelector('.comment-form'), { articleId, parentId, displayName, onSuccess });
             slot.querySelector('textarea')?.focus();
             return;
         }
@@ -500,22 +397,16 @@ function initListInteractions(listEl, { user, articleId, displayName, onSuccess 
 
         // ── Edit ──
         if (btn.classList.contains('comment__edit-btn')) {
-            const commentId = btn.dataset.commentId;
-            const commentEl = listEl.querySelector(`#comment-${commentId}`);
+            const commentEl  = listEl.querySelector(`#comment-${btn.dataset.commentId}`);
             if (!commentEl) return;
-
-            const contentEl = commentEl.querySelector('.comment__content');
-            const actionsEl = commentEl.querySelector('.comment__actions');
-            const editSlot = commentEl.querySelector('.comment__edit-slot');
-            const rawContent = commentEl.dataset.content || '';
-
-            // Close any open reply slot for this comment
-            const replySlot = commentEl.querySelector('.comment__reply-slot');
+            const contentEl  = commentEl.querySelector('.comment__content');
+            const actionsEl  = commentEl.querySelector('.comment__actions');
+            const editSlot   = commentEl.querySelector('.comment__edit-slot');
+            const replySlot  = commentEl.querySelector('.comment__reply-slot');
             if (replySlot) { replySlot.hidden = true; replySlot.innerHTML = ''; }
-
             contentEl.hidden = true;
             actionsEl.hidden = true;
-            editSlot.innerHTML = buildEditForm(commentId, rawContent);
+            editSlot.innerHTML = buildEditForm(btn.dataset.commentId, commentEl.dataset.content || '');
             editSlot.hidden = false;
             editSlot.querySelector('textarea')?.focus();
             return;
@@ -535,42 +426,30 @@ function initListInteractions(listEl, { user, articleId, displayName, onSuccess 
 
         // ── Save edit ──
         if (btn.classList.contains('comment__save-btn')) {
-            const commentId = btn.dataset.commentId;
-            const editSlot = btn.closest('.comment__edit-slot');
-            const textarea = editSlot?.querySelector('textarea');
-            const errorEl = editSlot?.querySelector('.govuk-error-message');
+            const editSlot  = btn.closest('.comment__edit-slot');
+            const textarea  = editSlot?.querySelector('textarea');
+            const errorEl   = editSlot?.querySelector('.govuk-error-message');
             const errorText = editSlot?.querySelector('.comment-form__error-text');
-            const group = editSlot?.querySelector('.govuk-form-group');
+            const group     = editSlot?.querySelector('.govuk-form-group');
+            const content   = textarea?.value?.trim() ?? '';
 
-            const content = textarea?.value?.trim() ?? '';
-
-            if (!content) {
+            const showErr = msg => {
                 group?.classList.add('govuk-form-group--error');
                 textarea?.classList.add('govuk-textarea--error');
-                if (errorText) errorText.textContent = 'Enter some text before saving.';
+                if (errorText) errorText.textContent = msg;
                 if (errorEl) errorEl.hidden = false;
-                textarea?.focus();
-                return;
-            }
-            if (content.length > MAX_CHARS) {
-                group?.classList.add('govuk-form-group--error');
-                textarea?.classList.add('govuk-textarea--error');
-                if (errorText) errorText.textContent = `Comments must be ${MAX_CHARS} characters or fewer.`;
-                if (errorEl) errorEl.hidden = false;
-                return;
-            }
+            };
+
+            if (!content)                  { showErr('Enter some text before saving.'); textarea?.focus(); return; }
+            if (content.length > MAX_CHARS) { showErr(`Comments must be ${MAX_CHARS} characters or fewer.`); return; }
 
             btn.disabled = true;
-            btn.textContent = 'Saving\u2026';
-
-            editComment(commentId, content)
+            btn.textContent = 'Saving…';
+            editComment(btn.dataset.commentId, content)
                 .then(() => onSuccess())
                 .catch(err => {
                     console.error('[comments] edit failed:', err);
-                    group?.classList.add('govuk-form-group--error');
-                    textarea?.classList.add('govuk-textarea--error');
-                    if (errorText) errorText.textContent = 'Could not save. Please try again.';
-                    if (errorEl) errorEl.hidden = false;
+                    showErr('Could not save. Please try again.');
                     btn.disabled = false;
                     btn.textContent = 'Save changes';
                 });
@@ -579,13 +458,10 @@ function initListInteractions(listEl, { user, articleId, displayName, onSuccess 
 
         // ── Delete (show confirmation) ──
         if (btn.classList.contains('comment__delete-btn')) {
-            const commentId = btn.dataset.commentId;
-            const commentEl = listEl.querySelector(`#comment-${commentId}`);
+            const commentEl = listEl.querySelector(`#comment-${btn.dataset.commentId}`);
             if (!commentEl) return;
-
-            const actionsEl = commentEl.querySelector('.comment__actions');
-            const confirmEl = commentEl.querySelector('.comment__delete-confirm');
-
+            const actionsEl  = commentEl.querySelector('.comment__actions');
+            const confirmEl  = commentEl.querySelector('.comment__delete-confirm');
             actionsEl.hidden = true;
             confirmEl.innerHTML = buildDeleteConfirm();
             confirmEl.hidden = false;
@@ -597,10 +473,8 @@ function initListInteractions(listEl, { user, articleId, displayName, onSuccess 
         if (btn.classList.contains('comment__confirm-delete-btn')) {
             const commentEl = btn.closest('.comment');
             if (!commentEl) return;
-
             btn.disabled = true;
-            btn.textContent = 'Deleting\u2026';
-
+            btn.textContent = 'Deleting…';
             deleteComment(commentEl.dataset.commentId)
                 .then(() => onSuccess())
                 .catch(err => {
@@ -619,23 +493,17 @@ function initListInteractions(listEl, { user, articleId, displayName, onSuccess 
             const confirmEl = commentEl.querySelector('.comment__delete-confirm');
             confirmEl.hidden = true;
             confirmEl.innerHTML = '';
-            return;
         }
     });
 }
 
-// ─────────────────────────────────────────────
-// DATA LOADERS
-// ─────────────────────────────────────────────
+// ── Data loaders ──────────────────────────────────────────────────────────────
 
 async function loadVotes(articleId) {
     const container = document.getElementById('vote-container');
     if (!container) return;
     try {
-        const [score, userVote] = await Promise.all([
-            getVoteScore(articleId),
-            getUserVote(articleId),
-        ]);
+        const [score, userVote] = await Promise.all([getVoteScore(articleId), getUserVote(articleId)]);
         mountVoteWidget(container, { articleId, initialScore: score, initialUserVote: userVote });
     } catch (err) {
         console.error('[votes] load failed:', err);
@@ -645,13 +513,11 @@ async function loadVotes(articleId) {
 
 async function loadComments(articleId) {
     const formWrap = document.getElementById('comment-form-container');
-    const listEl = document.getElementById('comments-list');
-    const heading = document.getElementById('comments-heading');
+    const listEl   = document.getElementById('comments-list');
+    const heading  = document.getElementById('comments-heading');
     if (!listEl) return;
 
-    let user = null;
-    let comments = [];
-
+    let user = null, comments = [];
     try {
         [user, comments] = await Promise.all([
             getCurrentUser().catch(() => null),
@@ -659,78 +525,53 @@ async function loadComments(articleId) {
         ]);
     } catch (err) {
         console.error('[comments] load failed:', err);
-        listEl.innerHTML =
-            `<p class="govuk-body-s govuk-!-colour-secondary">Could not load comments.</p>`;
+        listEl.innerHTML = `<p class="govuk-body-s govuk-!-colour-secondary">Could not load comments.</p>`;
         return;
     }
 
     if (heading) heading.textContent = `Comments (${comments.length})`;
 
     const currentUserId = user?.id ?? null;
-    const displayName = user ? getDisplayName(user) : '';
-    const onSuccess = () => loadComments(articleId);
+    const displayName   = user ? getDisplayName(user) : '';
+    const onSuccess     = () => loadComments(articleId);
 
-    // ── 1. Comment form ABOVE the list ──
     if (formWrap) {
         if (user) {
             formWrap.innerHTML = buildCommentForm(user);
-            mountCommentForm(formWrap.querySelector('.comment-form'), {
-                articleId, parentId: null, displayName, onSuccess,
-            });
+            mountCommentForm(formWrap.querySelector('.comment-form'), { articleId, parentId: null, displayName, onSuccess });
         } else {
             formWrap.innerHTML = `
                 <div class="govuk-inset-text govuk-!-margin-bottom-6">
                     <p class="govuk-body govuk-!-margin-bottom-0">
-                        <a class="govuk-link" href="/login">Sign in</a>
-                        to leave a comment.
+                        <a class="govuk-link" href="/login">Sign in</a> to leave a comment.
                     </p>
                 </div>`;
         }
     }
 
-    // ── 2. Comment list ──
     const tree = buildCommentTree(comments);
     if (tree.length) {
-        listEl.innerHTML =
-            `<div class="comments-list">
-                ${tree.map(c => buildComment(c, 0, currentUserId)).join('')}
-             </div>`;
+        listEl.innerHTML = `<div class="comments-list">${tree.map(c => buildComment(c, 0, currentUserId)).join('')}</div>`;
     } else {
-        listEl.innerHTML =
-            `<p class="govuk-body govuk-!-colour-secondary govuk-!-margin-bottom-0">
-                No comments yet. Be the first to comment.
-             </p>`;
+        listEl.innerHTML = `<p class="govuk-body govuk-!-colour-secondary govuk-!-margin-bottom-0">No comments yet. Be the first to comment.</p>`;
     }
 
-    // ── 3. Wire all interactions via delegation ──
-    if (user) {
-        initListInteractions(listEl, { user, articleId, displayName, onSuccess });
-    }
+    if (user) initListInteractions(listEl, { user, articleId, displayName, onSuccess });
 }
 
-// ─────────────────────────────────────────────
-// PUBLIC API
-// ─────────────────────────────────────────────
+// ── Public API ────────────────────────────────────────────────────────────────
 
 /**
- * Render the engagement section (votes + comments) into containerEl.
+ * Renders the engagement section (votes + comments) into containerEl.
  * Skeleton placeholders appear immediately; data loads asynchronously.
- *
- * @param {string}      articleId
- * @param {HTMLElement} containerEl  must already be in the DOM
  */
 export async function renderEngagementSection(articleId, containerEl) {
     containerEl.innerHTML = `
         <hr class="govuk-section-break govuk-section-break--l govuk-section-break--visible">
-
         <h2 class="govuk-heading-m" id="comments-heading">Comments</h2>
-
-        <!-- Submit form (rendered above list) -->
         <div id="comment-form-container" class="govuk-!-margin-bottom-6">
-            <p class="govuk-body govuk-hint">Loading\u2026</p>
+            <p class="govuk-body govuk-hint">Loading…</p>
         </div>
-
-        <!-- Comment list -->
         <div id="comments-list"></div>`;
 
     loadVotes(articleId);

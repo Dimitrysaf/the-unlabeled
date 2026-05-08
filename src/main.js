@@ -1,3 +1,4 @@
+// src/main.js
 import { inject as injectAnalytics } from '@vercel/analytics';
 import { injectSpeedInsights } from '@vercel/speed-insights';
 import { initLayout, updateNavigation } from './components/Layout.js';
@@ -39,12 +40,6 @@ function redirectAuthHashIfNeeded() {
         return true;
     }
     return false;
-}
-
-function setDocumentTitle(title = 'The Unlabeled') {
-    if (typeof document !== 'undefined') {
-        document.title = title;
-    }
 }
 
 async function renderPage(fullPath) {

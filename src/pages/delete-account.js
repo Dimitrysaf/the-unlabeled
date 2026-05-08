@@ -1,3 +1,4 @@
+// src/pages/delete-account.js
 import { updateContent } from '../components/Layout.js';
 import { renderError } from '../components/ErrorPage.js';
 import { navigate } from '../router.js';
