@@ -41,7 +41,7 @@ export async function searchArticles(query) {
         .from('articles')
         .select('*')
         .eq('is_draft', false)
-        .or(`title.ilike.${pattern},subtitle.ilike.${pattern},excerpt.ilike.${pattern},tags::text.ilike.${pattern}`)
+        .or(`title.ilike.${pattern},subtitle.ilike.${pattern},excerpt.ilike.${pattern}`)
         .order('published_at', { ascending: false });
     if (error) throw error;
     return (data ?? []).map(normalize);
