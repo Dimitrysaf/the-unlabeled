@@ -1,3 +1,4 @@
+// src/router.js
 let _renderPage = null;
 let _onNavigate = null;
 let _hasNavigated = false;

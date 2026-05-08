@@ -1,7 +1,9 @@
+// src/lib/sanitize.js
+
 /**
- * Strip executable content from an HTML string using the browser's own parser.
- * Removes <script> and <style> elements and any on* / javascript: attributes.
- * Safe to call on admin-entered html_content before injecting into the DOM.
+ * Strips executable content from an HTML string using the browser's own DOM parser.
+ * Removes <script> and <style> tags and any on* / javascript: attributes.
+ * Safe to call on admin-provided html_content before DOM injection.
  */
 export function sanitizeHtml(html) {
     const doc = new DOMParser().parseFromString(html, 'text/html');

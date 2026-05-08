@@ -1,103 +1,65 @@
+// src/lib/validation.js
+
+/** Returns an error message string, or '' if valid. */
 export function validateEmail(email) {
-    if (!email || !email.trim()) {
-        return 'Enter your email address';
-    }
-
-    const normalized = email.trim();
-    const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailPattern.test(normalized)) {
-        return 'Enter a valid email address';
-    }
-
+    if (!email?.trim()) return 'Enter your email address';
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) return 'Enter a valid email address';
     return '';
 }
 
+/** Returns an error message string, or '' if valid. */
 export function validateDisplayName(name) {
-    if (!name || !name.trim()) {
-        return 'Enter a display name';
-    }
-
-    const trimmed = name.trim();
-    const namePattern = /^[A-Za-z0-9][A-Za-z0-9 _.-]{1,49}$/;
-    if (!namePattern.test(trimmed)) {
+    if (!name?.trim()) return 'Enter a display name';
+    if (!/^[A-Za-z0-9][A-Za-z0-9 _.-]{1,49}$/.test(name.trim())) {
         return 'Use only letters, numbers, spaces, hyphens, underscores or periods';
     }
-
     return '';
 }
 
+/** Returns an error message string, or '' if valid. */
 export function validatePassword(password) {
-    if (!password || !password.trim()) {
-        return 'Enter a password';
-    }
-
-    const value = password.trim();
-    if (value.length < 8) {
-        return 'Password must be at least 8 characters';
-    }
-    if (!/[A-Z]/.test(value)) {
-        return 'Password must contain at least one uppercase letter';
-    }
-    if (!/[a-z]/.test(value)) {
-        return 'Password must contain at least one lowercase letter';
-    }
-    if (!/[0-9]/.test(value)) {
-        return 'Password must contain at least one number';
-    }
-    if (!/[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?~]/.test(value)) {
-        return 'Password must contain at least one special character';
-    }
-
+    if (!password?.trim()) return 'Enter a password';
+    const v = password.trim();
+    if (v.length < 8)                                       return 'Password must be at least 8 characters';
+    if (!/[A-Z]/.test(v))                                   return 'Password must contain at least one uppercase letter';
+    if (!/[a-z]/.test(v))                                   return 'Password must contain at least one lowercase letter';
+    if (!/[0-9]/.test(v))                                   return 'Password must contain at least one number';
+    if (!/[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?~]/.test(v))  return 'Password must contain at least one special character';
     return '';
 }
 
+/** Resets all GOV.UK error states on a form element. */
 export function clearFieldErrors(form) {
     if (!form) return;
-    const errorGroups = form.querySelectorAll('.govuk-form-group--error');
-    errorGroups.forEach(group => group.classList.remove('govuk-form-group--error'));
-
-    const errorInputs = form.querySelectorAll('.govuk-input--error');
-    errorInputs.forEach(input => {
-        input.classList.remove('govuk-input--error');
-        input.removeAttribute('aria-invalid');
+    form.querySelectorAll('.govuk-form-group--error').forEach(g => g.classList.remove('govuk-form-group--error'));
+    form.querySelectorAll('.govuk-input--error').forEach(i => {
+        i.classList.remove('govuk-input--error');
+        i.removeAttribute('aria-invalid');
     });
-
-    const errorMessages = form.querySelectorAll('.govuk-error-message');
-    errorMessages.forEach(message => {
-        message.hidden = true;
-        if (message.dataset.defaultText) {
-            message.textContent = message.dataset.defaultText;
-        }
+    form.querySelectorAll('.govuk-error-message').forEach(m => {
+        m.hidden = true;
+        if (m.dataset.defaultText) m.textContent = m.dataset.defaultText;
     });
-
-    const errorSummary = form.querySelector('.govuk-error-summary');
-    if (errorSummary) {
-        errorSummary.hidden = true;
-        const list = errorSummary.querySelector('.govuk-error-summary__list');
-        if (list) {
-            list.innerHTML = '';
-        }
+    const summary = form.querySelector('.govuk-error-summary');
+    if (summary) {
+        summary.hidden = true;
+        summary.querySelector('.govuk-error-summary__list')?.replaceChildren();
     }
 }
 
+/** Marks a form field in the GOV.UK error state. */
 export function setFieldError(fieldId, message) {
+    document.getElementById(`${fieldId}-group`)?.classList.add('govuk-form-group--error');
     const field = document.getElementById(fieldId);
-    const group = document.getElementById(`${fieldId}-group`);
-    const errorMessage = document.getElementById(`${fieldId}-error`);
-
-    if (group) {
-        group.classList.add('govuk-form-group--error');
-    }
     if (field) {
         field.classList.add('govuk-input--error');
         field.setAttribute('aria-invalid', 'true');
     }
-    if (errorMessage) {
-        errorMessage.hidden = false;
-        errorMessage.textContent = message;
-    }
+    const err = document.getElementById(`${fieldId}-error`);
+    if (err) { err.hidden = false; err.textContent = message; }
 }
 
+/** Puts a button into the loading spinner state. */
 export function setButtonLoading(button, text) {
     if (!button) return;
     button.disabled = true;
@@ -105,6 +67,7 @@ export function setButtonLoading(button, text) {
     button.innerHTML = `<span class="button-spinner" aria-hidden="true"></span>${text}`;
 }
 
+/** Restores a button from the loading state. */
 export function resetButton(button, text) {
     if (!button) return;
     button.disabled = false;
@@ -112,21 +75,13 @@ export function resetButton(button, text) {
     button.textContent = text;
 }
 
+/** Populates and reveals the GOV.UK error summary on a form. */
 export function showErrorSummary(form, errors) {
-    if (!form || !Array.isArray(errors) || errors.length === 0) return;
-
+    if (!form || !errors?.length) return;
     const summary = form.querySelector('.govuk-error-summary');
-    if (!summary) return;
-
-    const list = summary.querySelector('.govuk-error-summary__list');
+    const list = summary?.querySelector('.govuk-error-summary__list');
     if (!list) return;
-
-    list.innerHTML = errors.map(error => `
-        <li>
-          <a href="#${error.fieldId}">${error.message}</a>
-        </li>
-    `).join('');
-
+    list.innerHTML = errors.map(e => `<li><a href="#${e.fieldId}">${e.message}</a></li>`).join('');
     summary.hidden = false;
     summary.focus();
 }

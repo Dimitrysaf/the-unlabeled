@@ -1,9 +1,6 @@
+// src/pages/auth-confirm.js
 import { updateContent } from '../components/Layout.js';
 import { escapeHtml } from '../lib/escape.js';
-
-// ─────────────────────────────────────────────
-// ENTRY POINT
-// ─────────────────────────────────────────────
 
 /**
  * Handles all Supabase email-confirmation redirects.
@@ -36,7 +33,7 @@ export function renderAuthConfirm() {
     const errorCode = params.get('error_code');
     const errorDescription = params.get('error_description');
     const message = params.get('message');   // old-email confirmation step
-    const type = params.get('type');       // new-email / other confirmation
+    const type = params.get('type');         // new-email / other confirmation
 
     if (error) {
         renderErrorPage(getFriendlyError(error, errorCode, errorDescription));
@@ -54,9 +51,7 @@ export function renderAuthConfirm() {
     renderSuccessPage(type);
 }
 
-// ─────────────────────────────────────────────
-// STEP 1 PAGE — old email confirmed, awaiting new email
-// ─────────────────────────────────────────────
+// ── Step 1 page — old email confirmed, awaiting new email ─────────────────
 
 function renderPendingPage(isEmailChange) {
     const heading = isEmailChange
@@ -96,9 +91,7 @@ function renderPendingPage(isEmailChange) {
     `);
 }
 
-// ─────────────────────────────────────────────
-// SUCCESS PAGE — confirmation complete
-// ─────────────────────────────────────────────
+// ── Success page — confirmation complete ──────────────────────────────────
 
 const SUCCESS_COPY = {
     email_change: {
@@ -155,9 +148,7 @@ function renderSuccessPage(type) {
     `);
 }
 
-// ─────────────────────────────────────────────
-// ERROR PAGE
-// ─────────────────────────────────────────────
+// ── Error page ────────────────────────────────────────────────────────────
 
 function renderErrorPage(message) {
     updateContent(`
@@ -190,9 +181,7 @@ function renderErrorPage(message) {
     `);
 }
 
-// ─────────────────────────────────────────────
-// HELPERS
-// ─────────────────────────────────────────────
+// ── Helpers ───────────────────────────────────────────────────────────────
 
 function getFriendlyError(error, code, description) {
     if (code === 'otp_expired' || (description || '').toLowerCase().includes('expired')) {
@@ -205,4 +194,3 @@ function getFriendlyError(error, code, description) {
         ? decodeURIComponent(String(description).replace(/\+/g, ' '))
         : 'An unexpected error occurred. Please try again from your account settings.';
 }
-

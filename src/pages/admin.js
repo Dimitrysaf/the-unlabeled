@@ -1,6 +1,8 @@
+// src/pages/admin.js
 import EasyMDE from 'easymde';
 import 'easymde/dist/easymde.min.css';
 import './admin.css';
+import './admin.mobile.css';
 import { updateContent } from '../components/Layout.js';
 import { navigate } from '../router.js';
 import { renderError } from '../components/ErrorPage.js';
@@ -16,9 +18,7 @@ import {
     toggleDraft,
 } from '../data/admin.js';
 
-// ─────────────────────────────────────────────
-// ENTRY POINT
-// ─────────────────────────────────────────────
+// ── Entry point ───────────────────────────────────────────────────────────
 
 export async function renderAdmin() {
     let isAdmin = false;
@@ -43,17 +43,13 @@ export async function renderAdmin() {
     }
 }
 
-// ─────────────────────────────────────────────
-// NAV HELPER
-// ─────────────────────────────────────────────
+// ── Helpers ───────────────────────────────────────────────────────────────
 
 function go(search) {
     navigate('/admin' + (search ? '?' + search : ''));
 }
 
-// ─────────────────────────────────────────────
-// LIST VIEW
-// ─────────────────────────────────────────────
+// ── List view ─────────────────────────────────────────────────────────────
 
 async function showList() {
     updateContent(`
@@ -146,9 +142,7 @@ async function showList() {
     });
 }
 
-// ─────────────────────────────────────────────
-// DELETE CONFIRMATION VIEW
-// ─────────────────────────────────────────────
+// ── Delete confirmation view ──────────────────────────────────────────────
 
 function showDeleteConfirm(article) {
     const titleText = escapeHtml(article.title || 'Untitled');
@@ -260,9 +254,7 @@ function articleRow(a) {
         </tr>`;
 }
 
-// ─────────────────────────────────────────────
-// EDITOR VIEW
-// ─────────────────────────────────────────────
+// ── Editor view ───────────────────────────────────────────────────────────
 
 function renderAdminEditor(article) {
     const isNew     = !article;
@@ -304,7 +296,6 @@ function renderAdminEditor(article) {
                             </li>
                         </ul>
 
-                        <!-- CONTENT TAB -->
                         <div class="govuk-tabs__panel" id="tab-content"
                              role="tabpanel" aria-labelledby="tab-content-link">
 
@@ -347,7 +338,6 @@ function renderAdminEditor(article) {
 
                         </div>
 
-                        <!-- DETAILS TAB -->
                         <div class="govuk-tabs__panel govuk-tabs__panel--hidden" id="tab-details"
                              role="tabpanel" aria-labelledby="tab-details-link">
                             <div class="govuk-grid-row">
@@ -453,9 +443,7 @@ function typeRadio(value, label, selected) {
         </div>`;
 }
 
-// ─────────────────────────────────────────────
-// EDITOR INIT
-// ─────────────────────────────────────────────
+// ── Editor init ───────────────────────────────────────────────────────────
 
 function initEditor(article) {
     const isNew = !article;
@@ -628,9 +616,7 @@ function buildPayload(fd, contentType) {
     return payload;
 }
 
-// ─────────────────────────────────────────────
-// BANNER
-// ─────────────────────────────────────────────
+// ── Banner ────────────────────────────────────────────────────────────────
 
 function showBanner(type, message) {
     const el = document.getElementById('admin-banner');
@@ -658,10 +644,6 @@ function showBanner(type, message) {
             </div>`;
     }
 }
-
-// ─────────────────────────────────────────────
-// HELPERS
-// ─────────────────────────────────────────────
 
 function slugify(str) {
     return str
@@ -697,10 +679,5 @@ function contentTypeLabel(article) {
     if (article.md_content)   return 'Markdown';
     if (article.html_content) return 'HTML';
     return '—';
-}
-
-function debounce(fn, ms) {
-    let t;
-    return (...args) => { clearTimeout(t); t = setTimeout(() => fn(...args), ms); };
 }
 

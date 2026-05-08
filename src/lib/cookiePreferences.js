@@ -1,3 +1,4 @@
+// src/lib/cookiePreferences.js
 export const COOKIE_PREF_KEY = 'cookie-preferences-v1';
 export const COOKIE_POLICY_COOKIE_NAME = 'cookie_policy';
 export const SESSION_COOKIE_NAME = 'session_cookie';
@@ -6,23 +7,18 @@ const ONE_YEAR_SECONDS = 365 * 24 * 60 * 60;
 const TWENTY_HOURS_SECONDS = 20 * 60 * 60;
 
 function readCookieValue(name) {
-    const cookieString = document.cookie || '';
-    const pairs = cookieString.split(';');
-    for (const pair of pairs) {
+    for (const pair of (document.cookie || '').split(';')) {
         const trimmed = pair.trim();
-        if (!trimmed) continue;
         const eqIdx = trimmed.indexOf('=');
         if (eqIdx === -1) continue;
-        const key = trimmed.slice(0, eqIdx);
-        const value = trimmed.slice(eqIdx + 1);
-        if (key === name) return value;
+        if (trimmed.slice(0, eqIdx) === name) return trimmed.slice(eqIdx + 1);
     }
     return null;
 }
 
 function writeCookie(name, value, maxAgeSeconds) {
-    const secureAttr = window.location.protocol === 'https:' ? '; Secure' : '';
-    document.cookie = `${name}=${value}; Path=/; Max-Age=${maxAgeSeconds}; SameSite=Lax${secureAttr}`;
+    const secure = window.location.protocol === 'https:' ? '; Secure' : '';
+    document.cookie = `${name}=${value}; Path=/; Max-Age=${maxAgeSeconds}; SameSite=Lax${secure}`;
 }
 
 function deleteCookie(name) {
@@ -34,27 +30,27 @@ function parsePreferences(raw) {
     try {
         const parsed = JSON.parse(raw);
         if (!parsed || typeof parsed.analytics !== 'boolean') return null;
-        return {
-            analytics: parsed.analytics,
-            bannerHidden: Boolean(parsed.bannerHidden)
-        };
+        return { analytics: parsed.analytics, bannerHidden: Boolean(parsed.bannerHidden) };
     } catch {
         return null;
     }
 }
 
+/** @returns {boolean} */
 export function hasSessionCookie() {
     return Boolean(readCookieValue(SESSION_COOKIE_NAME));
 }
 
+/** @returns {boolean} */
 export function hasCookiePolicyCookie() {
     return Boolean(readCookieValue(COOKIE_POLICY_COOKIE_NAME));
 }
 
+/** Returns parsed preferences or null if the user has not chosen yet. */
 export function readCookiePreferences() {
-    const rawPolicyCookie = readCookieValue(COOKIE_POLICY_COOKIE_NAME);
-    if (rawPolicyCookie) {
-        const parsed = parsePreferences(decodeURIComponent(rawPolicyCookie));
+    const rawPolicy = readCookieValue(COOKIE_POLICY_COOKIE_NAME);
+    if (rawPolicy) {
+        const parsed = parsePreferences(decodeURIComponent(rawPolicy));
         if (parsed) return parsed;
     }
 
@@ -62,7 +58,6 @@ export function readCookiePreferences() {
         const raw = window.localStorage.getItem(COOKIE_PREF_KEY);
         const parsed = parsePreferences(raw);
         if (!parsed) return null;
-
         // Backfill the real cookie when only legacy localStorage data exists.
         writeCookiePreferences(parsed.analytics, { bannerHidden: parsed.bannerHidden });
         return parsed;
@@ -71,29 +66,22 @@ export function readCookiePreferences() {
     }
 }
 
+/** Writes preferences to both the policy cookie and localStorage for backwards compat. */
 export function writeCookiePreferences(analytics, options = {}) {
     const nextPrefs = {
         analytics: Boolean(analytics),
-        bannerHidden: Boolean(options.bannerHidden)
+        bannerHidden: Boolean(options.bannerHidden),
     };
-
     try {
-        const encoded = encodeURIComponent(JSON.stringify(nextPrefs));
-        writeCookie(COOKIE_POLICY_COOKIE_NAME, encoded, ONE_YEAR_SECONDS);
-    } catch {
-        // Ignore cookie write errors.
-    }
-
+        writeCookie(COOKIE_POLICY_COOKIE_NAME, encodeURIComponent(JSON.stringify(nextPrefs)), ONE_YEAR_SECONDS);
+    } catch { /* ignore */ }
     try {
-        // Kept for backward compatibility with existing app state reads.
         window.localStorage.setItem(COOKIE_PREF_KEY, JSON.stringify(nextPrefs));
-    } catch {
-        // Ignore storage errors.
-    }
-
+    } catch { /* ignore */ }
     return nextPrefs;
 }
 
+/** Sets or clears the short-lived session cookie used for SSR auth hints. */
 export function setSessionCookie(isSignedIn) {
     if (isSignedIn) {
         writeCookie(SESSION_COOKIE_NAME, '1', TWENTY_HOURS_SECONDS);

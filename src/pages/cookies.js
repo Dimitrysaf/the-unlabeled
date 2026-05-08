@@ -1,3 +1,4 @@
+// src/pages/cookies.js
 import { updateContent } from '../components/Layout.js';
 import {
     hasCookiePolicyCookie,

@@ -1,7 +1,4 @@
-/* ── Electoral-calc–only styles ──────────────────────────────
-   Imported by src/pages/electoral-calc.js — only loads on
-   the electoral-calculator article page.
-   ─────────────────────────────────────────────────────────── */
+/* src/pages/electoral-calc.css — only loads on the electoral-calculator page */
 
 /* ── Chart wrapper ── */
 .chart-wrapper {
@@ -380,12 +377,6 @@ label:has(strong + .govuk-range:disabled) {
   margin-bottom: 2rem;
 }
 
-@media (max-width: 48em) {
-  .ec-controls-grid {
-    grid-template-columns: 1fr;
-  }
-}
-
 .ec-control-group {
   background: var(--c-light);
   border-left: 4px solid var(--c-black);
@@ -605,52 +596,3 @@ label:has(strong + .govuk-range:disabled) {
 .ec-skeleton__card:nth-child(7) { animation-delay: 0.42s; }
 .ec-skeleton__card:nth-child(8) { animation-delay: 0.49s; }
 
-/* ── EC mobile ── */
-@media (max-width: 40em) {
-  .prediction-cards {
-    grid-template-columns: 1fr;
-  }
-
-  .ec-fields > * {
-    width: 100%;
-  }
-
-  .pred-stat-row {
-    grid-template-columns: 3rem 1fr;
-    grid-template-rows: auto auto;
-  }
-
-  .pred-stat-values {
-    grid-column: 1 / -1;
-    font-size: 0.75rem;
-  }
-
-  .ec-skeleton__chart {
-    height: 220px;
-  }
-
-  .ec-skeleton__card {
-    max-width: calc(50% - 0.5rem);
-  }
-}
-
-/* ── EC print ── */
-@media print {
-  .prediction-cards {
-    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-    gap: 0.5rem;
-  }
-
-  .prediction-card {
-    min-height: 0;
-    page-break-inside: avoid;
-  }
-
-  .parliament-panel,
-  .coalition-panel,
-  .pred-stat-panel {
-    page-break-inside: avoid;
-    border: 1px solid #000 !important;
-    box-shadow: none !important;
-  }
-}

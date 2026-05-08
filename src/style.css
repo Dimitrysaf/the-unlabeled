@@ -1,7 +1,6 @@
-/* ============================================================
-   THE UNLABELED — GOV.UK Design System base layer
-   Route-specific styles: admin.css, electoral-calc.css
-   ============================================================ */
+/* src/style.css
+   Base layer — GOV.UK Design System tokens, shared components.
+   Route-specific styles live in admin.css and electoral-calc.css. */
 
 /* ── Colour tokens ─────────────────────────────────────────── */
 :root {
@@ -211,52 +210,6 @@ body {
   color: #fff;
 }
 
-/* ── Mobile cards — same overlay layout as hero, smaller min-height ──
-   NOTE: mirrors .news-card--hero above; keep in sync */
-@media (max-width: 40em) {
-  .news-card {
-    position: relative;
-    min-height: 240px;
-    flex-direction: column;
-  }
-
-  .news-card__img-col {
-    position: absolute;
-    inset: 0;
-    flex: none;
-    width: 100%;
-  }
-
-  .news-card__img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-  }
-
-  .news-card__body {
-    position: relative;
-    z-index: 1;
-    margin-top: auto;
-    background: transparent;
-  }
-
-  .news-card__category,
-  .news-card__meta {
-    color: #fff;
-  }
-
-  .news-card .govuk-link,
-  .news-card .govuk-link:link,
-  .news-card .govuk-link:visited,
-  .news-card .govuk-link:hover {
-    color: #fff;
-  }
-
-  .news-card__excerpt {
-    color: #fff;
-  }
-}
-
 /* ── Skeleton loading ── */
 .skeleton-img {
   width: 100%;
@@ -407,35 +360,6 @@ body {
   margin-bottom: 0.75rem;
 }
 
-@media (max-width: 40em) {
-  .article-markdown-layout {
-    display: block;
-  }
-
-  .article-meta-sidebar {
-    position: static;
-    top: auto;
-    margin-top: 0.75rem;
-    display: block;
-  }
-
-  .article-meta-sidebar .article-meta-sidebar__meta {
-    display: block;
-    margin-bottom: 0.25rem;
-  }
-
-  .article-meta-sidebar .article-meta-sidebar__meta p {
-    display: inline;
-    margin: 0;
-  }
-
-  .article-meta-sidebar .govuk-tag {
-    display: inline-block;
-    margin-bottom: 0.25rem;
-    margin-right: 0.5rem;
-  }
-}
-
 /* ── Article ToC ── */
 .article-toc .govuk-list,
 .article-toc .govuk-list li,
@@ -563,18 +487,6 @@ body {
   outline-offset: 0;
 }
 
-/* Mobile — narrower search input, stays inline with logo */
-@media (max-width: 40em) {
-  .header-search__input {
-    width: 110px;
-    transition: width 0.2s ease;
-  }
-
-  .header-search__input:focus {
-    width: 150px;
-  }
-}
-
 /* ── Search results ── */
 .search-results {
   display: flex;
@@ -633,95 +545,3 @@ body {
   to { transform: rotate(360deg); }
 }
 
-/* ── Print styles ── */
-@media print {
-  header,
-  .govuk-service-navigation,
-  .govuk-footer,
-  .article-meta-row,
-  .govuk-back-link,
-  #polls-table-toggle,
-  .polls-table-toggle,
-  .ec-controls-grid,
-  #download-btn,
-  .govuk-button,
-  .table-footer {
-    display: none !important;
-  }
-
-  body,
-  #app,
-  .content-area,
-  .govuk-main-wrapper,
-  .govuk-width-container {
-    margin: 0 !important;
-    padding: 0 !important;
-    max-width: none !important;
-    width: 100% !important;
-    background: #fff !important;
-    color: #000 !important;
-  }
-
-  .article-markdown-layout,
-  .article-markdown-layout .article-body-column,
-  .article-meta-sidebar {
-    display: block !important;
-    width: auto !important;
-    max-width: none !important;
-  }
-
-  .article-meta-sidebar {
-    position: static !important;
-    top: auto !important;
-    margin: 0 0 1rem !important;
-    padding: 0 0 0 15px !important;
-  }
-
-  .article-meta-sidebar .article-meta-sidebar__meta {
-    display: inline-flex !important;
-    flex-wrap: wrap !important;
-    gap: 0.5rem !important;
-    align-items: baseline !important;
-    margin: 0 !important;
-  }
-
-  .article-meta-sidebar .article-meta-sidebar__meta p {
-    display: inline !important;
-    margin: 0 !important;
-    padding: 0 !important;
-  }
-
-  .article-meta-sidebar .govuk-tag {
-    display: none !important;
-  }
-
-  .article-image {
-    max-height: 260px;
-    width: 100%;
-    object-fit: cover;
-    margin-bottom: 1rem;
-    border-bottom: 2px solid #000 !important;
-  }
-
-  .article-body {
-    max-width: none;
-  }
-
-  #polls-table-body,
-  .govuk-details {
-    display: block !important;
-  }
-
-  .table-scroll {
-    overflow: visible !important;
-  }
-
-  * {
-    animation: none !important;
-    transition: none !important;
-  }
-
-  @page {
-    margin: 1.5cm;
-  }
-}

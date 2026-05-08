@@ -1,3 +1,4 @@
+// src/pages/legal.js
 import { updateContent } from '../components/Layout.js';
 
 export function renderLegal() {
@@ -19,7 +20,6 @@ export function renderLegal() {
           </li>
         </ul>
 
-        <!-- ===================== PRIVACY ===================== -->
         <div class="govuk-tabs__panel" id="privacy">
           <h2 class="govuk-heading-l">Privacy Policy</h2>
           <p class="govuk-body govuk-!-colour-secondary govuk-!-margin-bottom-6">Last updated: April 2026</p>
@@ -139,7 +139,6 @@ export function renderLegal() {
           </p>
         </div>
 
-        <!-- ===================== TERMS ===================== -->
         <div class="govuk-tabs__panel" id="terms" style="display:none">
           <h2 class="govuk-heading-l">Terms of Use</h2>
           <p class="govuk-body govuk-!-colour-secondary govuk-!-margin-bottom-6">Last updated: April 2026</p>
