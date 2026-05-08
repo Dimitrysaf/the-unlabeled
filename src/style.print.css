@@ -11,7 +11,11 @@
   .ec-controls-grid,
   #download-btn,
   .govuk-button,
-  .table-footer {
+  .table-footer,
+  #vote-container,
+  #comment-form-container,
+  #comments-heading,
+  .comment__actions {
     display: none !important;
   }
 
