@@ -83,12 +83,6 @@
   overflow-x: auto;
 }
 
-@media (max-width: 64em) {
-  .admin-editor-grid {
-    grid-template-columns: 1fr;
-  }
-}
-
 .admin-editor-meta {
   position: sticky;
   top: 1rem;
@@ -102,12 +96,6 @@
   min-width: 0;
   width: 100%;
   overflow-x: auto;
-}
-
-@media (max-width: 48em) {
-  .admin-md-panels {
-    grid-template-columns: 1fr;
-  }
 }
 
 .admin-md-pane {

@@ -1,0 +1,35 @@
+/* src/pages/electoral-calc.mobile.css — responsive overrides for electoral-calc.css */
+
+@media (max-width: 48em) {
+  .ec-controls-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 40em) {
+  .prediction-cards {
+    grid-template-columns: 1fr;
+  }
+
+  .ec-fields > * {
+    width: 100%;
+  }
+
+  .pred-stat-row {
+    grid-template-columns: 3rem 1fr;
+    grid-template-rows: auto auto;
+  }
+
+  .pred-stat-values {
+    grid-column: 1 / -1;
+    font-size: 0.75rem;
+  }
+
+  .ec-skeleton__chart {
+    height: 220px;
+  }
+
+  .ec-skeleton__card {
+    max-width: calc(50% - 0.5rem);
+  }
+}

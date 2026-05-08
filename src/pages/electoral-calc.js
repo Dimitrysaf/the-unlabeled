@@ -2,6 +2,8 @@
 // Entry point and orchestration layer. Imports pure logic from sub-modules.
 import { updateContent } from '../components/Layout.js';
 import './electoral-calc.css';
+import './electoral-calc.mobile.css';
+import './electoral-calc.print.css';
 
 import { partyColors, forecastDefaults } from './electoral-calc/constants.js';
 import {

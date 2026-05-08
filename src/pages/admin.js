@@ -2,6 +2,7 @@
 import EasyMDE from 'easymde';
 import 'easymde/dist/easymde.min.css';
 import './admin.css';
+import './admin.mobile.css';
 import { updateContent } from '../components/Layout.js';
 import { navigate } from '../router.js';
 import { renderError } from '../components/ErrorPage.js';

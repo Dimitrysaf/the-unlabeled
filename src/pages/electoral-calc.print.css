@@ -1,0 +1,21 @@
+/* src/pages/electoral-calc.print.css — print styles for electoral-calc.css */
+
+@media print {
+  .prediction-cards {
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 0.5rem;
+  }
+
+  .prediction-card {
+    min-height: 0;
+    page-break-inside: avoid;
+  }
+
+  .parliament-panel,
+  .coalition-panel,
+  .pred-stat-panel {
+    page-break-inside: avoid;
+    border: 1px solid #000 !important;
+    box-shadow: none !important;
+  }
+}
