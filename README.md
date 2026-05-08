@@ -56,7 +56,7 @@ npm run preview  # Preview the production build locally
 ## Roadmap
 
 - [x] Database integration for post metadata
-- [ ] Markdown support for post content (if the schema stays simple enough)
+- [x] Markdown support for post content (if the schema stays simple enough)
 - [ ] More posts, presumably
 
 ---
