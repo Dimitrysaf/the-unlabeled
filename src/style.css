@@ -5,15 +5,15 @@
 /* ── Colour tokens ─────────────────────────────────────────── */
 :root {
   --govuk-font-family: arial, sans-serif;
-  --c-black:     #0b0c0c;
+  --c-black: #0b0c0c;
   --c-secondary: #505a5f;
-  --c-subtle:    #6f777b;
-  --c-light:     #f3f2f1;
-  --c-border:    #b1b4b6;
-  --c-red:       #d4351c;
-  --c-yellow:    #ffdd00;
-  --c-blue:      #1d70b8;
-  --c-green:     #00703c;
+  --c-subtle: #6f777b;
+  --c-light: #f3f2f1;
+  --c-border: #b1b4b6;
+  --c-red: #d4351c;
+  --c-yellow: #ffdd00;
+  --c-blue: #1d70b8;
+  --c-green: #00703c;
 }
 
 /* ── Font — GDS Transport unavailable outside gov domains; use Arial ── */
@@ -22,16 +22,19 @@
   src: local('Arial');
   font-weight: 400;
 }
+
 @font-face {
   font-family: "GDS Transport";
   src: local('Arial');
   font-weight: 700;
 }
+
 @font-face {
   font-family: "GDS Transport Website";
   src: local('Arial');
   font-weight: 400;
 }
+
 @font-face {
   font-family: "GDS Transport Website";
   src: local('Arial');
@@ -228,15 +231,40 @@ body {
   border-radius: 1px;
 }
 
-.skeleton-line--short   { width: 60%; }
-.skeleton-line--shorter { width: 38%; }
+.skeleton-line--short {
+  width: 60%;
+}
+
+.skeleton-line--shorter {
+  width: 38%;
+}
 
 @keyframes govuk-shimmer {
-  0%   { background-position:  200% 0; }
-  100% { background-position: -200% 0; }
+  0% {
+    background-position: 200% 0;
+  }
+
+  100% {
+    background-position: -200% 0;
+  }
 }
 
 /* ── Shared table utilities (used by admin and electoral-calc) ── */
+
+/*
+ * Forces table-layout: auto so wide tables overflow their .table-scroll
+ * wrapper and trigger horizontal scrolling, rather than squishing all
+ * columns into the available width (which is what table-layout: fixed does).
+ *
+ * This class is used by the electoral-calc polls table. It was previously
+ * only defined in admin.css (which is never loaded on that page), causing
+ * the table-layout: fixed rule below to win — making the table unscrollable
+ * on real mobile devices.
+ */
+.table-auto-layout {
+  table-layout: auto !important;
+}
+
 .table-scroll {
   width: 100%;
   max-width: 100%;
@@ -247,7 +275,7 @@ body {
   min-width: 0;
 }
 
-.table-scroll > table {
+.table-scroll>table {
   display: table;
   width: 100%;
   table-layout: fixed;
@@ -542,6 +570,7 @@ body {
 }
 
 @keyframes button-spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
-

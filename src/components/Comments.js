@@ -52,11 +52,11 @@ function getDisplayName(user) {
 
 /** A single comment node including nested replies and action buttons for the owner. */
 function buildComment(comment, depth, currentUserId) {
-    const id      = escapeHtml(comment.id);
-    const name    = escapeHtml(comment.display_name || 'Anonymous');
+    const id = escapeHtml(comment.id);
+    const name = escapeHtml(comment.display_name || 'Anonymous');
     const timeStr = escapeHtml(formatDateTime(comment.created_at));
     const content = escapeHtml(comment.content || '');
-    const isOwn   = currentUserId && comment.user_id === currentUserId;
+    const isOwn = currentUserId && comment.user_id === currentUserId;
 
     const ownActions = isOwn ? `
         <span class="comment__action-sep" aria-hidden="true">·</span>
@@ -105,14 +105,14 @@ function buildComment(comment, depth, currentUserId) {
  * parentId set     →  reply form (injected inline)
  */
 function buildCommentForm(user, { parentId = null, parentAuthor = '' } = {}) {
-    const name    = escapeHtml(getDisplayName(user));
+    const name = escapeHtml(getDisplayName(user));
     const isReply = parentId !== null;
-    const pid     = isReply ? escapeHtml(parentId) : '';
-    const sfx     = pid ? `-${pid}` : '';
+    const pid = isReply ? escapeHtml(parentId) : '';
+    const sfx = pid ? `-${pid}` : '';
     const fieldId = `comment-text${sfx}`;
     const groupId = `comment-group${sfx}`;
     const errorId = `comment-error${sfx}`;
-    const sumId   = `comment-summary${sfx}`;
+    const sumId = `comment-summary${sfx}`;
     const sumList = `comment-summary-list${sfx}`;
 
     const byline = isReply
@@ -168,7 +168,7 @@ function buildCommentForm(user, { parentId = null, parentAuthor = '' } = {}) {
 
 /** Inline edit form pre-filled with the comment's current content. */
 function buildEditForm(commentId, existingContent) {
-    const id  = escapeHtml(commentId);
+    const id = escapeHtml(commentId);
     const len = existingContent.length;
 
     return `
@@ -213,7 +213,7 @@ function buildDeleteConfirm() {
 
 /** Vote widget with optimistic up/down toggling. */
 function buildVoteWidget(score, userVote) {
-    const upActive   = userVote === 1;
+    const upActive = userVote === 1;
     const downActive = userVote === -1;
     const scoreClass = score > 0 ? ' vote-widget__score--positive'
         : score < 0 ? ' vote-widget__score--negative' : '';
@@ -240,7 +240,7 @@ function buildVoteWidget(score, userVote) {
 // ── Vote widget mount ─────────────────────────────────────────────────────────
 
 function mountVoteWidget(container, { articleId, initialScore, initialUserVote }) {
-    let score    = initialScore;
+    let score = initialScore;
     let userVote = initialUserVote;
 
     const rerender = () => { container.innerHTML = buildVoteWidget(score, userVote); bindButtons(); };
@@ -250,7 +250,7 @@ function mountVoteWidget(container, { articleId, initialScore, initialUserVote }
         if (!user) { navigate('/login'); return; }
 
         const newVote = userVote === targetVote ? null : targetVote;
-        const delta   = (newVote ?? 0) - (userVote ?? 0);
+        const delta = (newVote ?? 0) - (userVote ?? 0);
 
         score += delta;
         userVote = newVote;
@@ -282,16 +282,16 @@ function mountVoteWidget(container, { articleId, initialScore, initialUserVote }
  */
 function mountCommentForm(formEl, { articleId, parentId, displayName, onSuccess }) {
     if (!formEl) return;
-    const pid      = parentId || null;
-    const sfx      = pid ? `-${pid}` : '';
+    const pid = parentId || null;
+    const sfx = pid ? `-${pid}` : '';
     const textarea = formEl.querySelector('textarea');
-    const group    = formEl.querySelector(`#comment-group${sfx}`);
-    const errorEl  = formEl.querySelector(`#comment-error${sfx}`);
+    const group = formEl.querySelector(`#comment-group${sfx}`);
+    const errorEl = formEl.querySelector(`#comment-error${sfx}`);
     const errorText = formEl.querySelector('.comment-form__error-text');
     const counterEl = formEl.querySelector('.comment-form__counter-current');
     const counterBox = formEl.querySelector('.comment-form__counter');
-    const summary  = formEl.querySelector(`#comment-summary${sfx}`);
-    const sumList  = formEl.querySelector(`#comment-summary-list${sfx}`);
+    const summary = formEl.querySelector(`#comment-summary${sfx}`);
+    const sumList = formEl.querySelector(`#comment-summary-list${sfx}`);
     const submitBtn = formEl.querySelector('[type="submit"]');
 
     textarea?.addEventListener('input', () => {
@@ -344,10 +344,10 @@ function mountCommentForm(formEl, { articleId, parentId, displayName, onSuccess 
 function initListInteractions(listEl, { user, articleId, displayName, onSuccess }) {
     listEl.addEventListener('input', e => {
         if (e.target.tagName !== 'TEXTAREA') return;
-        const form    = e.target.closest('.comment-form, .comment__edit-slot');
+        const form = e.target.closest('.comment-form, .comment__edit-slot');
         const counter = form?.querySelector('.comment-form__counter-current');
-        const box     = form?.querySelector('.comment-form__counter');
-        const len     = e.target.value.length;
+        const box = form?.querySelector('.comment-form__counter');
+        const len = e.target.value.length;
         if (counter) counter.textContent = len;
         box?.classList.toggle('comment-form__counter--over', len >= MAX_CHARS);
         e.target.classList.toggle('govuk-textarea--error', len > MAX_CHARS);
@@ -372,7 +372,7 @@ function initListInteractions(listEl, { user, articleId, displayName, onSuccess 
 
             if (!user) { navigate('/login'); return; }
 
-            const parentId     = btn.dataset.parentId;
+            const parentId = btn.dataset.parentId;
             const parentAuthor = btn.dataset.parentAuthor || '';
             const slot = listEl.querySelector(`.comment__reply-slot[data-slot="${parentId}"]`);
             if (!slot) return;
@@ -397,12 +397,12 @@ function initListInteractions(listEl, { user, articleId, displayName, onSuccess 
 
         // ── Edit ──
         if (btn.classList.contains('comment__edit-btn')) {
-            const commentEl  = listEl.querySelector(`#comment-${btn.dataset.commentId}`);
+            const commentEl = listEl.querySelector(`#comment-${btn.dataset.commentId}`);
             if (!commentEl) return;
-            const contentEl  = commentEl.querySelector('.comment__content');
-            const actionsEl  = commentEl.querySelector('.comment__actions');
-            const editSlot   = commentEl.querySelector('.comment__edit-slot');
-            const replySlot  = commentEl.querySelector('.comment__reply-slot');
+            const contentEl = commentEl.querySelector('.comment__content');
+            const actionsEl = commentEl.querySelector('.comment__actions');
+            const editSlot = commentEl.querySelector('.comment__edit-slot');
+            const replySlot = commentEl.querySelector('.comment__reply-slot');
             if (replySlot) { replySlot.hidden = true; replySlot.innerHTML = ''; }
             contentEl.hidden = true;
             actionsEl.hidden = true;
@@ -426,12 +426,12 @@ function initListInteractions(listEl, { user, articleId, displayName, onSuccess 
 
         // ── Save edit ──
         if (btn.classList.contains('comment__save-btn')) {
-            const editSlot  = btn.closest('.comment__edit-slot');
-            const textarea  = editSlot?.querySelector('textarea');
-            const errorEl   = editSlot?.querySelector('.govuk-error-message');
+            const editSlot = btn.closest('.comment__edit-slot');
+            const textarea = editSlot?.querySelector('textarea');
+            const errorEl = editSlot?.querySelector('.govuk-error-message');
             const errorText = editSlot?.querySelector('.comment-form__error-text');
-            const group     = editSlot?.querySelector('.govuk-form-group');
-            const content   = textarea?.value?.trim() ?? '';
+            const group = editSlot?.querySelector('.govuk-form-group');
+            const content = textarea?.value?.trim() ?? '';
 
             const showErr = msg => {
                 group?.classList.add('govuk-form-group--error');
@@ -440,7 +440,7 @@ function initListInteractions(listEl, { user, articleId, displayName, onSuccess 
                 if (errorEl) errorEl.hidden = false;
             };
 
-            if (!content)                  { showErr('Enter some text before saving.'); textarea?.focus(); return; }
+            if (!content) { showErr('Enter some text before saving.'); textarea?.focus(); return; }
             if (content.length > MAX_CHARS) { showErr(`Comments must be ${MAX_CHARS} characters or fewer.`); return; }
 
             btn.disabled = true;
@@ -460,8 +460,8 @@ function initListInteractions(listEl, { user, articleId, displayName, onSuccess 
         if (btn.classList.contains('comment__delete-btn')) {
             const commentEl = listEl.querySelector(`#comment-${btn.dataset.commentId}`);
             if (!commentEl) return;
-            const actionsEl  = commentEl.querySelector('.comment__actions');
-            const confirmEl  = commentEl.querySelector('.comment__delete-confirm');
+            const actionsEl = commentEl.querySelector('.comment__actions');
+            const confirmEl = commentEl.querySelector('.comment__delete-confirm');
             actionsEl.hidden = true;
             confirmEl.innerHTML = buildDeleteConfirm();
             confirmEl.hidden = false;
@@ -513,8 +513,8 @@ async function loadVotes(articleId) {
 
 async function loadComments(articleId) {
     const formWrap = document.getElementById('comment-form-container');
-    const listEl   = document.getElementById('comments-list');
-    const heading  = document.getElementById('comments-heading');
+    const listEl = document.getElementById('comments-list');
+    const heading = document.getElementById('comments-heading');
     if (!listEl) return;
 
     let user = null, comments = [];
@@ -532,8 +532,8 @@ async function loadComments(articleId) {
     if (heading) heading.textContent = `Comments (${comments.length})`;
 
     const currentUserId = user?.id ?? null;
-    const displayName   = user ? getDisplayName(user) : '';
-    const onSuccess     = () => loadComments(articleId);
+    const displayName = user ? getDisplayName(user) : '';
+    const onSuccess = () => loadComments(articleId);
 
     if (formWrap) {
         if (user) {

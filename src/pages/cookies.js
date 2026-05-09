@@ -1,68 +1,68 @@
 // src/pages/cookies.js
 import { updateContent } from '../components/Layout.js';
 import {
-    hasCookiePolicyCookie,
-    hasSessionCookie,
-    readCookiePreferences,
-    writeCookiePreferences
+  hasCookiePolicyCookie,
+  hasSessionCookie,
+  readCookiePreferences,
+  writeCookiePreferences
 } from '../lib/cookiePreferences.js';
 
 function getReturnPath() {
-    const fallback = '/';
-    try {
-        const ref = document.referrer;
-        if (!ref) return fallback;
-        const refUrl = new URL(ref);
-        if (refUrl.origin !== window.location.origin) return fallback;
-        return `${refUrl.pathname}${refUrl.search}${refUrl.hash}`;
-    } catch {
-        return fallback;
-    }
+  const fallback = '/';
+  try {
+    const ref = document.referrer;
+    if (!ref) return fallback;
+    const refUrl = new URL(ref);
+    if (refUrl.origin !== window.location.origin) return fallback;
+    return `${refUrl.pathname}${refUrl.search}${refUrl.hash}`;
+  } catch {
+    return fallback;
+  }
 }
 
 function updateBannerReturnLink() {
-    const bannerLink = document.getElementById('cookie-success-link');
-    if (!bannerLink) return;
-    bannerLink.setAttribute('href', getReturnPath());
+  const bannerLink = document.getElementById('cookie-success-link');
+  if (!bannerLink) return;
+  bannerLink.setAttribute('href', getReturnPath());
 }
 
 function initCookieSettingsForm() {
-    const form = document.getElementById('cookie-settings-form');
-    const successBanner = document.getElementById('cookie-success-banner');
-    const analyticsYes = document.getElementById('cookies-analytics');
-    const analyticsNo = document.getElementById('cookies-analytics-2');
-    if (!form || !successBanner || !analyticsYes || !analyticsNo) return;
+  const form = document.getElementById('cookie-settings-form');
+  const successBanner = document.getElementById('cookie-success-banner');
+  const analyticsYes = document.getElementById('cookies-analytics');
+  const analyticsNo = document.getElementById('cookies-analytics-2');
+  if (!form || !successBanner || !analyticsYes || !analyticsNo) return;
 
-    const prefs = readCookiePreferences();
-    const analyticsEnabled = prefs ? prefs.analytics : false;
-    analyticsYes.checked = analyticsEnabled;
-    analyticsNo.checked = !analyticsEnabled;
+  const prefs = readCookiePreferences();
+  const analyticsEnabled = prefs ? prefs.analytics : false;
+  analyticsYes.checked = analyticsEnabled;
+  analyticsNo.checked = !analyticsEnabled;
 
-    updateBannerReturnLink();
+  updateBannerReturnLink();
 
-    form.addEventListener('submit', (event) => {
-        event.preventDefault();
-        const analytics = analyticsYes.checked;
-        const nextPrefs = writeCookiePreferences(analytics, { bannerHidden: true });
-        successBanner.removeAttribute('hidden');
-        successBanner.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        window.dispatchEvent(new CustomEvent('cookie-consent-updated', { detail: nextPrefs }));
-    });
+  form.addEventListener('submit', (event) => {
+    event.preventDefault();
+    const analytics = analyticsYes.checked;
+    const nextPrefs = writeCookiePreferences(analytics, { bannerHidden: true });
+    successBanner.removeAttribute('hidden');
+    successBanner.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    window.dispatchEvent(new CustomEvent('cookie-consent-updated', { detail: nextPrefs }));
+  });
 }
 
 export function renderCookies() {
-    const prefs = readCookiePreferences();
-    const sessionCookieExpiry = hasSessionCookie()
-        ? '20 hours (rolling from latest sign-in)'
-        : 'Not set unless you are signed in';
-    const policyCookieExpiry = hasCookiePolicyCookie()
-        ? '1 year (from your last saved choice)'
-        : 'Not set until you save settings';
-    const policyState = prefs
-        ? `Current setting: analytics ${prefs.analytics ? 'accepted' : 'rejected'}`
-        : 'Current setting: no preference saved yet';
+  const prefs = readCookiePreferences();
+  const sessionCookieExpiry = hasSessionCookie()
+    ? '20 hours (rolling from latest sign-in)'
+    : 'Not set unless you are signed in';
+  const policyCookieExpiry = hasCookiePolicyCookie()
+    ? '1 year (from your last saved choice)'
+    : 'Not set until you save settings';
+  const policyState = prefs
+    ? `Current setting: analytics ${prefs.analytics ? 'accepted' : 'rejected'}`
+    : 'Current setting: no preference saved yet';
 
-    updateContent(`
+  updateContent(`
 <div class="govuk-width-container">
   <main class="govuk-main-wrapper" id="main-content" role="main">
     <div class="govuk-grid-row">
@@ -180,5 +180,5 @@ export function renderCookies() {
 </div>
 `);
 
-    initCookieSettingsForm();
+  initCookieSettingsForm();
 }

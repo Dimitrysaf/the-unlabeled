@@ -1,6 +1,7 @@
 /* src/style.print.css — print styles for style.css */
 
 @media print {
+
   header,
   .govuk-service-navigation,
   .govuk-footer,

@@ -201,7 +201,7 @@ function showDeleteConfirm(article) {
 
     const confirmBtn = document.getElementById('confirm-delete-btn');
     confirmBtn.addEventListener('click', async () => {
-        confirmBtn.disabled    = true;
+        confirmBtn.disabled = true;
         confirmBtn.textContent = 'Deleting…';
         try {
             await deleteArticle(article.id);
@@ -216,22 +216,22 @@ function showDeleteConfirm(article) {
                         </div>
                     </div>
                 </div>`;
-            confirmBtn.disabled    = false;
+            confirmBtn.disabled = false;
             confirmBtn.textContent = 'Delete article';
         }
     });
 }
 
 function articleRow(a) {
-    const type    = contentTypeLabel(a);
-    const date    = a.created_at ? new Date(a.created_at).toLocaleDateString('en-GB') : '—';
+    const type = contentTypeLabel(a);
+    const date = a.created_at ? new Date(a.created_at).toLocaleDateString('en-GB') : '—';
     const isDraft = a.is_draft;
-    const tag     = isDraft
+    const tag = isDraft
         ? `<strong class="govuk-tag govuk-tag--yellow">Draft</strong>`
         : `<strong class="govuk-tag govuk-tag--green">Published</strong>`;
     const toggleLabel = isDraft ? 'Publish' : 'Unpublish';
-    const titleText   = escapeHtml(a.title || '—');
-    const visHidden   = `<span class="govuk-visually-hidden"> ${titleText}</span>`;
+    const titleText = escapeHtml(a.title || '—');
+    const visHidden = `<span class="govuk-visually-hidden"> ${titleText}</span>`;
 
     return `
         <tr class="govuk-table__row">
@@ -257,9 +257,9 @@ function articleRow(a) {
 // ── Editor view ───────────────────────────────────────────────────────────
 
 function renderAdminEditor(article) {
-    const isNew     = !article;
+    const isNew = !article;
     const pageTitle = isNew ? 'New article' : 'Edit article';
-    const type      = isNew ? 'md' : contentTypeOf(article);
+    const type = isNew ? 'md' : contentTypeOf(article);
 
     updateContent(`
         <div class="govuk-grid-row">
@@ -306,8 +306,8 @@ function renderAdminEditor(article) {
                                     </legend>
                                     <div class="govuk-radios govuk-radios--inline govuk-radios--small"
                                          id="content-type-radios">
-                                        ${typeRadio('md',   'Markdown',    type)}
-                                        ${typeRadio('html', 'HTML',        type)}
+                                        ${typeRadio('md', 'Markdown', type)}
+                                        ${typeRadio('html', 'HTML', type)}
                                         ${typeRadio('code', 'Code module', type)}
                                     </div>
                                 </fieldset>
@@ -333,7 +333,7 @@ function renderAdminEditor(article) {
                                     </p>
                                 </div>
                                 ${field('code_module', 'Code module key', 'text',
-                                    article?.code_module || '', 'govuk-input', 'e.g. electoral-calc')}
+        article?.code_module || '', 'govuk-input', 'e.g. electoral-calc')}
                             </div>
 
                         </div>
@@ -344,12 +344,12 @@ function renderAdminEditor(article) {
                                 <div class="govuk-grid-column-two-thirds">
 
                                     ${field('title', 'Title', 'text', article?.title || '', 'govuk-input')}
-                                    ${field('slug',  'Slug',  'text', article?.slug  || '', 'govuk-input',
-                                        'Auto-generated from title. Edit if needed.')}
+                                    ${field('slug', 'Slug', 'text', article?.slug || '', 'govuk-input',
+            'Auto-generated from title. Edit if needed.')}
                                     ${field('subtitle', 'Subtitle', 'text', article?.subtitle || '', 'govuk-input',
-                                        'Optional. Shown below the title.')}
+                'Optional. Shown below the title.')}
                                     ${textareaField('excerpt', 'Excerpt', article?.excerpt || '',
-                                        'Optional short description shown on the article list.', 3)}
+                    'Optional short description shown on the article list.', 3)}
 
                                     <details class="govuk-details">
                                         <summary class="govuk-details__summary">
@@ -357,15 +357,15 @@ function renderAdminEditor(article) {
                                         </summary>
                                         <div class="govuk-details__text admin-optional-fields">
                                             ${field('image', 'Image URL', 'text', article?.image || '', 'govuk-input',
-                                                'A URL (https://…) or a path in public/ (e.g. /hero.jpg).')}
+                        'A URL (https://…) or a path in public/ (e.g. /hero.jpg).')}
                                             ${field('tags', 'Tags', 'text', tagsToString(article?.tags), 'govuk-input',
-                                                'Comma-separated, e.g. Politics, Economy')}
+                            'Comma-separated, e.g. Politics, Economy')}
                                             ${field('author', 'Author name', 'text', article?.author?.name || '', 'govuk-input')}
                                             ${field('date', 'Display date', 'text', article?.date || '', 'govuk-input',
-                                                'Shown on the article, e.g. 29 April 2026')}
+                                'Shown on the article, e.g. 29 April 2026')}
                                             ${field('published_at', 'Publish date', 'date',
-                                                (article?.published_at || '').slice(0, 10), 'govuk-input',
-                                                'Controls ordering. Defaults to today on save.')}
+                                    (article?.published_at || '').slice(0, 10), 'govuk-input',
+                                    'Controls ordering. Defaults to today on save.')}
                                         </div>
                                     </details>
 
@@ -453,7 +453,7 @@ function initEditor(article) {
 
     // ── Tab switching ──────────────────────────────────────────────────────
     const DETAILS_FIELDS = new Set(['title', 'slug', 'subtitle', 'excerpt',
-                                    'image', 'tags', 'author', 'date', 'published_at']);
+        'image', 'tags', 'author', 'date', 'published_at']);
 
     function switchTab(tabId) {
         document.querySelectorAll('#admin-tabs .govuk-tabs__tab').forEach(tab => {
@@ -461,7 +461,7 @@ function initEditor(article) {
             tab.setAttribute('aria-selected', active ? 'true' : 'false');
             tab.setAttribute('tabindex', active ? '0' : '-1');
             tab.closest('.govuk-tabs__list-item')
-               .classList.toggle('govuk-tabs__list-item--selected', active);
+                .classList.toggle('govuk-tabs__list-item--selected', active);
         });
         document.querySelectorAll('#admin-tabs .govuk-tabs__panel').forEach(panel => {
             panel.classList.toggle('govuk-tabs__panel--hidden', panel.id !== tabId);
@@ -478,8 +478,8 @@ function initEditor(article) {
 
     // ── Slug auto-generation (fields are in the details tab) ──────────────
     const titleInput = document.getElementById('title');
-    const slugInput  = document.getElementById('slug');
-    let slugEdited   = !!article?.slug;
+    const slugInput = document.getElementById('slug');
+    let slugEdited = !!article?.slug;
 
     titleInput.addEventListener('input', () => {
         if (!slugEdited) slugInput.value = slugify(titleInput.value);
@@ -513,12 +513,12 @@ function initEditor(article) {
         if (e.target.value === 'md') easyMde.codemirror.refresh();
     });
 
-    const form             = document.getElementById('admin-form');
-    const saveBtn          = document.getElementById('admin-save-btn');
-    const saveTopBtn       = document.getElementById('admin-save-top-btn');
-    const cancelTopBtn     = document.getElementById('admin-cancel-top');
-    const errorSummary     = document.getElementById('editor-error-summary');
-    const errorList        = document.getElementById('editor-error-list');
+    const form = document.getElementById('admin-form');
+    const saveBtn = document.getElementById('admin-save-btn');
+    const saveTopBtn = document.getElementById('admin-save-top-btn');
+    const cancelTopBtn = document.getElementById('admin-cancel-top');
+    const errorSummary = document.getElementById('editor-error-summary');
+    const errorList = document.getElementById('editor-error-list');
 
     if (saveTopBtn) {
         saveTopBtn.addEventListener('click', () => {
@@ -541,15 +541,15 @@ function initEditor(article) {
         // Sync EasyMDE value into the textarea so FormData picks it up
         mdTextarea.value = easyMde.value();
 
-        const fd          = new FormData(form);
+        const fd = new FormData(form);
         const contentType = fd.get('content_type');
 
         const errors = [];
-        if (!fd.get('title')?.trim())                                  errors.push({ id: 'title',        msg: 'Enter a title' });
-        if (!fd.get('slug')?.trim())                                   errors.push({ id: 'slug',          msg: 'Enter a slug' });
-        if (contentType === 'md'   && !fd.get('md_content')?.trim())   errors.push({ id: 'md_content',    msg: 'Enter some Markdown content' });
-        if (contentType === 'html' && !fd.get('html_content')?.trim()) errors.push({ id: 'html_content',  msg: 'Enter some HTML content' });
-        if (contentType === 'code' && !fd.get('code_module')?.trim())  errors.push({ id: 'code_module',   msg: 'Enter a code module key' });
+        if (!fd.get('title')?.trim()) errors.push({ id: 'title', msg: 'Enter a title' });
+        if (!fd.get('slug')?.trim()) errors.push({ id: 'slug', msg: 'Enter a slug' });
+        if (contentType === 'md' && !fd.get('md_content')?.trim()) errors.push({ id: 'md_content', msg: 'Enter some Markdown content' });
+        if (contentType === 'html' && !fd.get('html_content')?.trim()) errors.push({ id: 'html_content', msg: 'Enter some HTML content' });
+        if (contentType === 'code' && !fd.get('code_module')?.trim()) errors.push({ id: 'code_module', msg: 'Enter a code module key' });
 
         if (errors.length) {
             errorList.innerHTML = errors.map(err =>
@@ -564,7 +564,7 @@ function initEditor(article) {
 
         const payload = buildPayload(fd, contentType);
 
-        saveBtn.disabled    = true;
+        saveBtn.disabled = true;
         saveBtn.textContent = 'Saving…';
 
         try {
@@ -578,7 +578,7 @@ function initEditor(article) {
             errorList.innerHTML = `<li>${escapeHtml(err.message || 'Something went wrong.')}</li>`;
             errorSummary.hidden = false;
             errorSummary.focus();
-            saveBtn.disabled    = false;
+            saveBtn.disabled = false;
             saveBtn.textContent = isNew ? 'Create article' : 'Save changes';
         }
     });
@@ -586,23 +586,23 @@ function initEditor(article) {
 
 function buildPayload(fd, contentType) {
     const payload = {
-        title:        fd.get('title').trim(),
-        subtitle:     fd.get('subtitle').trim() || null,
-        excerpt:      fd.get('excerpt').trim()  || null,
-        slug:         fd.get('slug').trim(),
-        image:        fd.get('image').trim()    || null,
-        tags:         parseTags(fd.get('tags') || ''),
-        author:       fd.get('author').trim() ? { name: fd.get('author').trim() } : null,
-        date:         fd.get('date').trim()     || null,
-        is_draft:     fd.has('is_draft'),
-        md_content:   null,
+        title: fd.get('title').trim(),
+        subtitle: fd.get('subtitle').trim() || null,
+        excerpt: fd.get('excerpt').trim() || null,
+        slug: fd.get('slug').trim(),
+        image: fd.get('image').trim() || null,
+        tags: parseTags(fd.get('tags') || ''),
+        author: fd.get('author').trim() ? { name: fd.get('author').trim() } : null,
+        date: fd.get('date').trim() || null,
+        is_draft: fd.has('is_draft'),
+        md_content: null,
         html_content: null,
-        code_module:  null,
+        code_module: null,
     };
 
-    if (contentType === 'md')   payload.md_content   = fd.get('md_content').trim()   || null;
-    if (contentType === 'html') payload.html_content  = fd.get('html_content').trim() || null;
-    if (contentType === 'code') payload.code_module   = fd.get('code_module').trim()  || null;
+    if (contentType === 'md') payload.md_content = fd.get('md_content').trim() || null;
+    if (contentType === 'html') payload.html_content = fd.get('html_content').trim() || null;
+    if (contentType === 'code') payload.code_module = fd.get('code_module').trim() || null;
 
     if (contentType === 'code') {
         payload.slug = payload.code_module;
@@ -668,15 +668,15 @@ function tagsToString(tags) {
 }
 
 function contentTypeOf(article) {
-    if (article?.code_module)  return 'code';
-    if (article?.md_content)   return 'md';
+    if (article?.code_module) return 'code';
+    if (article?.md_content) return 'md';
     if (article?.html_content) return 'html';
     return 'md';
 }
 
 function contentTypeLabel(article) {
-    if (article.code_module)  return 'Code module';
-    if (article.md_content)   return 'Markdown';
+    if (article.code_module) return 'Code module';
+    if (article.md_content) return 'Markdown';
     if (article.html_content) return 'HTML';
     return '—';
 }

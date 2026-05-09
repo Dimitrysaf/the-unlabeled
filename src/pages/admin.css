@@ -137,7 +137,7 @@
   white-space: normal;
 }
 
-.admin-md-preview > *:first-child {
+.admin-md-preview>*:first-child {
   margin-top: 0 !important;
 }
 

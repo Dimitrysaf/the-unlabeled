@@ -20,11 +20,11 @@ export function validateDisplayName(name) {
 export function validatePassword(password) {
     if (!password?.trim()) return 'Enter a password';
     const v = password.trim();
-    if (v.length < 8)                                       return 'Password must be at least 8 characters';
-    if (!/[A-Z]/.test(v))                                   return 'Password must contain at least one uppercase letter';
-    if (!/[a-z]/.test(v))                                   return 'Password must contain at least one lowercase letter';
-    if (!/[0-9]/.test(v))                                   return 'Password must contain at least one number';
-    if (!/[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?~]/.test(v))  return 'Password must contain at least one special character';
+    if (v.length < 8) return 'Password must be at least 8 characters';
+    if (!/[A-Z]/.test(v)) return 'Password must contain at least one uppercase letter';
+    if (!/[a-z]/.test(v)) return 'Password must contain at least one lowercase letter';
+    if (!/[0-9]/.test(v)) return 'Password must contain at least one number';
+    if (!/[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?~]/.test(v)) return 'Password must contain at least one special character';
     return '';
 }
 

@@ -10,7 +10,8 @@
 .vote-widget {
   display: inline-flex;
   align-items: stretch;
-  margin-bottom: 30px; /* govuk spacing-6 */
+  margin-bottom: 30px;
+  /* govuk spacing-6 */
 }
 
 .vote-widget__btn {
@@ -27,14 +28,21 @@
   font-family: arial, sans-serif;
   font-size: 0.875rem;
   line-height: 1;
-  border-radius: 0; /* govuk has no border-radius on buttons */
+  border-radius: 0;
+  /* govuk has no border-radius on buttons */
 }
 
-.vote-widget__btn--up   { border-right-width: 0; }
-.vote-widget__btn--down { border-left-width: 0;  }
+.vote-widget__btn--up {
+  border-right-width: 0;
+}
+
+.vote-widget__btn--down {
+  border-left-width: 0;
+}
 
 .vote-widget__btn:hover {
-  background-color: #f3f2f1; /* govuk-colour("light-grey") */
+  background-color: #f3f2f1;
+  /* govuk-colour("light-grey") */
 }
 
 /* GOV.UK focus ring for non-link interactive elements */
@@ -46,15 +54,17 @@
 }
 
 .vote-widget__btn--up[aria-pressed="true"] {
-  background-color: #00703c; /* govuk-colour("green") */
-  border-color:     #00703c;
-  color:            #ffffff;
+  background-color: #00703c;
+  /* govuk-colour("green") */
+  border-color: #00703c;
+  color: #ffffff;
 }
 
 .vote-widget__btn--down[aria-pressed="true"] {
-  background-color: #d4351c; /* govuk-colour("red") */
-  border-color:     #d4351c;
-  color:            #ffffff;
+  background-color: #d4351c;
+  /* govuk-colour("red") */
+  border-color: #d4351c;
+  color: #ffffff;
 }
 
 .vote-widget__score {
@@ -63,32 +73,42 @@
   justify-content: center;
   min-width: 44px;
   padding: 0 5px;
-  border-top:    2px solid #0b0c0c;
+  border-top: 2px solid #0b0c0c;
   border-bottom: 2px solid #0b0c0c;
-  font-family:  arial, sans-serif;
-  font-weight:  700;
-  font-size:    1rem;
+  font-family: arial, sans-serif;
+  font-weight: 700;
+  font-size: 1rem;
   background-color: #f3f2f1;
-  color:        #0b0c0c;
-  user-select:  none;
+  color: #0b0c0c;
+  user-select: none;
 }
 
-.vote-widget__score--positive { color: #00703c; }
-.vote-widget__score--negative { color: #d4351c; }
+.vote-widget__score--positive {
+  color: #00703c;
+}
+
+.vote-widget__score--negative {
+  color: #d4351c;
+}
 
 
 /* ── Comment Thread ───────────────────────────────────────────────────────── */
 
 .comments-list {
-  border-top: 2px solid #0b0c0c; /* matches govuk-section-break--visible */
+  border-top: 2px solid #0b0c0c;
+  /* matches govuk-section-break--visible */
 }
 
 .comment {
-  padding-top:    15px; /* govuk spacing-3 */
+  padding-top: 15px;
+  /* govuk spacing-3 */
   padding-bottom: 15px;
-  border-bottom:  1px solid #b1b4b6; /* govuk-colour("mid-grey") */
-  overflow-wrap:  anywhere;  /* break unbreakable strings at any character */
-  word-break:     break-word; /* fallback for older browsers */
+  border-bottom: 1px solid #b1b4b6;
+  /* govuk-colour("mid-grey") */
+  overflow-wrap: anywhere;
+  /* break unbreakable strings at any character */
+  word-break: break-word;
+  /* fallback for older browsers */
 }
 
 .comment:last-child {
@@ -97,9 +117,11 @@
 
 /* Replies: indent + left border showing parent relationship */
 .comment--reply {
-  margin-left:   20px; /* govuk spacing-4 */
-  padding-left:  15px; /* govuk spacing-3 */
-  border-left:   4px solid #b1b4b6;
+  margin-left: 20px;
+  /* govuk spacing-4 */
+  padding-left: 15px;
+  /* govuk spacing-3 */
+  border-left: 4px solid #b1b4b6;
   border-bottom: 1px solid #f3f2f1;
 }
 
@@ -117,34 +139,35 @@
    ─────────────────────────────────────────────────────────────────────────── */
 
 .comment__reply-btn {
-  appearance:  none;
-  background:  none;
-  border:      none;
-  padding:     0;
-  margin:      0;
+  appearance: none;
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0;
   /* govuk-body typography */
-  font-family:     arial, sans-serif;
-  font-size:       1rem;
-  line-height:     1.31579;
+  font-family: arial, sans-serif;
+  font-size: 1rem;
+  line-height: 1.31579;
   /* govuk-link colour */
-  color:           #1d70b8;
+  color: #1d70b8;
   text-decoration: underline;
   text-underline-offset: 0.1em;
-  cursor:          pointer;
+  cursor: pointer;
 }
 
 .comment__reply-btn:hover {
-  color:                    #003078; /* govuk-colour("dark-blue") */
+  color: #003078;
+  /* govuk-colour("dark-blue") */
   text-decoration-thickness: 3px;
 }
 
 /* Exact replication of .govuk-link:focus */
 .comment__reply-btn:focus {
-  outline:          3px solid transparent;
+  outline: 3px solid transparent;
   background-color: #ffdd00;
-  box-shadow:       0 -2px #ffdd00, 0 4px #0b0c0c;
-  color:            #0b0c0c;
-  text-decoration:  none;
+  box-shadow: 0 -2px #ffdd00, 0 4px #0b0c0c;
+  color: #0b0c0c;
+  text-decoration: none;
 }
 
 
@@ -153,12 +176,13 @@
 /* Right-align the character counter (govuk-hint left-aligns by default) */
 .comment-form__counter.govuk-hint {
   text-align: right;
-  margin-top: 5px; /* govuk spacing-1 */
+  margin-top: 5px;
+  /* govuk spacing-1 */
 }
 
 /* Over-limit state: mirrors govuk-character-count__message--too-many */
 .comment-form__counter--over {
-  color:       #d4351c;
+  color: #d4351c;
   font-weight: 700;
 }
 
@@ -171,10 +195,12 @@
 
 /* Dot between Reply · Edit · Delete */
 .comment__action-sep {
-  color:       #b1b4b6; /* govuk-colour("mid-grey") */
-  margin:      0 5px;   /* govuk spacing-1 on each side */
+  color: #b1b4b6;
+  /* govuk-colour("mid-grey") */
+  margin: 0 5px;
+  /* govuk spacing-1 on each side */
   font-family: arial, sans-serif;
-  font-size:   1rem;
+  font-size: 1rem;
   user-select: none;
 }
 

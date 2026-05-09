@@ -188,8 +188,8 @@ function _hideCookieBannerPermanently(currentPrefs) {
 }
 
 function _showCookieState(state) {
-    const banner   = document.getElementById('cookie-banner');
-    const choice   = document.getElementById('cookie-banner-choice');
+    const banner = document.getElementById('cookie-banner');
+    const choice = document.getElementById('cookie-banner-choice');
     const accepted = document.getElementById('cookie-banner-accepted');
     const rejected = document.getElementById('cookie-banner-rejected');
     if (!banner || !choice || !accepted || !rejected) return;
@@ -199,7 +199,7 @@ function _showCookieState(state) {
     accepted.setAttribute('hidden', '');
     rejected.setAttribute('hidden', '');
 
-    if (state === 'choice')   choice.removeAttribute('hidden');
+    if (state === 'choice') choice.removeAttribute('hidden');
     if (state === 'accepted') accepted.removeAttribute('hidden');
     if (state === 'rejected') rejected.removeAttribute('hidden');
 }
@@ -297,7 +297,7 @@ export function updateNavigation() {
 const MOBILE_MQ = window.matchMedia('(max-width: 640px)');
 
 function _initServiceNavFallback() {
-    const btn  = document.querySelector('.govuk-js-service-navigation-toggle');
+    const btn = document.querySelector('.govuk-js-service-navigation-toggle');
     const list = document.getElementById('service-navigation');
     if (!btn || !list) return;
 
