@@ -649,3 +649,171 @@ label:has(strong + .govuk-range:disabled) {
 .ec-skeleton__card:nth-child(8) {
   animation-delay: 0.49s;
 }
+
+/* ── Chart toolbar (zoom / pan controls) ───────────────────────────────── */
+
+.polls-chart-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.polls-chart-btn-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.polls-chart-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  font-family: arial, sans-serif;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  line-height: 1.4;
+  color: var(--c-black);
+  background: #ffffff;
+  border: 2px solid var(--c-black);
+  cursor: pointer;
+  white-space: nowrap;
+  /* GOV.UK focus ring */
+  outline: 3px solid transparent;
+  outline-offset: 0;
+}
+
+.polls-chart-btn:hover:not(:disabled) {
+  background: var(--c-light);
+}
+
+.polls-chart-btn:focus {
+  outline-color: var(--c-yellow);
+  background: var(--c-yellow);
+  color: var(--c-black);
+}
+
+.polls-chart-btn:disabled {
+  color: #6f777b;
+  border-color: #b1b4b6;
+  background: #f3f2f1;
+  cursor: not-allowed;
+}
+
+.polls-chart-btn--ghost {
+  background: transparent;
+  border-color: var(--c-border);
+  color: var(--c-secondary);
+  font-weight: 400;
+}
+
+.polls-chart-btn--ghost:hover:not(:disabled) {
+  background: var(--c-light);
+  border-color: var(--c-black);
+  color: var(--c-black);
+}
+
+.polls-chart-range {
+  font-family: arial, sans-serif;
+  font-size: 0.8125rem;
+  color: var(--c-secondary);
+  white-space: nowrap;
+}
+
+/* ── Party toggle legend ─────────────────────────────────────────────────── */
+
+.polls-chart-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 0.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.polls-legend-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px 3px 8px;
+  font-family: arial, sans-serif;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: var(--c, var(--c-black));
+  background: transparent;
+  border: 2px solid var(--c, var(--c-black));
+  cursor: pointer;
+  transition: opacity 0.15s ease;
+  outline: 3px solid transparent;
+  outline-offset: 0;
+}
+
+.polls-legend-btn:hover {
+  background: color-mix(in srgb, var(--c, #0b0c0c) 10%, transparent);
+}
+
+.polls-legend-btn:focus {
+  outline-color: var(--c-yellow);
+  background: var(--c-yellow);
+  color: var(--c-black);
+}
+
+/* Hidden / toggled-off state */
+.polls-legend-btn--off {
+  opacity: 0.35;
+  border-style: dashed;
+}
+
+.polls-legend-pip {
+  display: inline-block;
+  width: 18px;
+  height: 2.5px;
+  background: var(--c, var(--c-black));
+  border-radius: 1px;
+  flex-shrink: 0;
+  transition: opacity 0.15s ease;
+}
+
+.polls-legend-btn--off .polls-legend-pip {
+  opacity: 0.4;
+}
+
+/* ── Dual parliament hemicycle layout ───────────────────────────────────── */
+
+.parliament-dual {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+  align-items: end;
+  margin-bottom: 0.5rem;
+}
+
+.parliament-half-label {
+  font-family: arial, sans-serif;
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--c-secondary);
+  text-align: center;
+  margin: 0 0 0.25rem 0;
+}
+
+/* Seat count in legend: projected + current in brackets */
+.parl-seat-count {
+  font-size: 0.75rem;
+  font-weight: 400;
+  color: var(--c-black);
+  margin-left: 4px;
+}
+
+.parl-seat-ref {
+  color: var(--c-secondary);
+  font-size: 0.7rem;
+}
+
+@media (max-width: 48em) {
+  .parliament-dual {
+    grid-template-columns: 1fr;
+  }
+}
