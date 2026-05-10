@@ -11,12 +11,20 @@
     {
       "src": "api/sitemap.js",
       "use": "@vercel/node"
+    },
+    {
+      "src": "api/article.js",
+      "use": "@vercel/node"
     }
   ],
   "routes": [
     {
       "src": "/api/sitemap",
       "dest": "/api/sitemap.js"
+    },
+    {
+      "src": "/a/([^/]+)",
+      "dest": "/api/article.js?slug=$1"
     },
     {
       "src": "/robots.txt",
