@@ -31,12 +31,6 @@ function buildNavItem(item, currentPath) {
         item.link === '/' ? currentPath === '/' : currentPath.startsWith(item.link)
     );
 
-    if (item.type === 'account-link') {
-        return `<li class="govuk-service-navigation__item">
-                    <a class="govuk-service-navigation__link" href="${item.link}">${item.label}</a>
-                </li>`;
-    }
-
     return isActive
         ? `<li class="govuk-service-navigation__item govuk-service-navigation__item--active">
                <a class="govuk-service-navigation__link" href="${item.link}" aria-current="true">
