@@ -7,6 +7,7 @@
 // All list interactions use event delegation on a single listener.
 
 import './comments.css';
+import { profanity } from '@2toad/profanity';
 import { navigate } from '../router.js';
 import { getCurrentUser } from '../lib/auth.js';
 import { escapeHtml, escapeAttr } from '../lib/escape.js';
@@ -325,8 +326,31 @@ function mountCommentForm(formEl, { articleId, parentId, displayName, onSuccess 
         if (!content) { showError('Enter a comment before sending.'); textarea?.focus(); return; }
         if (content.length > MAX_CHARS) { showError(`Comments must be ${MAX_CHARS} characters or fewer.`); return; }
 
+        if (profanity.exists(content)) {
+            showError('Your comment contains inappropriate language. Please revise it before sending.');
+            textarea?.focus();
+            return;
+        }
+
         submitBtn.disabled = true;
         submitBtn.textContent = 'Sending…';
+
+        try {
+            const freshUser = await getCurrentUser();
+            if (freshUser?.banned_until) {
+                const banUntil = new Date(freshUser.banned_until);
+                if (banUntil > new Date()) {
+                    const formatted = banUntil.toLocaleString('en-GB', { dateStyle: 'long', timeStyle: 'short' });
+                    showError(`You are banned until ${formatted}.`);
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = pid ? 'Post reply' : 'Send';
+                    return;
+                }
+            }
+        } catch {
+            // if the fresh user check fails, let Supabase RLS enforce it server-side
+        }
+
         try {
             await postComment({ articleId, content, parentId: pid, displayName });
             onSuccess();

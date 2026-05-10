@@ -33,12 +33,6 @@ export function renderAbout() {
                         gaps in public discourse. We prioritize objective analysis over partisan labels.
                     </p>
 
-                    <div class="govuk-inset-text">
-                        <strong>Project Status: Alpha</strong><br>
-                        This site is still in its alpha phase. We are actively refining our data models and 
-                        adding new analysis tools.
-                    </div>
-
                     <h2 class="govuk-heading-m">We want your help</h2>
                     <p class="govuk-body">
                         The Unlabeled is a community-driven effort. We are currently looking for:

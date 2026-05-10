@@ -50,6 +50,36 @@ export async function renderAccount() {
     const lastUpdated = user.updated_at
         ? new Date(user.updated_at).toLocaleDateString('en-GB') : 'Not available';
 
+    // ── Ban status ──
+    const isBanned = user.banned_until && new Date(user.banned_until) > new Date();
+    const banUntilFormatted = isBanned
+        ? new Date(user.banned_until).toLocaleString('en-GB', { dateStyle: 'long', timeStyle: 'short' })
+        : '';
+
+    const banBanner = isBanned ? `
+        <div class="govuk-notification-banner" role="region"
+             aria-labelledby="ban-banner-title"
+             data-module="govuk-notification-banner">
+            <div class="govuk-notification-banner__header">
+                <h2 class="govuk-notification-banner__title" id="ban-banner-title">Important</h2>
+            </div>
+            <div class="govuk-notification-banner__content">
+                <p class="govuk-notification-banner__heading">Your account is banned until ${banUntilFormatted}.</p>
+                <p class="govuk-body">You cannot post comments until your ban expires.</p>
+            </div>
+        </div>
+    ` : '';
+
+    const banRow = isBanned ? `
+        <div class="govuk-summary-list__row">
+            <dt class="govuk-summary-list__key">Account status</dt>
+            <dd class="govuk-summary-list__value">
+                <strong class="govuk-tag govuk-tag--red">Banned</strong>
+                <span class="govuk-body-s" style="display:block;margin-top:4px">Until ${banUntilFormatted}</span>
+            </dd>
+        </div>
+    ` : '';
+
     // ── Success banner after a direct field update ──
     const searchParams = new URLSearchParams(window.location.search);
     const updateParam = searchParams.get('updated');
@@ -82,6 +112,7 @@ export async function renderAccount() {
                     <h1 class="govuk-heading-xl">Your account</h1>
 
                     ${successBanner}
+                    ${banBanner}
 
                     <dl class="govuk-summary-list">
                         <div class="govuk-summary-list__row">
@@ -133,6 +164,7 @@ export async function renderAccount() {
                                 ${lastSignIn}
                             </dd>
                         </div>
+                        ${banRow}
                         <div class="govuk-summary-list__row">
                             <dt class="govuk-summary-list__key">
                                 Email confirmed
