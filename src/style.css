@@ -249,18 +249,6 @@ body {
   }
 }
 
-/* ── Shared table utilities (used by admin and electoral-calc) ── */
-
-/*
- * Forces table-layout: auto so wide tables overflow their .table-scroll
- * wrapper and trigger horizontal scrolling, rather than squishing all
- * columns into the available width (which is what table-layout: fixed does).
- *
- * This class is used by the electoral-calc polls table. It was previously
- * only defined in admin.css (which is never loaded on that page), causing
- * the table-layout: fixed rule below to win — making the table unscrollable
- * on real mobile devices.
- */
 .table-auto-layout {
   table-layout: auto !important;
 }
@@ -306,7 +294,6 @@ body {
 .article-body {
   max-width: 680px;
   width: 100%;
-  overflow-x: auto;
   min-width: 0;
   word-break: break-word;
 }
@@ -315,14 +302,24 @@ body {
   font-size: 1.1rem;
 }
 
+.md-scroll-wrapper {
+  width: 100%;
+  min-width: 0;
+  overflow-x: auto;
+  margin: 1rem 0;
+}
+
+.md-scroll-wrapper--code {
+  background: var(--c-light);
+  border-left: 4px solid var(--c-border);
+}
+
 .article-body .govuk-table,
 .article-body .md-code-block {
   display: block;
   width: 100%;
-  max-width: 100%;
   min-width: 0;
-  overflow-x: auto;
-  margin: 1rem 0;
+  margin: 0;
 }
 
 .article-body .govuk-table__cell,
@@ -426,15 +423,13 @@ body {
   color: var(--c-black);
 }
 
-/* ── Markdown code ── */
 .md-code-block {
-  background: var(--c-light);
-  border-left: 4px solid var(--c-border);
+  background: transparent;
+  border-left: none;
   padding: 1rem 1.25rem;
-  overflow-x: auto;
   font-family: monospace;
   font-size: 0.875rem;
-  margin: 1rem 0;
+  margin: 0;
 }
 
 .md-code-inline {

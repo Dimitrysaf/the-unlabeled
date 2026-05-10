@@ -116,7 +116,7 @@ const renderer = {
 
     code({ text, lang }) {
         const langAttr = lang ? ` class="language-${lang}"` : '';
-        return `<pre class="md-code-block"><code${langAttr}>${escapeHtml(text)}</code></pre>\n`;
+        return `<div class="md-scroll-wrapper md-scroll-wrapper--code"><pre class="md-code-block"><code${langAttr}>${escapeHtml(text)}</code></pre></div>\n`;
     },
 
     codespan({ text }) {
@@ -149,7 +149,7 @@ const renderer = {
             return `<tr class="govuk-table__row">${cells}</tr>\n`;
         }).join('');
 
-        return `
+        return `<div class="md-scroll-wrapper">
 <table class="govuk-table">
   <thead class="govuk-table__head">
     <tr class="govuk-table__row">${headerHtml}</tr>
@@ -157,7 +157,8 @@ const renderer = {
   <tbody class="govuk-table__body">
     ${rowsHtml}
   </tbody>
-</table>\n`;
+</table>
+</div>\n`;
     },
 };
 
