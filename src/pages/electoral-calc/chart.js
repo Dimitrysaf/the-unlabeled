@@ -1,7 +1,200 @@
 // src/pages/electoral-calc/chart.js
 import { partyColors } from './constants.js';
+import { loess, parsePollDate } from './model.js';
 
-/** Renders the polling-trends SVG chart into #pollsChart with zoom, pan and party toggling. */
+// ── LOESS Trend Chart ─────────────────────────────────────────────────────
+
+/**
+ * Renders a scatter + LOESS trend-line chart into #loessChart.
+ *
+ * Each dot represents one poll's reported percentage for a party.
+ * The smooth line is a locally-weighted regression (LOESS) fitted to those dots.
+ * A dashed red horizontal line marks the 3% parliamentary threshold.
+ */
+export function createLoessTrendChart(headers, rows) {
+    const container = document.getElementById('loessChart');
+    if (!container) return;
+
+    const pollRows = rows.filter(r => !r[0].toLowerCase().includes('election'));
+
+    const partyDefs = headers.reduce((acc, h, i) => {
+        if (partyColors[h]) acc.push({ name: h, idx: i, color: partyColors[h] });
+        return acc;
+    }, []);
+
+    // Parse dates and sort chronologically
+    const pollData = pollRows
+        .map(row => ({ row, date: parsePollDate(row[3]), dateStr: row[3] }))
+        .filter(p => p.date)
+        .sort((a, b) => a.date - b.date);
+
+    if (!pollData.length) return;
+
+    const minDate = pollData[0].date.getTime();
+    const maxDate = pollData[pollData.length - 1].date.getTime();
+    const dateRange = maxDate - minDate || 1;
+
+    // Normalised x positions (0–1) based on actual poll date
+    const xNorm = pollData.map(d => (d.date.getTime() - minDate) / dateRange);
+
+    // Keep only parties averaging >= 2% in recent polls, sorted by recent avg desc
+    const activeDefs = partyDefs
+        .map(p => {
+            const recent = pollData.slice(-30)
+                .map(d => parseFloat(d.row[p.idx]))
+                .filter(v => !isNaN(v) && v > 0);
+            const avg = recent.length ? recent.reduce((s, v) => s + v, 0) / recent.length : 0;
+            return { ...p, avg };
+        })
+        .filter(p => p.avg >= 2)
+        .sort((a, b) => b.avg - a.avg);
+
+    // Compute LOESS once per party — do not recompute on legend toggle
+    const series = activeDefs.map(p => {
+        const vals = pollData.map(d => {
+            const v = parseFloat(d.row[p.idx]);
+            return isNaN(v) || v <= 0 ? null : v;
+        });
+
+        // Run LOESS only on non-null data points
+        const validIdx = vals.reduce((acc, v, i) => { if (v !== null) acc.push(i); return acc; }, []);
+        const xs = validIdx.map(i => xNorm[i]);
+        const ys = validIdx.map(i => vals[i]);
+        const smoothed = loess(xs, ys, 0.3);
+
+        // Map smoothed values back to the full-length array
+        const trendVals = new Array(pollData.length).fill(null);
+        validIdx.forEach((origI, j) => { trendVals[origI] = smoothed[j]; });
+
+        return { ...p, vals, trendVals };
+    });
+
+    // ── Fixed SVG geometry ────────────────────────────────────────────────
+    const W = 880, H = 320;
+    const ml = 44, mr = 28, mt = 12, mb = 64;
+    const pw = W - ml - mr, ph = H - mt - mb;
+
+    const xSvg = norm => (norm * pw).toFixed(2);
+    const ySvg = (v, maxY) => (ph - (v / maxY) * ph).toFixed(2);
+
+    const allVals = series.flatMap(s => s.vals.filter(v => v !== null));
+    const maxY = Math.ceil((allVals.length ? Math.max(...allVals) : 40) / 5) * 5;
+
+    // Grid lines and Y-axis labels (built once)
+    let gridHtml = '';
+    for (let v = 0; v <= maxY; v += 5) {
+        const y = ySvg(v, maxY);
+        const isThreshold = v === 3;
+        gridHtml += `<line x1="0" y1="${y}" x2="${pw}" y2="${y}"
+            stroke="${isThreshold ? '#d4351c' : v === 0 ? '#b1b4b6' : '#f3f2f1'}"
+            stroke-width="${isThreshold ? 1.5 : 1}"
+            stroke-dasharray="${isThreshold ? '5,3' : ''}"/>`;
+        gridHtml += `<text x="-6" y="${(parseFloat(y) + 4).toFixed(1)}"
+            text-anchor="end" font-size="11"
+            fill="${isThreshold ? '#d4351c' : '#505a5f'}"
+            font-family="arial,sans-serif">${v}%</text>`;
+    }
+    gridHtml += `<text x="${pw + 4}" y="${(parseFloat(ySvg(3, maxY)) + 4).toFixed(1)}"
+        font-size="10" fill="#d4351c" font-family="arial,sans-serif" font-weight="700">3%</text>`;
+
+    // X-axis date labels (built once)
+    let xLabelHtml = '';
+    const labelCount = Math.min(9, pollData.length);
+    for (let i = 0; i < labelCount; i++) {
+        const di = Math.round(i * (pollData.length - 1) / Math.max(labelCount - 1, 1));
+        xLabelHtml += `<text transform="translate(${xSvg(xNorm[di])},${(ph + 14).toFixed(1)}) rotate(-38)"
+            text-anchor="end" dominant-baseline="hanging"
+            font-size="11" fill="#505a5f" font-family="arial,sans-serif">${pollData[di].dateStr || ''}</text>`;
+    }
+
+    // ── Mutable toggle state ──────────────────────────────────────────────
+    const hiddenParties = new Set();
+
+    function buildSeriesLayer() {
+        let dots = '', lines = '';
+        for (const s of series) {
+            if (hiddenParties.has(s.name)) continue;
+
+            // Scatter dots — one per poll
+            pollData.forEach((_, i) => {
+                const v = s.vals[i];
+                if (v === null) return;
+                dots += `<circle cx="${xSvg(xNorm[i])}" cy="${ySvg(v, maxY)}"
+                    r="2.8" fill="${s.color}" opacity="0.4">
+                    <title>${s.name}: ${v.toFixed(1)}% · ${pollData[i].dateStr}</title>
+                </circle>`;
+            });
+
+            // LOESS trend line
+            let path = '';
+            pollData.forEach((_, i) => {
+                const tv = s.trendVals[i];
+                if (tv === null) return;
+                const x = xSvg(xNorm[i]);
+                const y = ySvg(Math.max(0, tv), maxY);
+                const isStart = i === 0 || s.trendVals[i - 1] === null;
+                path += isStart ? `M ${x} ${y}` : ` L ${x} ${y}`;
+            });
+            if (path) {
+                lines += `<path d="${path}" fill="none" stroke="${s.color}"
+                    stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>`;
+            }
+        }
+        return dots + lines;
+    }
+
+    function renderLegend() {
+        const legend = document.getElementById('loess-legend');
+        if (!legend) return;
+        legend.innerHTML = series.map(s => {
+            const off = hiddenParties.has(s.name);
+            return `<button type="button"
+                        class="polls-legend-btn${off ? ' polls-legend-btn--off' : ''}"
+                        data-party="${s.name}" style="--c:${s.color}"
+                        aria-pressed="${String(!off)}">
+                        <span class="polls-legend-pip" aria-hidden="true"></span>
+                        ${s.name}
+                    </button>`;
+        }).join('');
+        legend.querySelectorAll('.polls-legend-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const p = btn.dataset.party;
+                if (hiddenParties.has(p)) hiddenParties.delete(p); else hiddenParties.add(p);
+                redraw();
+            });
+        });
+    }
+
+    function redraw() {
+        const layer = document.getElementById('loess-series-layer');
+        if (layer) layer.innerHTML = buildSeriesLayer();
+        renderLegend();
+    }
+
+    // ── Initial render ────────────────────────────────────────────────────
+    container.innerHTML = `
+        <div class="polls-chart-legend" id="loess-legend"
+             role="group" aria-label="Toggle parties on trend chart"></div>
+        <svg width="100%" viewBox="0 0 ${W} ${H}"
+             style="display:block;overflow:visible;"
+             aria-label="Polling trends: scatter dots with LOESS smoothing">
+            <g transform="translate(${ml},${mt})">
+                ${gridHtml}
+                <g id="loess-series-layer"></g>
+                ${xLabelHtml}
+            </g>
+        </svg>
+        <p class="govuk-body-s govuk-!-colour-secondary govuk-!-margin-top-1 govuk-!-margin-bottom-0">
+            Each dot = one poll. Smooth lines = local regression (LOESS, bandwidth 0.3). Red dashed = 3% threshold.
+        </p>
+    `;
+
+    redraw();
+}
+
+// ── Zoom/Pan Raw Data Chart ───────────────────────────────────────────────
+
+/** Renders the raw polling-trends chart into #pollsChart with zoom, pan and party toggling. */
 export function createPollsChart(headers, rows) {
     const pollRows = rows.filter(r => !r[0].toLowerCase().includes('election'));
     const pts = [...pollRows].reverse(); // oldest → newest
@@ -124,7 +317,7 @@ export function createPollsChart(headers, rows) {
         const wrapper = document.getElementById('polls-svg-wrapper');
         wrapper.innerHTML = `
             <svg id="polls-svg" width="100%" viewBox="0 0 ${W} ${H}"
-                 style="display:block;overflow:visible;" aria-label="Polling trends chart">
+                 style="display:block;overflow:visible;" aria-label="Raw polling trends chart">
                 <g transform="translate(${ml},${mt})">
                     ${gridHtml}
                     ${linesHtml}
@@ -191,13 +384,12 @@ export function createPollsChart(headers, rows) {
                 `${visible[0]?.[3] || ''} – ${visible[visN - 1]?.[3] || ''} (${visN} poll${visN === 1 ? '' : 's'})`;
         }
 
-        // Button disabled states
+        // Button states
         document.getElementById('chart-pan-left').disabled = startIdx === 0;
         document.getElementById('chart-pan-right').disabled = endIdx === n - 1;
         document.getElementById('chart-zoom-out').disabled = endIdx - startIdx >= n - 1;
         document.getElementById('chart-zoom-in').disabled = endIdx - startIdx < 2;
 
-        // Legend
         renderLegend();
     }
 
@@ -231,7 +423,6 @@ export function createPollsChart(headers, rows) {
     document.getElementById('chart-zoom-in').addEventListener('click', () => {
         const win = endIdx - startIdx;
         const step = Math.max(1, Math.floor(win * 0.25));
-        // Zoom toward the right (recent) end
         startIdx = Math.min(startIdx + step, endIdx - 1);
         endIdx = Math.max(endIdx - step, startIdx + 1);
         redraw();

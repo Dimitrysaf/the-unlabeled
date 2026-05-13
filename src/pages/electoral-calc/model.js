@@ -145,7 +145,14 @@ export function computeLongRunAverage(pollRows, partyIndices) {
     return avg;
 }
 
-/** Average difference between election result and pre-election polls for a party. */
+/**
+ * Average difference between election result and pre-election polls for a party.
+ *
+ * Fix: was using .slice(-10) which took the OLDEST polls before each election
+ * (the honeymoon-era polls, far from the election date), vastly overstating the
+ * bias. Now sorts newest-first and uses .slice(0, 10) to take the 10 most
+ * recent polls before each election — the ones that should actually predict it.
+ */
 export function computeNDBias(electionRows, pollRows, partyIndices, party) {
     const idx = partyIndices[party];
     if (idx === undefined || !electionRows.length) return 0;
@@ -156,11 +163,11 @@ export function computeNDBias(electionRows, pollRows, partyIndices, party) {
         if (isNaN(result)) continue;
         if (!electionDate) continue;
         const priorPolls = pollRows
-            .filter(r => {
-                const pollDate = parsePollDate(r[3]);
-                return pollDate && pollDate <= electionDate;
-            })
-            .slice(0, 10);
+            .map(r => ({ r, date: parsePollDate(r[3]) }))
+            .filter(({ date }) => date && date <= electionDate)
+            .sort((a, b) => b.date - a.date) // newest first
+            .slice(0, 10)                     // ← FIXED: was .slice(-10)
+            .map(({ r }) => r);
         if (!priorPolls.length) continue;
         const avg = priorPolls.reduce((sum, r) => sum + (parseFloat(r[idx]) || 0), 0) / priorPolls.length;
         biases.push(result - avg);
@@ -198,6 +205,62 @@ export function computeConfidenceScores(predicted, volatility, sampleCount, hori
     return result;
 }
 
+// ── LOESS (locally weighted regression) ──────────────────────────────────
+
+/**
+ * Fits a LOESS smooth to (xArr, yArr) and returns smoothed y values at each x.
+ *
+ * xArr and yArr must be the same length. x values should be sorted or at least
+ * representative of the data range — normalising to [0, 1] works well.
+ *
+ * bandwidth = fraction of the data used for each local regression.
+ * 0.3 produces a smooth trend similar to the Wikipedia polling chart.
+ */
+export function loess(xArr, yArr, bandwidth = 0.3) {
+    const n = xArr.length;
+    if (n < 3) return [...yArr];
+    const win = Math.max(3, Math.floor(n * bandwidth));
+
+    return xArr.map(x0 => {
+        // Find the `win` nearest neighbours by x distance
+        const dists = xArr
+            .map((x, j) => [Math.abs(x - x0), j])
+            .sort((a, b) => a[0] - b[0])
+            .slice(0, win);
+
+        const hMax = dists[dists.length - 1][0] || 1;
+
+        // Tricubic kernel: w = (1 − (d/hMax)³)³
+        let sw = 0, swx = 0, swy = 0, swxx = 0, swxy = 0;
+        for (const [d, j] of dists) {
+            const u = d / hMax;
+            const w = Math.pow(1 - Math.pow(u, 3), 3);
+            const xi = xArr[j], yi = yArr[j];
+            sw += w; swx += w * xi; swy += w * yi;
+            swxx += w * xi * xi; swxy += w * xi * yi;
+        }
+
+        // Weighted linear regression: ŷ = b0 + b1·x
+        const det = sw * swxx - swx * swx;
+        if (Math.abs(det) < 1e-10) return swy / (sw || 1);
+        const b1 = (sw * swxy - swx * swy) / det;
+        const b0 = (swy - b1 * swx) / sw;
+        return b0 + b1 * x0;
+    });
+}
+
+// ── Combination helper ────────────────────────────────────────────────────
+
+/** Returns all k-element combinations from arr. */
+export function getCombinations(arr, k) {
+    if (k === 1) return arr.map(x => [x]);
+    const result = [];
+    for (let i = 0; i <= arr.length - k; i++) {
+        getCombinations(arr.slice(i + 1), k - 1).forEach(combo => result.push([arr[i], ...combo]));
+    }
+    return result;
+}
+
 // ── Simulation utilities ─────────────────────────────────────────────────
 
 /** Box-Muller transform for a normal random variate. */
@@ -222,14 +285,17 @@ export function getLargestParty(seats) {
     return sorted.length ? sorted[0][0] : null;
 }
 
-/** Collapses raw simulation results into median/p10/p90 stats per party. */
+/**
+ * Collapses raw simulation results into per-party summary stats.
+ * Now also includes coalitionProbabilities derived from simulation.coalitionCounts.
+ */
 export function summariseSimulation(simulation) {
     const partyStats = {};
     for (const [party, seatResults] of Object.entries(simulation.partySeatResults)) {
         partyStats[party] = {
             median: percentile(seatResults, 50),
-            low: percentile(seatResults, 10),
-            high: percentile(seatResults, 90),
+            low:    percentile(seatResults, 10),
+            high:   percentile(seatResults, 90),
         };
     }
 
@@ -238,11 +304,20 @@ export function summariseSimulation(simulation) {
         winnerProbabilities[party] = Math.round((count / simulation.iterations) * 100);
     }
 
+    // % of simulations in which each coalition combination reaches 151 seats
+    const coalitionProbabilities = {};
+    if (simulation.coalitionCounts) {
+        for (const [key, count] of Object.entries(simulation.coalitionCounts)) {
+            coalitionProbabilities[key] = Math.round((count / simulation.iterations) * 100);
+        }
+    }
+
     return {
         iterations: simulation.iterations,
         majorityProbability: Math.round((simulation.majorityCount / simulation.iterations) * 100),
         winnerProbabilities,
         partyStats,
+        coalitionProbabilities,
     };
 }
 
@@ -291,7 +366,6 @@ export function getHorizonDaysFromRows(recentPolls, electionDateRaw) {
     return Math.round((electionDate - latestPollDate) / msPerDay);
 }
 
-// Short horizons lean on trend; long horizons taper momentum and grow reversion.
 export function getMomentumHorizonScale(days) {
     return Math.min(1.6, 0.6 + Math.max(0, days) / 365);
 }
@@ -333,7 +407,6 @@ export function filterPollsByDateWindow(pollRows, windowValue) {
         .filter(item => item.date >= cutoff)
         .map(item => item.row);
 
-    // Fall back to the most recent poll if the window is too narrow.
     return filtered.length ? filtered : [allWithDates[allWithDates.length - 1].row];
 }
 

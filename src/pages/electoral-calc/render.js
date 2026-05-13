@@ -2,25 +2,24 @@
 import { partyColors, currentParliamentSeats } from './constants.js';
 
 // ── Ideological order: far-left → far-right ───────────────────────────────
-// Determines left-to-right seat placement in both hemicycles.
 const IDEOLOGICAL_ORDER = {
-    KKE: 0,  // Communist — far-left
-    M25: 1,  // MeRA25 — left
-    NA: 2,  // Νέα Αριστερά — left
-    SYRIZA: 3,  // Left / centre-left
-    PE: 4,  // Πλεύση Ελευθερίας — left
-    PASOK: 5,  // Centre-left
-    FL: 6,  // Centre
-    ND: 7,  // Centre-right
-    DPK: 8,  // Right / national-conservative
-    EL: 9,  // Ελληνική Λύση — right / nationalist
-    NIKI: 10, // Far-right / Christian nationalist
-    SP: 11, // Σπαρτιάτες — far-right
+    KKE: 0,
+    M25: 1,
+    NA: 2,
+    SYRIZA: 3,
+    PE: 4,
+    PASOK: 5,
+    FL: 6,
+    ND: 7,
+    DPK: 8,
+    EL: 9,
+    NIKI: 10,
+    SP: 11,
 };
 
 // ── Arc geometry ──────────────────────────────────────────────────────────
 const ARCS = [
-    { r: 80, count: 21 },
+    { r: 80,  count: 21 },
     { r: 100, count: 24 },
     { r: 120, count: 27 },
     { r: 140, count: 30 },
@@ -32,7 +31,6 @@ const ARCS = [
 ];
 const CX = 240, CY = 240;
 
-// Pre-compute seat positions once (column-first = left → right in the SVG)
 const SEAT_POSITIONS = (() => {
     const posByArc = ARCS.map(arc => {
         const pts = [];
@@ -52,7 +50,6 @@ const SEAT_POSITIONS = (() => {
     return order;
 })();
 
-// ── Toggle state (survives prediction redraws) ────────────────────────────
 let _lastSeats = {};
 const _hidden = new Set();
 
@@ -66,7 +63,7 @@ function _buildSeatList(seatsObj) {
     sorted.forEach(([party, count]) => {
         for (let i = 0; i < count; i++) list.push(party);
     });
-    while (list.length < 300) list.push('__other__'); // independents / untracked
+    while (list.length < 300) list.push('__other__');
     return list;
 }
 
@@ -85,6 +82,15 @@ function _renderCircles(seatsObj, dotRadius) {
     }).join('');
 }
 
+function getCombinations(arr, k) {
+    if (k === 1) return arr.map(x => [x]);
+    const result = [];
+    for (let i = 0; i <= arr.length - k; i++) {
+        getCombinations(arr.slice(i + 1), k - 1).forEach(combo => result.push([arr[i], ...combo]));
+    }
+    return result;
+}
+
 // ── Parliament diagram ────────────────────────────────────────────────────
 
 export function renderParliament(seats) {
@@ -100,11 +106,9 @@ function _drawParliament() {
     const seats = _lastSeats;
     const hasMajority = Object.values(seats).some(s => s >= 151);
 
-    // How many seats in the reference are "other/independent"
     const refTotal = Object.values(currentParliamentSeats).reduce((a, b) => a + b, 0);
     const independents = 300 - refTotal;
 
-    // Collect all parties that appear in either diagram, sorted by ideology
     const allParties = new Map();
     [...Object.entries(seats), ...Object.entries(currentParliamentSeats)].forEach(([p, s]) => {
         if (s > 0 && !allParties.has(p)) allParties.set(p, true);
@@ -112,7 +116,6 @@ function _drawParliament() {
     const sortedParties = [...allParties.keys()]
         .sort((a, b) => (IDEOLOGICAL_ORDER[a] ?? 50) - (IDEOLOGICAL_ORDER[b] ?? 50));
 
-    // Legend buttons (shared — toggle greys out seats in BOTH hemicycles)
     const legendHtml = sortedParties.map(p => {
         const hidden = _hidden.has(p);
         const color = partyColors[p] || '#b1b4b6';
@@ -189,15 +192,6 @@ export function renderCoalitions(seats) {
 
     const parties = Object.entries(seats).filter(([, s]) => s > 0);
     const MAJORITY = 151;
-
-    function getCombinations(arr, k) {
-        if (k === 1) return arr.map(x => [x]);
-        const result = [];
-        for (let i = 0; i <= arr.length - k; i++) {
-            getCombinations(arr.slice(i + 1), k - 1).forEach(combo => result.push([arr[i], ...combo]));
-        }
-        return result;
-    }
 
     const minimal = [], seen = new Set();
     for (let size = 2; size <= parties.length; size++) {
@@ -318,7 +312,7 @@ export function renderPredictionStats(predicted, rawBase) {
     const rows = sorted.map(([party, forecast]) => {
         const poll = rawBase[party] || 0;
         const delta = forecast - poll;
-        const color = partyColors[party] || '#0b0c0c';
+        const color = partyColors[party] || '#b1b4b6';
         return `
         <div class="pred-stat-row">
             <div class="pred-stat-label">${party}</div>
@@ -416,5 +410,227 @@ export function renderHouseEffectsTable(houseEffects, partyIndices) {
                 <thead class="govuk-table__head"><tr class="govuk-table__row">${theadCells}</tr></thead>
                 <tbody class="govuk-table__body">${tbody}</tbody>
             </table>
+        </div>`;
+}
+
+// ── Seat range chart ──────────────────────────────────────────────────────
+
+/**
+ * Horizontal bar chart showing the p10–median–p90 seat range per party
+ * from the Monte Carlo simulation. A diamond marks current parliament seats.
+ * A dashed red line marks the 151-seat majority threshold.
+ */
+export function renderSeatRangeChart(summary) {
+    const container = document.getElementById('seat-range-chart');
+    if (!container || !summary?.partyStats) return;
+
+    const parties = Object.entries(summary.partyStats)
+        .filter(([, s]) => s.high > 0)
+        .sort(([, a], [, b]) => b.median - a.median);
+
+    if (!parties.length) { container.innerHTML = ''; return; }
+
+    const MAJORITY = 151, MAX_SEATS = 300;
+    const rowH = 38, padTop = 10, padBot = 32, padLeft = 54, padRight = 100;
+    const barW = 500;
+    const H = parties.length * rowH + padTop + padBot;
+    const W = barW + padLeft + padRight;
+    const xOf = s => ((s / MAX_SEATS) * barW).toFixed(2);
+
+    // Vertical grid lines
+    let gridHtml = '';
+    [0, 50, 100, 151, 200, 250, 300].forEach(v => {
+        const x = xOf(v);
+        const isMaj = v === MAJORITY;
+        gridHtml += `<line x1="${x}" y1="0" x2="${x}" y2="${parties.length * rowH}"
+            stroke="${isMaj ? '#d4351c' : '#f0f0f0'}"
+            stroke-width="${isMaj ? 1.5 : 1}"
+            stroke-dasharray="${isMaj ? '5,3' : ''}"/>`;
+        gridHtml += `<text x="${x}" y="${parties.length * rowH + 16}"
+            text-anchor="middle" font-size="10"
+            fill="${isMaj ? '#d4351c' : '#6f777b'}"
+            font-weight="${isMaj ? '700' : '400'}"
+            font-family="arial,sans-serif">${v}</text>`;
+    });
+    gridHtml += `<text x="${xOf(MAJORITY)}" y="${parties.length * rowH + 27}"
+        text-anchor="middle" font-size="9" fill="#d4351c"
+        font-family="arial,sans-serif">majority</text>`;
+
+    // One row per party
+    let rowsHtml = '';
+    parties.forEach(([party, stat], i) => {
+        const y = i * rowH + rowH / 2;
+        const color = partyColors[party] || '#b1b4b6';
+        const x10  = xOf(stat.low);
+        const x50  = xOf(stat.median);
+        const x90  = xOf(stat.high);
+        const curr = currentParliamentSeats[party] || 0;
+        const xCurr = xOf(curr);
+
+        // p10–p90 shaded band
+        const bandW = (parseFloat(x90) - parseFloat(x10)).toFixed(2);
+        rowsHtml += `<rect x="${x10}" y="${y - 9}" width="${bandW}" height="18"
+            fill="${color}" opacity="0.18" rx="3"/>`;
+        // Connector line
+        rowsHtml += `<line x1="${x10}" y1="${y}" x2="${x90}" y2="${y}"
+            stroke="${color}" stroke-width="1.5" opacity="0.35"/>`;
+        // p10 end cap
+        rowsHtml += `<line x1="${x10}" y1="${y - 8}" x2="${x10}" y2="${y + 8}"
+            stroke="${color}" stroke-width="2" stroke-linecap="round" opacity="0.6"/>`;
+        // p90 end cap
+        rowsHtml += `<line x1="${x90}" y1="${y - 8}" x2="${x90}" y2="${y + 8}"
+            stroke="${color}" stroke-width="2" stroke-linecap="round" opacity="0.6"/>`;
+        // Median tick (bold)
+        rowsHtml += `<line x1="${x50}" y1="${y - 12}" x2="${x50}" y2="${y + 12}"
+            stroke="${color}" stroke-width="3.5" stroke-linecap="round"/>`;
+        // Current seats diamond
+        if (curr > 0) {
+            const cx = parseFloat(xCurr);
+            rowsHtml += `<polygon
+                points="${cx},${y - 8} ${cx + 6},${y} ${cx},${y + 8} ${cx - 6},${y}"
+                fill="none" stroke="${color}" stroke-width="1.5" opacity="0.65"/>`;
+        }
+        // Party label (left)
+        rowsHtml += `<text x="-6" y="${y + 4}" text-anchor="end"
+            font-size="12" font-weight="700" fill="${color}"
+            font-family="arial,sans-serif">${party}</text>`;
+        // Value label (right)
+        rowsHtml += `<text x="${parseFloat(x90) + 6}" y="${y + 4}" text-anchor="start"
+            font-size="11" fill="#0b0c0c" font-family="arial,sans-serif">
+            ${stat.median}<tspan fill="#6f777b" font-size="10"> (${stat.low}–${stat.high})</tspan>
+        </text>`;
+    });
+
+    container.innerHTML = `
+        <div class="pred-stat-panel">
+            <h3 class="govuk-heading-s govuk-!-margin-bottom-1">Seat projection range</h3>
+            <p class="govuk-body-s govuk-!-colour-secondary govuk-!-margin-bottom-3">
+                Median seat count with p10–p90 simulation range.
+                ◇ = current seats (2023 election). Red dashed = majority (151 seats).
+            </p>
+            <svg width="100%" viewBox="0 0 ${W} ${H}"
+                 style="display:block;overflow:visible;"
+                 aria-label="Seat projection range per party">
+                <g transform="translate(${padLeft},${padTop})">
+                    ${gridHtml}
+                    ${rowsHtml}
+                </g>
+            </svg>
+        </div>`;
+}
+
+// ── Win probability chart ─────────────────────────────────────────────────
+
+/**
+ * Horizontal bar chart showing the % of simulations in which each party
+ * holds the most seats (i.e. "wins" the election).
+ */
+export function renderWinProbabilityChart(summary) {
+    const container = document.getElementById('win-probability-chart');
+    if (!container || !summary?.winnerProbabilities) return;
+
+    const entries = Object.entries(summary.winnerProbabilities)
+        .filter(([, p]) => p >= 1)
+        .sort(([, a], [, b]) => b - a);
+
+    if (!entries.length) { container.innerHTML = ''; return; }
+
+    const rowH = 34, padTop = 8, padBot = 8, padLeft = 54, padRight = 56;
+    const barW = 380;
+    const H = entries.length * rowH + padTop + padBot;
+    const W = barW + padLeft + padRight;
+
+    let rowsHtml = '';
+    entries.forEach(([party, prob], i) => {
+        const y = i * rowH + rowH / 2;
+        const color = partyColors[party] || '#b1b4b6';
+        const bw = ((prob / 100) * barW).toFixed(2);
+        rowsHtml += `<text x="-6" y="${y + 4}" text-anchor="end"
+            font-size="12" font-weight="700" fill="${color}"
+            font-family="arial,sans-serif">${party}</text>`;
+        rowsHtml += `<rect x="0" y="${y - 11}" width="${bw}" height="22"
+            fill="${color}" opacity="0.8" rx="2"/>`;
+        rowsHtml += `<text x="${parseFloat(bw) + 7}" y="${y + 4}" text-anchor="start"
+            font-size="12" font-weight="700" fill="${color}"
+            font-family="arial,sans-serif">${prob}%</text>`;
+    });
+
+    container.innerHTML = `
+        <div class="pred-stat-panel">
+            <h3 class="govuk-heading-s govuk-!-margin-bottom-1">Win probability</h3>
+            <p class="govuk-body-s govuk-!-colour-secondary govuk-!-margin-bottom-3">
+                % of ${summary.iterations.toLocaleString()} simulations in which each party holds the most seats.
+            </p>
+            <svg width="100%" viewBox="0 0 ${W} ${H}"
+                 style="display:block;overflow:visible;"
+                 aria-label="Win probability per party">
+                <g transform="translate(${padLeft},${padTop})">
+                    ${rowsHtml}
+                </g>
+            </svg>
+        </div>`;
+}
+
+// ── Coalition probability chart ───────────────────────────────────────────
+
+/**
+ * Horizontal bar chart showing the % of simulations in which each 2- or
+ * 3-party combination reaches 151 seats. Only combinations with ≥5% shown.
+ */
+export function renderCoalitionProbabilityChart(summary) {
+    const container = document.getElementById('coalition-probability-chart');
+    if (!container || !summary?.coalitionProbabilities) return;
+
+    const entries = Object.entries(summary.coalitionProbabilities)
+        .filter(([, p]) => p >= 5)
+        .sort(([, a], [, b]) => b - a)
+        .slice(0, 10);
+
+    if (!entries.length) { container.innerHTML = ''; return; }
+
+    const rowH = 34, padTop = 8, padBot = 8, padLeft = 190, padRight = 56;
+    const barW = 320;
+    const H = entries.length * rowH + padTop + padBot;
+    const W = barW + padLeft + padRight;
+
+    let rowsHtml = '';
+    entries.forEach(([key, prob], i) => {
+        const y = i * rowH + rowH / 2;
+        const parties = key.split('+');
+        const primaryColor = partyColors[parties[0]] || '#0b0c0c';
+        const bw = ((prob / 100) * barW).toFixed(2);
+
+        // Colored party name tags in the label
+        const labelParts = parties.map((p, pi) => {
+            const c = partyColors[p] || '#0b0c0c';
+            const sep = pi < parties.length - 1
+                ? `<tspan fill="#505a5f"> + </tspan>` : '';
+            return `<tspan fill="${c}" font-weight="700">${p}</tspan>${sep}`;
+        }).join('');
+
+        rowsHtml += `<text x="-6" y="${y + 4}" text-anchor="end"
+            font-size="11" font-family="arial,sans-serif">${labelParts}</text>`;
+        rowsHtml += `<rect x="0" y="${y - 11}" width="${bw}" height="22"
+            fill="${primaryColor}" opacity="0.75" rx="2"/>`;
+        rowsHtml += `<text x="${parseFloat(bw) + 7}" y="${y + 4}" text-anchor="start"
+            font-size="12" font-weight="700" fill="${primaryColor}"
+            font-family="arial,sans-serif">${prob}%</text>`;
+    });
+
+    container.innerHTML = `
+        <div class="pred-stat-panel">
+            <h3 class="govuk-heading-s govuk-!-margin-bottom-1">Coalition probability</h3>
+            <p class="govuk-body-s govuk-!-colour-secondary govuk-!-margin-bottom-3">
+                % of ${summary.iterations.toLocaleString()} simulations each 2- or 3-party combination
+                reaches 151 seats. Combinations with &lt;5% omitted.
+                Does not imply political feasibility.
+            </p>
+            <svg width="100%" viewBox="0 0 ${W} ${H}"
+                 style="display:block;overflow:visible;"
+                 aria-label="Coalition probability chart">
+                <g transform="translate(${padLeft},${padTop})">
+                    ${rowsHtml}
+                </g>
+            </svg>
         </div>`;
 }

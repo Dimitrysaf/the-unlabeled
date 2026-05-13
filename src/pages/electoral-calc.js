@@ -14,12 +14,13 @@ import {
     getHorizonDaysFromRows, getMomentumHorizonScale, getReversionHorizonScale,
     getAutoMomentumPercent, getAutoReversionPercent,
     filterPollsByDateWindow, parseCSV,
-    randomNormal, getLargestParty, summariseSimulation,
+    randomNormal, getLargestParty, summariseSimulation, getCombinations,
 } from './electoral-calc/model.js';
-import { createPollsChart } from './electoral-calc/chart.js';
+import { createPollsChart, createLoessTrendChart } from './electoral-calc/chart.js';
 import {
     renderParliament, renderCoalitions, renderPredictionCards,
     renderPredictionStats, renderUncertaintySummary, renderHouseEffectsTable,
+    renderSeatRangeChart, renderWinProbabilityChart, renderCoalitionProbabilityChart,
 } from './electoral-calc/render.js';
 
 // ── Module-level state (populated by loadPolls → initPredictions) ─────────
@@ -41,7 +42,6 @@ export function getCalcHTML() {
         { c: '#0097a7' },
     ].map(p => `<span class="ec-skeleton__legend-item" style="--c:${p.c}"></span>`).join('');
 
-    // Static ghost lines shown while data loads.
     const fakeLines = [
         { pts: '0,215 60,190 130,170 200,182 280,145 360,130 440,138 520,115 620,105 720,98 824,88', c: '#1d4e89', o: 0.22 },
         { pts: '0,148 60,155 130,140 200,152 280,158 360,145 440,150 520,143 620,148 720,140 824,145', c: '#00a14b', o: 0.18 },
@@ -64,7 +64,8 @@ export function getCalcHTML() {
         <div class="govuk-grid-row govuk-!-margin-top-4">
             <div class="govuk-grid-column-full">
                 <h2 class="govuk-heading-m">Polling trends</h2>
-                <div class="chart-wrapper" id="pollsChart"></div>
+                <!-- Primary LOESS scatter + trend chart — populated after data loads -->
+                <div id="loessChart"></div>
             </div>
         </div>
 
@@ -115,6 +116,8 @@ export function getCalcHTML() {
                 </button>
             </div>
             <div id="polls-table-body" hidden>
+                <!-- Secondary zoom/pan chart lives inside the collapsible section -->
+                <div class="chart-wrapper govuk-!-margin-bottom-4" id="pollsChart"></div>
                 <div class="table-scroll">
                     <table class="govuk-table govuk-table--small-text-until-tablet table-auto-layout">
                         <thead class="govuk-table__head" id="polls-thead"></thead>
@@ -140,7 +143,7 @@ export function getCalcHTML() {
             <p class="govuk-body govuk-!-colour-secondary">
                 Multi-variable model: weighted polling average, house effects,
                 momentum, mean reversion, threshold risk and historical bias correction.
-                Polls are <strong>Vote Estimate</strong> — abstention is already removed
+                Polls are <strong>Εκτίμηση Ψήφου</strong> — abstention is already removed
                 by pollsters. Only residual election-day dropout is applied here.
             </p>
 
@@ -156,8 +159,8 @@ export function getCalcHTML() {
                         <input class="govuk-range" type="range" id="dropout-slider"
                             min="0" max="15" value="5" step="1">
                         <div class="govuk-hint">
-                            Voters who indicate they will vote but do not show up on election day.
-                            Polls are already Vote Estimate — abstention is baked in.
+                            Voters who say they will vote but do not show up on election day.
+                            Polls are already Εκτίμηση Ψήφου — abstention is baked in.
                             Typical range: 2–8%.
                         </div>
                     </div>
@@ -329,8 +332,18 @@ export function getCalcHTML() {
             <div class="prediction-cards" id="prediction-cards"></div>
             <div id="prediction-uncertainty"></div>
 
+            <!-- Seat range and win probability charts -->
+            <div id="seat-range-chart"></div>
+            <div id="win-probability-chart"></div>
+
+            <!-- Parliament hemicycle and coalition text analysis -->
             <div id="parliament-container" style="display:none;"></div>
             <div id="coalition-container" style="display:none;"></div>
+
+            <!-- Coalition probability simulation chart -->
+            <div id="coalition-probability-chart"></div>
+
+            <!-- Forecast vs poll average bars -->
             <div id="prediction-stats"></div>
 
             <details class="govuk-details govuk-!-margin-top-6">
@@ -340,18 +353,18 @@ export function getCalcHTML() {
                 <div class="govuk-details__text">
                     <h3 class="govuk-heading-s">Poll data</h3>
                     <p class="govuk-body-s">
-                        The CSV uses <strong>Vote Estimate</strong> figures — pollsters have already
+                        The CSV uses <strong>Εκτίμηση Ψήφου</strong> figures — pollsters have already
                         excluded undecided and absent respondents. Party shares sum to approximately
                         100% among decided, likely voters. Applying a standard abstention rate on top
                         of these figures would double-count abstention. Only a small residual
-                        <em>election-day dropout</em> adjustment (0–15%) is applied.
+                        <em>election-day dropout</em> adjustment (0–15%) is applied here.
                     </p>
                     <h3 class="govuk-heading-s">Model variables</h3>
                     <ul class="govuk-list govuk-list--bullet govuk-body-s">
                         <li><strong>Recency weighting:</strong> More recent polls receive up to 2× weight.</li>
                         <li><strong>Sample size weighting:</strong> Each poll weighted by √n of its sample size.</li>
                         <li><strong>House effects:</strong> Per-firm systematic deviation from the cross-firm mean, subtracted at poll level. Requires ≥3 polls per firm.</li>
-                        <li><strong>ND historical bias:</strong> ND's average underestimation in polls vs. actual election results across past elections.</li>
+                        <li><strong>ND historical bias:</strong> ND's average underestimation in the 10 most recent polls before each past election vs. the actual result.</li>
                         <li><strong>Election-day dropout:</strong> A small penalty (default 5%) for voters who indicate they will vote but ultimately do not show up. Applied as: dropout × (0.5 + 0.5 × volatility) per party.</li>
                         <li><strong>Momentum:</strong> Linear regression slope over the selected poll window, scaled by the momentum factor.</li>
                         <li><strong>Trend acceleration:</strong> Comparison of recent vs. earlier momentum, shown as an indicator on each forecast card.</li>
@@ -424,7 +437,11 @@ function loadPolls() {
                     }).join('')}</tr>`;
                 }).join('');
 
+            // Primary LOESS trend chart
+            createLoessTrendChart(headers, rows);
+            // Secondary zoom/pan chart (inside collapsible section)
             createPollsChart(headers, rows);
+
             initPredictions(headers, rows);
 
             document.getElementById('polls-loading').style.display = 'none';
@@ -490,13 +507,10 @@ function initPredictions(headers, rows) {
         });
     });
 
-    const resetBtn = document.getElementById('reset-defaults-btn');
-    if (resetBtn) {
-        resetBtn.addEventListener('click', () => {
-            applyForecastDefaults();
-            renderPrediction();
-        });
-    }
+    document.getElementById('reset-defaults-btn')?.addEventListener('click', () => {
+        applyForecastDefaults();
+        renderPrediction();
+    });
 
     renderPrediction();
 }
@@ -508,13 +522,13 @@ function applyForecastDefaults() {
     const sampleWeight = document.getElementById('sample-weight-checkbox');
     const ndCorrection = document.getElementById('nd-correction-checkbox');
     const houseEffects = document.getElementById('house-effects-checkbox');
-    const leadCompression = document.getElementById('lead-compression-checkbox');
-    const thresholdRisk = document.getElementById('threshold-risk-checkbox');
+    const leadCompress = document.getElementById('lead-compression-checkbox');
+    const threshRisk = document.getElementById('threshold-risk-checkbox');
     const momentum = document.getElementById('momentum-slider');
     const reversion = document.getElementById('reversion-slider');
 
-    if (!dropout || !pollBase || !electionDate || !sampleWeight || !ndCorrection || !houseEffects ||
-        !leadCompression || !thresholdRisk || !momentum || !reversion) return;
+    if (!dropout || !pollBase || !electionDate || !sampleWeight || !ndCorrection ||
+        !houseEffects || !leadCompress || !threshRisk || !momentum || !reversion) return;
 
     dropout.value = String(forecastDefaults.dropoutPct);
     pollBase.value = forecastDefaults.pollBase;
@@ -522,8 +536,8 @@ function applyForecastDefaults() {
     sampleWeight.checked = forecastDefaults.useSampleWeight;
     ndCorrection.checked = forecastDefaults.useNDCorrection;
     houseEffects.checked = forecastDefaults.useHouseEffects;
-    leadCompression.checked = forecastDefaults.useLeadCompression;
-    thresholdRisk.checked = forecastDefaults.useThresholdRisk;
+    leadCompress.checked = forecastDefaults.useLeadCompression;
+    threshRisk.checked = forecastDefaults.useThresholdRisk;
     momentum.value = String(forecastDefaults.momentumPct);
     reversion.value = String(forecastDefaults.reversionPct);
 
@@ -535,6 +549,8 @@ function applyForecastDefaults() {
 // ── Forecast engine ───────────────────────────────────────────────────────
 
 function renderPrediction() {
+    // Polls are Εκτίμηση Ψήφου — abstention already removed by pollsters.
+    // This slider is only residual election-day dropout (0–15%).
     const dropoutRate = parseInt(document.getElementById('dropout-slider').value) / 100;
     const pollsCountVal = document.getElementById('polls-count-select').value;
     const useNDCorrection = document.getElementById('nd-correction-checkbox').checked;
@@ -575,28 +591,19 @@ function renderPrediction() {
 
     const horizonHint = document.getElementById('election-horizon-hint');
     if (horizonHint) {
-        if (hasElectionDate) {
-            horizonHint.textContent = `Projection horizon: ${Math.max(0, horizonDays)} day${Math.abs(horizonDays) === 1 ? '' : 's'} from latest poll midpoint. Momentum ${autoMomentumPct}% and mean reversion ${autoReversionPct}% are auto-set.`;
-        } else {
-            horizonHint.textContent = 'Projection horizon is measured from the latest poll midpoint date.';
-        }
+        horizonHint.textContent = hasElectionDate
+            ? `Projection horizon: ${Math.max(0, horizonDays)} day${Math.abs(horizonDays) === 1 ? '' : 's'} from latest poll midpoint. Momentum ${autoMomentumPct}% and mean reversion ${autoReversionPct}% are auto-set.`
+            : 'Projection horizon is measured from the latest poll midpoint date.';
     }
 
     const momentum = computeMomentum(recentPolls, _partyIndices, total);
     const acceleration = computeTrendAcceleration(recentPolls, _partyIndices, total);
 
     const options = {
-        dropoutRate,
-        useNDCorrection,
-        useSampleWeight,
-        useHouseEffects,
-        useLeadCompress,
-        useThresholdRisk,
-        momentumFactor,
-        reversionFactor,
-        momentumHorizonScale,
-        reversionHorizonScale,
-        horizonDays,
+        dropoutRate, useNDCorrection, useSampleWeight, useHouseEffects,
+        useLeadCompress, useThresholdRisk,
+        momentumFactor, reversionFactor,
+        momentumHorizonScale, reversionHorizonScale, horizonDays,
     };
 
     const forecast = getForecastOutcome(recentPolls, options);
@@ -608,25 +615,23 @@ function renderPrediction() {
     const summary = summariseSimulation(simulation);
 
     const confidenceScores = computeConfidenceScores(predicted, _volatility, total, Math.max(0, horizonDays));
+
     renderPredictionCards(predicted, rawBase, seats, momentum, acceleration, confidenceScores, total, summary, _volatility);
-    renderPredictionStats(predicted, rawBase);
+    renderUncertaintySummary(summary);
+    renderSeatRangeChart(summary);
+    renderWinProbabilityChart(summary);
     renderParliament(seats);
     renderCoalitions(seats);
-    renderUncertaintySummary(summary);
+    renderCoalitionProbabilityChart(summary);
+    renderPredictionStats(predicted, rawBase);
 }
 
 function getForecastOutcome(recentPolls, options) {
     const {
-        dropoutRate,
-        useNDCorrection,
-        useSampleWeight,
-        useHouseEffects,
-        useLeadCompress,
-        useThresholdRisk,
-        momentumFactor,
-        reversionFactor,
-        momentumHorizonScale,
-        reversionHorizonScale,
+        dropoutRate, useNDCorrection, useSampleWeight, useHouseEffects,
+        useLeadCompress, useThresholdRisk,
+        momentumFactor, reversionFactor,
+        momentumHorizonScale, reversionHorizonScale,
     } = options;
 
     const total = recentPolls.length;
@@ -690,6 +695,8 @@ function getForecastOutcome(recentPolls, options) {
         }
     }
 
+    // Residual election-day dropout — polls are Εκτίμηση Ψήφου so this is
+    // only the small fraction of stated voters who don't show up on the day.
     const afterDropout = {};
     for (const [party, b] of Object.entries(base)) {
         const vol = _volatility[party] || 0;
@@ -697,6 +704,7 @@ function getForecastOutcome(recentPolls, options) {
         afterDropout[party] = Math.max(0, b - penalty);
     }
 
+    // Re-normalise so shares sum to 100%
     const sumAfter = Object.values(afterDropout).reduce((a, b) => a + b, 0);
     let predicted = {};
     for (const p of Object.keys(afterDropout)) {
@@ -714,6 +722,7 @@ function runSimulation(recentPolls, options, iterations = 1000) {
     const partySeatResults = {};
     const partyVoteResults = {};
     const winnerCounts = {};
+    const coalitionCounts = {};
     let majorityCount = 0;
 
     parties.forEach(party => {
@@ -729,15 +738,27 @@ function runSimulation(recentPolls, options, iterations = 1000) {
         const hasMajority = Object.values(forecast.seats).some(s => s >= 151);
 
         if (winner) winnerCounts[winner] = (winnerCounts[winner] || 0) + 1;
-        if (hasMajority) majorityCount += 1;
+        if (hasMajority) majorityCount++;
 
         parties.forEach(party => {
             partySeatResults[party].push(forecast.seats[party] || 0);
             partyVoteResults[party].push(forecast.predicted[party] || 0);
         });
+
+        // Track coalition success rates (2- and 3-party combinations)
+        const seatedParties = Object.entries(forecast.seats).filter(([, s]) => s > 0);
+        for (let size = 2; size <= 3; size++) {
+            for (const combo of getCombinations(seatedParties, size)) {
+                const total = combo.reduce((s, [, c]) => s + c, 0);
+                if (total >= 151) {
+                    const key = combo.map(([p]) => p).sort().join('+');
+                    coalitionCounts[key] = (coalitionCounts[key] || 0) + 1;
+                }
+            }
+        }
     }
 
-    return { iterations, winnerCounts, majorityCount, partySeatResults, partyVoteResults };
+    return { iterations, winnerCounts, majorityCount, partySeatResults, partyVoteResults, coalitionCounts };
 }
 
 function addNoiseToPolls(pollRows) {
