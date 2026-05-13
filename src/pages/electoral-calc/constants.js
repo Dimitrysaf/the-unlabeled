@@ -32,7 +32,7 @@ export const currentParliamentSeats = {
 };
 
 export const forecastDefaults = {
-    abstentionPct: 35,
+    dropoutPct: 5,
     pollBase: '180d',
     electionDate: '2027-05-05',
     useSampleWeight: true,

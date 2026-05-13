@@ -160,7 +160,7 @@ export function computeNDBias(electionRows, pollRows, partyIndices, party) {
                 const pollDate = parsePollDate(r[3]);
                 return pollDate && pollDate <= electionDate;
             })
-            .slice(-10);
+            .slice(0, 10);
         if (!priorPolls.length) continue;
         const avg = priorPolls.reduce((sum, r) => sum + (parseFloat(r[idx]) || 0), 0) / priorPolls.length;
         biases.push(result - avg);

@@ -138,22 +138,28 @@ export function getCalcHTML() {
             <hr class="section-rule">
             <h2 class="govuk-heading-l">2027 election forecast</h2>
             <p class="govuk-body govuk-!-colour-secondary">
-                Multi-variable model: weighted polling average, abstention, house effects,
+                Multi-variable model: weighted polling average, house effects,
                 momentum, mean reversion, threshold risk and historical bias correction.
+                Polls are <strong>Vote Estimate</strong> — abstention is already removed
+                by pollsters. Only residual election-day dropout is applied here.
             </p>
 
             <div class="ec-controls-grid">
 
                 <div class="ec-control-group">
-                    <h3 class="govuk-heading-s ec-control-group__title">Turnout &amp; base</h3>
+                    <h3 class="govuk-heading-s ec-control-group__title">Poll base &amp; horizon</h3>
 
                     <div class="govuk-form-group">
-                        <label class="govuk-label govuk-label--s" for="abstention-slider">
-                            Abstention rate: <strong id="abstention-value">35</strong>%
+                        <label class="govuk-label govuk-label--s" for="dropout-slider">
+                            Election-day dropout: <strong id="dropout-value">5</strong>%
                         </label>
-                        <input class="govuk-range" type="range" id="abstention-slider"
-                            min="0" max="100" value="35" step="1">
-                        <div class="govuk-hint">Expected non-voters on election day.</div>
+                        <input class="govuk-range" type="range" id="dropout-slider"
+                            min="0" max="15" value="5" step="1">
+                        <div class="govuk-hint">
+                            Voters who indicate they will vote but do not show up on election day.
+                            Polls are already Vote Estimate — abstention is baked in.
+                            Typical range: 2–8%.
+                        </div>
                     </div>
 
                     <div class="govuk-form-group">
@@ -332,13 +338,21 @@ export function getCalcHTML() {
                     <span class="govuk-details__summary-text">Methodology &amp; electoral law</span>
                 </summary>
                 <div class="govuk-details__text">
+                    <h3 class="govuk-heading-s">Poll data</h3>
+                    <p class="govuk-body-s">
+                        The CSV uses <strong>Vote Estimate</strong> figures — pollsters have already
+                        excluded undecided and absent respondents. Party shares sum to approximately
+                        100% among decided, likely voters. Applying a standard abstention rate on top
+                        of these figures would double-count abstention. Only a small residual
+                        <em>election-day dropout</em> adjustment (0–15%) is applied.
+                    </p>
                     <h3 class="govuk-heading-s">Model variables</h3>
                     <ul class="govuk-list govuk-list--bullet govuk-body-s">
                         <li><strong>Recency weighting:</strong> More recent polls receive up to 2× weight.</li>
                         <li><strong>Sample size weighting:</strong> Each poll weighted by √n of its sample size.</li>
                         <li><strong>House effects:</strong> Per-firm systematic deviation from the cross-firm mean, subtracted at poll level. Requires ≥3 polls per firm.</li>
                         <li><strong>ND historical bias:</strong> ND's average underestimation in polls vs. actual election results across past elections.</li>
-                        <li><strong>Abstention penalty:</strong> abstention × (0.5 + 0.5 × volatility) applied per party.</li>
+                        <li><strong>Election-day dropout:</strong> A small penalty (default 5%) for voters who indicate they will vote but ultimately do not show up. Applied as: dropout × (0.5 + 0.5 × volatility) per party.</li>
                         <li><strong>Momentum:</strong> Linear regression slope over the selected poll window, scaled by the momentum factor.</li>
                         <li><strong>Trend acceleration:</strong> Comparison of recent vs. earlier momentum, shown as an indicator on each forecast card.</li>
                         <li><strong>Mean reversion:</strong> Partial pull toward each party's long-run polling average.</li>
@@ -461,7 +475,7 @@ function initPredictions(headers, rows) {
     renderHouseEffectsTable(_houseEffects, _partyIndices);
 
     const controls = [
-        'abstention-slider', 'polls-count-select', 'nd-correction-checkbox',
+        'dropout-slider', 'polls-count-select', 'nd-correction-checkbox',
         'sample-weight-checkbox', 'house-effects-checkbox', 'lead-compression-checkbox',
         'threshold-risk-checkbox', 'momentum-slider', 'reversion-slider', 'election-date-picker',
     ];
@@ -469,7 +483,7 @@ function initPredictions(headers, rows) {
         const el = document.getElementById(id);
         const evt = el.type === 'range' ? 'input' : 'change';
         el.addEventListener(evt, () => {
-            if (id === 'abstention-slider') document.getElementById('abstention-value').textContent = el.value;
+            if (id === 'dropout-slider') document.getElementById('dropout-value').textContent = el.value;
             if (id === 'momentum-slider') document.getElementById('momentum-value').textContent = el.value;
             if (id === 'reversion-slider') document.getElementById('reversion-value').textContent = el.value;
             renderPrediction();
@@ -488,7 +502,7 @@ function initPredictions(headers, rows) {
 }
 
 function applyForecastDefaults() {
-    const abstention = document.getElementById('abstention-slider');
+    const dropout = document.getElementById('dropout-slider');
     const pollBase = document.getElementById('polls-count-select');
     const electionDate = document.getElementById('election-date-picker');
     const sampleWeight = document.getElementById('sample-weight-checkbox');
@@ -499,10 +513,10 @@ function applyForecastDefaults() {
     const momentum = document.getElementById('momentum-slider');
     const reversion = document.getElementById('reversion-slider');
 
-    if (!abstention || !pollBase || !electionDate || !sampleWeight || !ndCorrection || !houseEffects ||
+    if (!dropout || !pollBase || !electionDate || !sampleWeight || !ndCorrection || !houseEffects ||
         !leadCompression || !thresholdRisk || !momentum || !reversion) return;
 
-    abstention.value = String(forecastDefaults.abstentionPct);
+    dropout.value = String(forecastDefaults.dropoutPct);
     pollBase.value = forecastDefaults.pollBase;
     electionDate.value = forecastDefaults.electionDate;
     sampleWeight.checked = forecastDefaults.useSampleWeight;
@@ -513,7 +527,7 @@ function applyForecastDefaults() {
     momentum.value = String(forecastDefaults.momentumPct);
     reversion.value = String(forecastDefaults.reversionPct);
 
-    document.getElementById('abstention-value').textContent = String(forecastDefaults.abstentionPct);
+    document.getElementById('dropout-value').textContent = String(forecastDefaults.dropoutPct);
     document.getElementById('momentum-value').textContent = String(forecastDefaults.momentumPct);
     document.getElementById('reversion-value').textContent = String(forecastDefaults.reversionPct);
 }
@@ -521,7 +535,7 @@ function applyForecastDefaults() {
 // ── Forecast engine ───────────────────────────────────────────────────────
 
 function renderPrediction() {
-    const abstentionRate = parseInt(document.getElementById('abstention-slider').value) / 100;
+    const dropoutRate = parseInt(document.getElementById('dropout-slider').value) / 100;
     const pollsCountVal = document.getElementById('polls-count-select').value;
     const useNDCorrection = document.getElementById('nd-correction-checkbox').checked;
     const useSampleWeight = document.getElementById('sample-weight-checkbox').checked;
@@ -572,7 +586,7 @@ function renderPrediction() {
     const acceleration = computeTrendAcceleration(recentPolls, _partyIndices, total);
 
     const options = {
-        abstentionRate,
+        dropoutRate,
         useNDCorrection,
         useSampleWeight,
         useHouseEffects,
@@ -602,7 +616,19 @@ function renderPrediction() {
 }
 
 function getForecastOutcome(recentPolls, options) {
-    const { abstentionRate, useNDCorrection, useSampleWeight, useHouseEffects, useLeadCompress, useThresholdRisk, momentumFactor, reversionFactor, momentumHorizonScale, reversionHorizonScale } = options;
+    const {
+        dropoutRate,
+        useNDCorrection,
+        useSampleWeight,
+        useHouseEffects,
+        useLeadCompress,
+        useThresholdRisk,
+        momentumFactor,
+        reversionFactor,
+        momentumHorizonScale,
+        reversionHorizonScale,
+    } = options;
+
     const total = recentPolls.length;
     const momentum = computeMomentum(recentPolls, _partyIndices, total);
 
@@ -664,17 +690,17 @@ function getForecastOutcome(recentPolls, options) {
         }
     }
 
-    const afterAbstention = {};
+    const afterDropout = {};
     for (const [party, b] of Object.entries(base)) {
         const vol = _volatility[party] || 0;
-        const penalty = abstentionRate * (0.5 + 0.5 * vol) * b;
-        afterAbstention[party] = Math.max(0, b - penalty);
+        const penalty = dropoutRate * (0.5 + 0.5 * vol) * b;
+        afterDropout[party] = Math.max(0, b - penalty);
     }
 
-    const sumAfter = Object.values(afterAbstention).reduce((a, b) => a + b, 0);
+    const sumAfter = Object.values(afterDropout).reduce((a, b) => a + b, 0);
     let predicted = {};
-    for (const p of Object.keys(afterAbstention)) {
-        predicted[p] = sumAfter > 0 ? (afterAbstention[p] / sumAfter) * 100 : 0;
+    for (const p of Object.keys(afterDropout)) {
+        predicted[p] = sumAfter > 0 ? (afterDropout[p] / sumAfter) * 100 : 0;
     }
 
     if (useThresholdRisk) predicted = applyThresholdRisk(predicted, _volatility);
