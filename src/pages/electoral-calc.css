@@ -242,7 +242,7 @@
 
 .pred-stat-bar {
   height: 10px;
-  border-radius: 1px;
+  border-radius: 0;
   min-width: 2px;
 }
 
@@ -270,6 +270,56 @@
 .pred-stat-delta {
   font-size: 0.75rem;
   font-weight: 700;
+}
+
+/* ── Seat range CSS chart ── */
+.pred-stat-row--wide {
+  grid-template-columns: auto 1fr auto;
+}
+
+.seat-range-bar-wrap {
+  position: relative;
+  height: 16px;
+  background: #f3f2f1;
+}
+
+.seat-range-fill {
+  position: absolute;
+  top: 0;
+  height: 100%;
+  opacity: 0.22;
+}
+
+.seat-range-median {
+  position: absolute;
+  top: -2px;
+  bottom: -2px;
+  width: 3px;
+  transform: translateX(-50%);
+}
+
+.seat-range-majority {
+  position: absolute;
+  top: -3px;
+  bottom: -3px;
+  border-left: 2px dashed #d4351c;
+}
+
+.seat-range-current {
+  position: absolute;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 11px;
+  line-height: 1;
+}
+
+/* ── LOESS chart panel ── */
+#loessChart {
+  background: #fff;
+  border: 1px solid var(--c-border);
+  padding: 1rem 1.25rem 0.5rem;
+  margin-bottom: 1.5rem;
+  overflow: visible;
 }
 
 /* ── Text colour utilities ── */
@@ -771,7 +821,7 @@ label:has(strong + .govuk-range:disabled) {
   width: 18px;
   height: 2.5px;
   background: var(--c, var(--c-black));
-  border-radius: 1px;
+  border-radius: 0;
   flex-shrink: 0;
   transition: opacity 0.15s ease;
 }

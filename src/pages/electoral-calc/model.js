@@ -205,24 +205,12 @@ export function computeConfidenceScores(predicted, volatility, sampleCount, hori
     return result;
 }
 
-// ── LOESS (locally weighted regression) ──────────────────────────────────
-
-/**
- * Fits a LOESS smooth to (xArr, yArr) and returns smoothed y values at each x.
- *
- * xArr and yArr must be the same length. x values should be sorted or at least
- * representative of the data range — normalising to [0, 1] works well.
- *
- * bandwidth = fraction of the data used for each local regression.
- * 0.3 produces a smooth trend similar to the Wikipedia polling chart.
- */
 export function loess(xArr, yArr, bandwidth = 0.3) {
     const n = xArr.length;
     if (n < 3) return [...yArr];
     const win = Math.max(3, Math.floor(n * bandwidth));
 
     return xArr.map(x0 => {
-        // Find the `win` nearest neighbours by x distance
         const dists = xArr
             .map((x, j) => [Math.abs(x - x0), j])
             .sort((a, b) => a[0] - b[0])
@@ -230,7 +218,6 @@ export function loess(xArr, yArr, bandwidth = 0.3) {
 
         const hMax = dists[dists.length - 1][0] || 1;
 
-        // Tricubic kernel: w = (1 − (d/hMax)³)³
         let sw = 0, swx = 0, swy = 0, swxx = 0, swxy = 0;
         for (const [d, j] of dists) {
             const u = d / hMax;
@@ -240,7 +227,6 @@ export function loess(xArr, yArr, bandwidth = 0.3) {
             swxx += w * xi * xi; swxy += w * xi * yi;
         }
 
-        // Weighted linear regression: ŷ = b0 + b1·x
         const det = sw * swxx - swx * swx;
         if (Math.abs(det) < 1e-10) return swy / (sw || 1);
         const b1 = (sw * swxy - swx * swy) / det;

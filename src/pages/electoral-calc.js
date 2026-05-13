@@ -1,5 +1,3 @@
-// src/pages/electoral-calc.js
-// Entry point and orchestration layer. Imports pure logic from sub-modules.
 import { updateContent } from '../components/Layout.js';
 import './electoral-calc.css';
 import './electoral-calc.mobile.css';
@@ -23,12 +21,8 @@ import {
     renderSeatRangeChart, renderWinProbabilityChart, renderCoalitionProbabilityChart,
 } from './electoral-calc/render.js';
 
-// ── Module-level state (populated by loadPolls → initPredictions) ─────────
-
 let _pollRows = [], _partyIndices = {}, _volatility = {}, _ndBias = 0;
 let _houseEffects = {}, _longRunAvg = {};
-
-// ── HTML template ─────────────────────────────────────────────────────────
 
 export function getCalcHTML() {
     const skeletonLegend = [
@@ -64,8 +58,7 @@ export function getCalcHTML() {
         <div class="govuk-grid-row govuk-!-margin-top-4">
             <div class="govuk-grid-column-full">
                 <h2 class="govuk-heading-m">Polling trends</h2>
-                <!-- Primary LOESS scatter + trend chart — populated after data loads -->
-                <div id="loessChart"></div>
+                    <div id="loessChart"></div>
             </div>
         </div>
 
@@ -116,7 +109,6 @@ export function getCalcHTML() {
                 </button>
             </div>
             <div id="polls-table-body" hidden>
-                <!-- Secondary zoom/pan chart lives inside the collapsible section -->
                 <div class="chart-wrapper govuk-!-margin-bottom-4" id="pollsChart"></div>
                 <div class="table-scroll">
                     <table class="govuk-table govuk-table--small-text-until-tablet table-auto-layout">
@@ -332,18 +324,11 @@ export function getCalcHTML() {
             <div class="prediction-cards" id="prediction-cards"></div>
             <div id="prediction-uncertainty"></div>
 
-            <!-- Seat range and win probability charts -->
             <div id="seat-range-chart"></div>
             <div id="win-probability-chart"></div>
-
-            <!-- Parliament hemicycle and coalition text analysis -->
             <div id="parliament-container" style="display:none;"></div>
             <div id="coalition-container" style="display:none;"></div>
-
-            <!-- Coalition probability simulation chart -->
             <div id="coalition-probability-chart"></div>
-
-            <!-- Forecast vs poll average bars -->
             <div id="prediction-stats"></div>
 
             <details class="govuk-details govuk-!-margin-top-6">
@@ -384,9 +369,6 @@ export function getCalcHTML() {
     `;
 }
 
-// ── Init ──────────────────────────────────────────────────────────────────
-
-/** Attaches events and kicks off data load — call after HTML is in the DOM. */
 export function initCalc() {
     loadPolls();
     document.getElementById('download-btn').addEventListener('click', () => {
@@ -394,7 +376,6 @@ export function initCalc() {
     });
 }
 
-/** Renders the full page for the standalone /electoral-calc route. */
 export function renderElectoralCalc() {
     updateContent(`
         <div class="govuk-!-padding-top-2 govuk-!-padding-bottom-9">
@@ -411,8 +392,6 @@ export function renderElectoralCalc() {
     `);
     initCalc();
 }
-
-// ── Data loading ──────────────────────────────────────────────────────────
 
 function loadPolls() {
     fetch('/polls.csv')
@@ -437,9 +416,7 @@ function loadPolls() {
                     }).join('')}</tr>`;
                 }).join('');
 
-            // Primary LOESS trend chart
             createLoessTrendChart(headers, rows);
-            // Secondary zoom/pan chart (inside collapsible section)
             createPollsChart(headers, rows);
 
             initPredictions(headers, rows);
@@ -467,8 +444,6 @@ function loadPolls() {
                 </div></div>`;
         });
 }
-
-// ── Predictions init ──────────────────────────────────────────────────────
 
 function initPredictions(headers, rows) {
     _partyIndices = headers.reduce((acc, h, i) => {
@@ -546,11 +521,7 @@ function applyForecastDefaults() {
     document.getElementById('reversion-value').textContent = String(forecastDefaults.reversionPct);
 }
 
-// ── Forecast engine ───────────────────────────────────────────────────────
-
 function renderPrediction() {
-    // Polls are Εκτίμηση Ψήφου — abstention already removed by pollsters.
-    // This slider is only residual election-day dropout (0–15%).
     const dropoutRate = parseInt(document.getElementById('dropout-slider').value) / 100;
     const pollsCountVal = document.getElementById('polls-count-select').value;
     const useNDCorrection = document.getElementById('nd-correction-checkbox').checked;
@@ -695,8 +666,6 @@ function getForecastOutcome(recentPolls, options) {
         }
     }
 
-    // Residual election-day dropout — polls are Εκτίμηση Ψήφου so this is
-    // only the small fraction of stated voters who don't show up on the day.
     const afterDropout = {};
     for (const [party, b] of Object.entries(base)) {
         const vol = _volatility[party] || 0;
@@ -704,7 +673,6 @@ function getForecastOutcome(recentPolls, options) {
         afterDropout[party] = Math.max(0, b - penalty);
     }
 
-    // Re-normalise so shares sum to 100%
     const sumAfter = Object.values(afterDropout).reduce((a, b) => a + b, 0);
     let predicted = {};
     for (const p of Object.keys(afterDropout)) {
@@ -745,7 +713,6 @@ function runSimulation(recentPolls, options, iterations = 1000) {
             partyVoteResults[party].push(forecast.predicted[party] || 0);
         });
 
-        // Track coalition success rates (2- and 3-party combinations)
         const seatedParties = Object.entries(forecast.seats).filter(([, s]) => s > 0);
         for (let size = 2; size <= 3; size++) {
             for (const combo of getCombinations(seatedParties, size)) {

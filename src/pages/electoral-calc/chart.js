@@ -1,16 +1,6 @@
-// src/pages/electoral-calc/chart.js
 import { partyColors } from './constants.js';
 import { loess, parsePollDate } from './model.js';
 
-// ── LOESS Trend Chart ─────────────────────────────────────────────────────
-
-/**
- * Renders a scatter + LOESS trend-line chart into #loessChart.
- *
- * Each dot represents one poll's reported percentage for a party.
- * The smooth line is a locally-weighted regression (LOESS) fitted to those dots.
- * A dashed red horizontal line marks the 3% parliamentary threshold.
- */
 export function createLoessTrendChart(headers, rows) {
     const container = document.getElementById('loessChart');
     if (!container) return;
@@ -22,7 +12,6 @@ export function createLoessTrendChart(headers, rows) {
         return acc;
     }, []);
 
-    // Parse dates and sort chronologically
     const pollData = pollRows
         .map(row => ({ row, date: parsePollDate(row[3]), dateStr: row[3] }))
         .filter(p => p.date)
@@ -34,10 +23,8 @@ export function createLoessTrendChart(headers, rows) {
     const maxDate = pollData[pollData.length - 1].date.getTime();
     const dateRange = maxDate - minDate || 1;
 
-    // Normalised x positions (0–1) based on actual poll date
     const xNorm = pollData.map(d => (d.date.getTime() - minDate) / dateRange);
 
-    // Keep only parties averaging >= 2% in recent polls, sorted by recent avg desc
     const activeDefs = partyDefs
         .map(p => {
             const recent = pollData.slice(-30)
@@ -49,27 +36,24 @@ export function createLoessTrendChart(headers, rows) {
         .filter(p => p.avg >= 2)
         .sort((a, b) => b.avg - a.avg);
 
-    // Compute LOESS once per party — do not recompute on legend toggle
+    // LOESS fitted once per party — legend toggles skip re-fitting
     const series = activeDefs.map(p => {
         const vals = pollData.map(d => {
             const v = parseFloat(d.row[p.idx]);
             return isNaN(v) || v <= 0 ? null : v;
         });
 
-        // Run LOESS only on non-null data points
         const validIdx = vals.reduce((acc, v, i) => { if (v !== null) acc.push(i); return acc; }, []);
         const xs = validIdx.map(i => xNorm[i]);
         const ys = validIdx.map(i => vals[i]);
-        const smoothed = loess(xs, ys, 0.3);
+        const smoothed = loess(xs, ys, 0.2);
 
-        // Map smoothed values back to the full-length array
         const trendVals = new Array(pollData.length).fill(null);
         validIdx.forEach((origI, j) => { trendVals[origI] = smoothed[j]; });
 
         return { ...p, vals, trendVals };
     });
 
-    // ── Fixed SVG geometry ────────────────────────────────────────────────
     const W = 880, H = 320;
     const ml = 44, mr = 28, mt = 12, mb = 64;
     const pw = W - ml - mr, ph = H - mt - mb;
@@ -80,7 +64,6 @@ export function createLoessTrendChart(headers, rows) {
     const allVals = series.flatMap(s => s.vals.filter(v => v !== null));
     const maxY = Math.ceil((allVals.length ? Math.max(...allVals) : 40) / 5) * 5;
 
-    // Grid lines and Y-axis labels (built once)
     let gridHtml = '';
     for (let v = 0; v <= maxY; v += 5) {
         const y = ySvg(v, maxY);
@@ -97,7 +80,6 @@ export function createLoessTrendChart(headers, rows) {
     gridHtml += `<text x="${pw + 4}" y="${(parseFloat(ySvg(3, maxY)) + 4).toFixed(1)}"
         font-size="10" fill="#d4351c" font-family="arial,sans-serif" font-weight="700">3%</text>`;
 
-    // X-axis date labels (built once)
     let xLabelHtml = '';
     const labelCount = Math.min(9, pollData.length);
     for (let i = 0; i < labelCount; i++) {
@@ -107,7 +89,6 @@ export function createLoessTrendChart(headers, rows) {
             font-size="11" fill="#505a5f" font-family="arial,sans-serif">${pollData[di].dateStr || ''}</text>`;
     }
 
-    // ── Mutable toggle state ──────────────────────────────────────────────
     const hiddenParties = new Set();
 
     function buildSeriesLayer() {
@@ -115,17 +96,13 @@ export function createLoessTrendChart(headers, rows) {
         for (const s of series) {
             if (hiddenParties.has(s.name)) continue;
 
-            // Scatter dots — one per poll
             pollData.forEach((_, i) => {
                 const v = s.vals[i];
                 if (v === null) return;
                 dots += `<circle cx="${xSvg(xNorm[i])}" cy="${ySvg(v, maxY)}"
-                    r="2.8" fill="${s.color}" opacity="0.4">
-                    <title>${s.name}: ${v.toFixed(1)}% · ${pollData[i].dateStr}</title>
-                </circle>`;
+                    r="2.8" fill="${s.color}" opacity="0.4"/>`;
             });
 
-            // LOESS trend line
             let path = '';
             pollData.forEach((_, i) => {
                 const tv = s.trendVals[i];
@@ -171,33 +148,85 @@ export function createLoessTrendChart(headers, rows) {
         renderLegend();
     }
 
-    // ── Initial render ────────────────────────────────────────────────────
     container.innerHTML = `
         <div class="polls-chart-legend" id="loess-legend"
              role="group" aria-label="Toggle parties on trend chart"></div>
-        <svg width="100%" viewBox="0 0 ${W} ${H}"
-             style="display:block;overflow:visible;"
-             aria-label="Polling trends: scatter dots with LOESS smoothing">
-            <g transform="translate(${ml},${mt})">
-                ${gridHtml}
-                <g id="loess-series-layer"></g>
-                ${xLabelHtml}
-            </g>
-        </svg>
+        <div style="position:relative;">
+            <svg id="loess-svg" width="100%" viewBox="0 0 ${W} ${H}"
+                 style="display:block;overflow:visible;"
+                 aria-label="Polling trends: scatter dots with LOESS smoothing">
+                <g transform="translate(${ml},${mt})">
+                    ${gridHtml}
+                    <g id="loess-series-layer"></g>
+                    ${xLabelHtml}
+                    <line id="loess-crosshair" x1="0" y1="0" x2="0" y2="${ph}"
+                          stroke="#0b0c0c" stroke-width="1" stroke-dasharray="4,3"
+                          opacity="0" pointer-events="none"/>
+                    <rect id="loess-hit" x="0" y="0" width="${pw}" height="${ph}"
+                          fill="transparent" style="cursor:crosshair;"/>
+                </g>
+            </svg>
+            <div id="loess-tooltip" style="display:none;position:absolute;background:#fff;
+                 border:1px solid #0b0c0c;padding:8px 12px;font-size:12px;
+                 font-family:arial,sans-serif;pointer-events:none;z-index:10;
+                 min-width:130px;box-shadow:2px 2px 0 #0b0c0c;"></div>
+        </div>
         <p class="govuk-body-s govuk-!-colour-secondary govuk-!-margin-top-1 govuk-!-margin-bottom-0">
-            Each dot = one poll. Smooth lines = local regression (LOESS, bandwidth 0.3). Red dashed = 3% threshold.
+            Each dot = one poll. Smooth lines = LOESS trend (bandwidth 0.2). Red dashed = 3% threshold.
         </p>
     `;
+
+    const svgEl = document.getElementById('loess-svg');
+    const xhair = document.getElementById('loess-crosshair');
+    const tip = document.getElementById('loess-tooltip');
+    const hit = document.getElementById('loess-hit');
+
+    hit.addEventListener('mousemove', e => {
+        const rect = svgEl.getBoundingClientRect();
+        const mouseX = (e.clientX - rect.left) * (W / rect.width) - ml;
+        const idx = Math.max(0, Math.min(pollData.length - 1, Math.round((mouseX / pw) * (pollData.length - 1))));
+        const cx = xSvg(xNorm[idx]);
+
+        xhair.setAttribute('x1', cx); xhair.setAttribute('x2', cx);
+        xhair.setAttribute('opacity', '0.5');
+
+        const visibleSeries = series.filter(s => !hiddenParties.has(s.name));
+        tip.innerHTML =
+            `<div style="font-weight:700;margin-bottom:4px;color:#0b0c0c;border-bottom:1px solid #b1b4b6;padding-bottom:4px;">${pollData[idx].dateStr}</div>` +
+            visibleSeries
+                .filter(s => s.vals[idx] !== null)
+                .map(s => {
+                    const v = s.vals[idx];
+                    return `<div style="display:flex;justify-content:space-between;gap:12px;margin-top:3px;">
+                        <span>
+                            <span style="display:inline-block;width:8px;height:8px;
+                                         background:${s.color};margin-right:4px;vertical-align:middle;"></span>
+                            ${s.name}
+                        </span>
+                        <strong style="color:${s.color}">${v != null ? v.toFixed(1) + '%' : '—'}</strong>
+                    </div>`;
+                }).join('');
+        tip.style.display = 'block';
+
+        const cRect = container.getBoundingClientRect();
+        let tx = e.clientX - cRect.left + 14;
+        let ty = e.clientY - cRect.top - 16;
+        if (tx + 160 > cRect.width) tx -= 172;
+        tip.style.left = tx + 'px';
+        tip.style.top = ty + 'px';
+    });
+
+    hit.addEventListener('mouseleave', () => {
+        xhair.setAttribute('opacity', '0');
+        tip.style.display = 'none';
+    });
 
     redraw();
 }
 
-// ── Zoom/Pan Raw Data Chart ───────────────────────────────────────────────
-
-/** Renders the raw polling-trends chart into #pollsChart with zoom, pan and party toggling. */
 export function createPollsChart(headers, rows) {
     const pollRows = rows.filter(r => !r[0].toLowerCase().includes('election'));
-    const pts = [...pollRows].reverse(); // oldest → newest
+    const pts = [...pollRows].reverse();
     const n = pts.length;
     if (!n) return;
 
@@ -213,12 +242,10 @@ export function createPollsChart(headers, rows) {
         return { name: p.name, color: partyColors[p.name], values, avg };
     }).filter(s => s.avg >= 2.5).sort((a, b) => b.avg - a.avg);
 
-    // ── Mutable view state ───────────────────────────────────────────────
     let startIdx = 0;
     let endIdx = n - 1;
     const hiddenParties = new Set();
 
-    // ── Static scaffold ──────────────────────────────────────────────────
     const container = document.getElementById('pollsChart');
     container.style.position = 'relative';
     container.innerHTML = `
@@ -261,7 +288,6 @@ export function createPollsChart(headers, rows) {
         <div class="polls-chart-legend" id="polls-chart-legend" role="group" aria-label="Toggle parties"></div>
     `;
 
-    // ── Redraw ────────────────────────────────────────────────────────────
     function redraw() {
         const visible = pts.slice(startIdx, endIdx + 1);
         const visN = visible.length;
@@ -281,7 +307,6 @@ export function createPollsChart(headers, rows) {
         const xOf = i => visN > 1 ? (i / (visN - 1)) * pw : pw / 2;
         const yOf = v => ph - (v / maxY) * ph;
 
-        // Grid + Y labels
         let gridHtml = '';
         for (let v = 0; v <= maxY; v += 5) {
             const y = yOf(v).toFixed(1);
@@ -289,7 +314,6 @@ export function createPollsChart(headers, rows) {
             gridHtml += `<text x="-6" y="${(+y + 4).toFixed(1)}" text-anchor="end" font-size="11" fill="#505a5f" font-family="arial,sans-serif">${v}%</text>`;
         }
 
-        // X labels
         let xLabelHtml = '';
         const xCount = Math.min(8, visN);
         for (let i = 0; i < xCount; i++) {
@@ -299,7 +323,6 @@ export function createPollsChart(headers, rows) {
                 font-size="11" fill="#505a5f" font-family="arial,sans-serif">${visible[idx]?.[3] || ''}</text>`;
         }
 
-        // Series lines
         let linesHtml = '';
         activeSeries.forEach(s => {
             let d = '';
@@ -313,7 +336,6 @@ export function createPollsChart(headers, rows) {
             if (d) linesHtml += `<path d="${d}" fill="none" stroke="${s.color}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>`;
         });
 
-        // Render SVG
         const wrapper = document.getElementById('polls-svg-wrapper');
         wrapper.innerHTML = `
             <svg id="polls-svg" width="100%" viewBox="0 0 ${W} ${H}"
@@ -334,7 +356,6 @@ export function createPollsChart(headers, rows) {
                  font-family:arial,sans-serif;pointer-events:none;z-index:10;
                  min-width:130px;box-shadow:2px 2px 0 #0b0c0c;"></div>`;
 
-        // Tooltip interactions
         const svg = wrapper.querySelector('#polls-svg');
         const xhair = wrapper.querySelector('#polls-crosshair');
         const tip = wrapper.querySelector('#polls-tooltip');
@@ -349,14 +370,14 @@ export function createPollsChart(headers, rows) {
             xhair.setAttribute('opacity', '0.5');
 
             tip.innerHTML =
-                `<div style="font-weight:700;margin-bottom:6px;color:#0b0c0c;">${visible[idx]?.[3] || ''}</div>` +
+                `<div style="font-weight:700;margin-bottom:4px;color:#0b0c0c;border-bottom:1px solid #b1b4b6;padding-bottom:4px;">${visible[idx]?.[3] || ''}</div>` +
                 activeSeries
                     .filter(s => s.values[startIdx + idx] !== null)
                     .map(s => {
                         const v = s.values[startIdx + idx];
-                        return `<div style="display:flex;justify-content:space-between;gap:12px;">
+                        return `<div style="display:flex;justify-content:space-between;gap:12px;margin-top:3px;">
                             <span>
-                                <span style="display:inline-block;width:8px;height:8px;border-radius:50%;
+                                <span style="display:inline-block;width:8px;height:8px;
                                              background:${s.color};margin-right:4px;vertical-align:middle;"></span>
                                 ${s.name}
                             </span>
@@ -377,14 +398,12 @@ export function createPollsChart(headers, rows) {
             tip.style.display = 'none';
         });
 
-        // Range label
         const rangeEl = document.getElementById('polls-chart-range');
         if (rangeEl && visN > 0) {
             rangeEl.textContent =
                 `${visible[0]?.[3] || ''} – ${visible[visN - 1]?.[3] || ''} (${visN} poll${visN === 1 ? '' : 's'})`;
         }
 
-        // Button states
         document.getElementById('chart-pan-left').disabled = startIdx === 0;
         document.getElementById('chart-pan-right').disabled = endIdx === n - 1;
         document.getElementById('chart-zoom-out').disabled = endIdx - startIdx >= n - 1;
@@ -393,7 +412,6 @@ export function createPollsChart(headers, rows) {
         renderLegend();
     }
 
-    // ── Legend with toggle buttons ────────────────────────────────────────
     function renderLegend() {
         const legend = document.getElementById('polls-chart-legend');
         if (!legend) return;
@@ -419,7 +437,6 @@ export function createPollsChart(headers, rows) {
         });
     }
 
-    // ── Control button wiring ─────────────────────────────────────────────
     document.getElementById('chart-zoom-in').addEventListener('click', () => {
         const win = endIdx - startIdx;
         const step = Math.max(1, Math.floor(win * 0.25));
@@ -461,6 +478,5 @@ export function createPollsChart(headers, rows) {
         redraw();
     });
 
-    // ── Initial draw ──────────────────────────────────────────────────────
     redraw();
 }
