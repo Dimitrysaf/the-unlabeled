@@ -15,12 +15,28 @@
     {
       "src": "api/article.js",
       "use": "@vercel/node"
+    },
+    {
+      "src": "api/subscribe.js",
+      "use": "@vercel/node"
+    },
+    {
+      "src": "api/send-notifications.js",
+      "use": "@vercel/node"
     }
   ],
   "routes": [
     {
       "src": "/api/sitemap",
       "dest": "/api/sitemap.js"
+    },
+    {
+      "src": "/api/subscribe",
+      "dest": "/api/subscribe.js"
+    },
+    {
+      "src": "/api/send-notifications",
+      "dest": "/api/send-notifications.js"
     },
     {
       "src": "/a/([^/]+)",

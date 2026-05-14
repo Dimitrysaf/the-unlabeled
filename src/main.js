@@ -6,6 +6,7 @@ import { initRouter } from './router.js';
 import { renderError } from './components/ErrorPage.js';
 import { readCookiePreferences } from './lib/cookiePreferences.js';
 import { setMetaTags } from './lib/seo.js';
+import { registerServiceWorker } from './lib/notifications.js';
 
 let analyticsInitialized = false;
 
@@ -162,6 +163,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (redirectAuthHashIfNeeded()) return;
 
     initObservabilityIfAllowed();
+    registerServiceWorker();
     initLayout();
     initRouter(renderPage, updateNavigation);
 
