@@ -7,6 +7,7 @@ import { checkIsAdmin } from '../../data/admin.js';
 import { renderMarkdown } from '../../lib/markdown.js';
 import { setMetaTags, addStructuredData } from '../../lib/seo.js';
 import { sanitizeHtml } from '../../lib/sanitize.js';
+import { escapeHtml, escapeAttr } from '../../lib/escape.js';
 import { renderEngagementSection } from '../../components/Comments.js';
 
 // ── Module registry ───────────────────────────────────────────────────────
@@ -34,7 +35,7 @@ function buildTags(tags = []) {
     return `
         <p class="govuk-!-margin-bottom-4">
             ${tags.map(({ label }) =>
-        `<strong class="govuk-tag govuk-tag--blue govuk-!-margin-right-1">${label}</strong>`
+        `<strong class="govuk-tag govuk-tag--blue govuk-!-margin-right-1">${escapeHtml(label)}</strong>`
     ).join('')}
         </p>`;
 }
@@ -42,8 +43,8 @@ function buildTags(tags = []) {
 function buildMeta(author, date) {
     if (!author?.name && !date) return '';
     const parts = [];
-    if (author?.name) parts.push(`By <strong>${author.name}</strong>`);
-    if (date) parts.push(`at <strong>${date}</strong>`);
+    if (author?.name) parts.push(`By <strong>${escapeHtml(author.name)}</strong>`);
+    if (date) parts.push(`at <strong>${escapeHtml(date)}</strong>`);
     return `
         <p class="article-meta-sidebar__meta govuk-body-s govuk-!-colour-secondary govuk-!-margin-bottom-4">
             ${parts.join(' ')}
@@ -95,7 +96,7 @@ function buildPage(article, bodyHtml, options = {}) {
     const sidebarHtml = `${buildMeta(author, date)}${buildTags(tags)}`;
 
     const imageHtml = image
-        ? `<img class="article-image" src="${image}" alt="${title}">`
+        ? `<img class="article-image" src="${escapeAttr(image)}" alt="${escapeAttr(title)}">`
         : '';
 
     // For markdown the vote widget lives in the sidebar; for all other layouts
