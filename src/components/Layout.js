@@ -4,7 +4,6 @@ import { getCurrentUser, onAuthStateChange, signOut } from '../lib/auth.js';
 import { readCookiePreferences, setSessionCookie, writeCookiePreferences } from '../lib/cookiePreferences.js';
 import { checkIsAdmin, clearAdminCache } from '../data/admin.js';
 import { navigate } from '../router.js';
-import { isPushSupported, getSubscriptionState, subscribe, unsubscribe } from '../lib/notifications.js';
 
 const baseMenuItems = [
     { label: 'Home', link: '/' },
@@ -154,11 +153,6 @@ export function initLayout() {
                             <li class="govuk-footer__inline-list-item">
                                 <a class="govuk-footer__link" target="_blank" href="https://github.com/Dimitrysaf/the-unlabeled">Source code</a>
                             </li>
-                            ${isPushSupported ? `<li class="govuk-footer__inline-list-item">
-                                <button class="govuk-footer__link" id="notify-btn" style="background:none;border:none;cursor:pointer;padding:0;font:inherit;">
-                                    🔔 Subscribe to notifications
-                                </button>
-                            </li>` : ''}
                         </ul>
                         <span class="govuk-footer__licence-description">© 2026 The Unlabeled. All rights reserved.</span>
                     </div>
@@ -170,7 +164,6 @@ export function initLayout() {
     _initSearchForm();
     _initServiceNavFallback();
     _initCookieBanner();
-    _initNotificationButton();
 }
 
 function _initSearchForm() {
@@ -323,28 +316,6 @@ function _initServiceNavFallback() {
 
     MOBILE_MQ.addEventListener('change', applyViewport);
     applyViewport(MOBILE_MQ);
-}
-
-async function _initNotificationButton() {
-    const btn = document.getElementById('notify-btn');
-    if (!btn) return;
-
-    const state = await getSubscriptionState();
-    if (state === 'subscribed') btn.textContent = '🔔 Unsubscribe from notifications';
-    if (state === 'denied') { btn.textContent = '🔕 Notifications blocked'; btn.disabled = true; return; }
-
-    btn.addEventListener('click', async () => {
-        btn.disabled = true;
-        const current = await getSubscriptionState();
-        if (current === 'subscribed') {
-            await unsubscribe();
-            btn.textContent = '🔔 Subscribe to notifications';
-        } else {
-            const ok = await subscribe();
-            btn.textContent = ok ? '🔔 Unsubscribe from notifications' : '🔔 Subscribe to notifications';
-        }
-        btn.disabled = false;
-    });
 }
 
 /** Replaces the main content area and scrolls back to the top. */

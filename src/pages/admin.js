@@ -28,6 +28,8 @@ import {
     toggleDraft,
 } from '../data/admin.js';
 
+import { supabase } from '../lib/supabase.js';
+
 // ── Entry point ───────────────────────────────────────────────────────────
 
 export async function renderAdmin() {
@@ -76,6 +78,9 @@ async function showList() {
                target="_blank" rel="noopener noreferrer">Vercel ↗</a>
             <a class="govuk-link" href="https://supabase.com/dashboard/project/zapruosojosnbdttkvab/auth/users"
                target="_blank" rel="noopener noreferrer">Supabase users ↗</a>
+            <button class="govuk-link" id="test-notif-btn" style="background:none;border:none;cursor:pointer;padding:0;font:inherit;">
+                Send test notification
+            </button>
         </div>
         <div id="admin-banner"></div>
         <h2 class="govuk-heading-m">Articles</h2>
@@ -91,6 +96,27 @@ async function showList() {
             <p class="govuk-body govuk-hint">Loading users…</p>
         </div>
     `);
+
+    document.getElementById('test-notif-btn')?.addEventListener('click', async () => {
+        const btn = document.getElementById('test-notif-btn');
+        btn.disabled = true;
+        btn.textContent = 'Sending…';
+        try {
+            const { data: { session } } = await supabase.auth.getSession();
+            const res = await fetch('/api/test-notification', {
+                method: 'POST',
+                headers: { Authorization: `Bearer ${session?.access_token}` }
+            });
+            const json = await res.json();
+            if (!res.ok) throw new Error(json.error || `HTTP ${res.status}`);
+            const { sent } = json;
+            showBanner('success', `Test notification sent to ${sent} subscriber${sent !== 1 ? 's' : ''}.`);
+        } catch (err) {
+            showBanner('error', `Failed to send test notification: ${err.message}`);
+        }
+        btn.textContent = 'Send test notification';
+        btn.disabled = false;
+    });
 
     const [articlesResult, commentsResult, usersResult] = await Promise.allSettled([
         getAllArticles(),

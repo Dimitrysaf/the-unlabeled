@@ -23,6 +23,10 @@
     {
       "src": "api/send-notifications.js",
       "use": "@vercel/node"
+    },
+    {
+      "src": "api/test-notification.js",
+      "use": "@vercel/node"
     }
   ],
   "routes": [
@@ -37,6 +41,10 @@
     {
       "src": "/api/send-notifications",
       "dest": "/api/send-notifications.js"
+    },
+    {
+      "src": "/api/test-notification",
+      "dest": "/api/test-notification.js"
     },
     {
       "src": "/a/([^/]+)",

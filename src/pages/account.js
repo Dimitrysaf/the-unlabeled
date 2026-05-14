@@ -2,6 +2,7 @@
 import { updateContent } from '../components/Layout.js';
 import { navigate } from '../router.js';
 import { getCurrentUser, signOut } from '../lib/auth.js';
+import { isPushSupported, getSubscriptionState, subscribe, unsubscribe } from '../lib/notifications.js';
 
 export async function renderAccount() {
     let user;
@@ -199,18 +200,29 @@ export async function renderAccount() {
                         </div>
                     </dl>
 
-                    <div class="govuk-!-margin-top-9">
-                        <p class="govuk-error-message" id="sign-out-error" style="display:none">Failed to sign out. Please try again.</p>
-                        <div class="govuk-button-group">
-                            <button class="govuk-button govuk-button--warning" id="sign-out-btn">
-                                Sign out
-                            </button>
-                        </div>
+                    ${isPushSupported ? `
+                    <h2 class="govuk-heading-m govuk-!-margin-top-6">Notifications</h2>
+                    <p class="govuk-body" id="notify-status-text">Checking notification status…</p>
+                    <div class="govuk-button-group">
+                        <button class="govuk-button govuk-button--secondary" id="notify-btn" disabled>
+                            Subscribe to notifications
+                        </button>
                     </div>
+                    ` : ''}
 
                     <hr class="govuk-section-break govuk-section-break--m govuk-section-break--visible govuk-!-margin-top-6">
+                    <h2 class="govuk-heading-m">Sign out</h2>
+                    <p class="govuk-body">Sign out of your account on this device.</p>
+                    <p class="govuk-error-message" id="sign-out-error" style="display:none">Failed to sign out. Please try again.</p>
+                    <div class="govuk-button-group">
+                        <button class="govuk-button govuk-button--warning" id="sign-out-btn">
+                            Sign out
+                        </button>
+                    </div>
 
-                    <h2 class="govuk-heading-m govuk-!-margin-top-6">Danger zone</h2>
+                    <hr class="govuk-section-break govuk-section-break--m govuk-section-break--visible">
+
+                    <h2 class="govuk-heading-m">Danger zone</h2>
                     <p class="govuk-body">Deleting your account is permanent and cannot be undone.</p>
                     <a href="/account/delete" class="govuk-button govuk-button--warning" data-module="govuk-button">
                         Delete account
@@ -225,7 +237,6 @@ export async function renderAccount() {
 
 function initAccountPage() {
     const signOutBtn = document.getElementById('sign-out-btn');
-
     if (signOutBtn) {
         signOutBtn.addEventListener('click', async () => {
             try {
@@ -238,4 +249,40 @@ function initAccountPage() {
             }
         });
     }
+
+    const notifyBtn = document.getElementById('notify-btn');
+    const notifyText = document.getElementById('notify-status-text');
+    if (!notifyBtn || !notifyText) return;
+
+    getSubscriptionState().then(state => {
+        if (state === 'denied') {
+            notifyText.textContent = 'Notifications are blocked in your browser settings.';
+            notifyBtn.textContent = 'Notifications blocked';
+            notifyBtn.disabled = true;
+            return;
+        }
+        const subscribed = state === 'subscribed';
+        notifyText.textContent = subscribed
+            ? 'You are subscribed to notifications for new articles.'
+            : 'Subscribe to receive a notification when a new article is published.';
+        notifyBtn.textContent = subscribed ? 'Unsubscribe from notifications' : 'Subscribe to notifications';
+        notifyBtn.disabled = false;
+
+        notifyBtn.addEventListener('click', async () => {
+            notifyBtn.disabled = true;
+            const current = await getSubscriptionState();
+            if (current === 'subscribed') {
+                await unsubscribe();
+                notifyText.textContent = 'Subscribe to receive a notification when a new article is published.';
+                notifyBtn.textContent = 'Subscribe to notifications';
+            } else {
+                const ok = await subscribe();
+                notifyText.textContent = ok
+                    ? 'You are subscribed to notifications for new articles.'
+                    : 'Subscribe to receive a notification when a new article is published.';
+                notifyBtn.textContent = ok ? 'Unsubscribe from notifications' : 'Subscribe to notifications';
+            }
+            notifyBtn.disabled = false;
+        });
+    });
 }
