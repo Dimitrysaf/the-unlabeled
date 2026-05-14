@@ -217,7 +217,6 @@ export async function renderAccount() {
                     <p class="govuk-body">Manage content and review user submissions.</p>
                     <div class="govuk-button-group">
                         <a href="/admin" class="govuk-button govuk-button--secondary">Admin panel</a>
-                        <a href="/admin#admin-submissions-body" class="govuk-link">View submissions</a>
                     </div>
                     ` : ''}
 
