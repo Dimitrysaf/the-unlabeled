@@ -66,6 +66,14 @@ async function renderPage(fullPath) {
         });
         const { renderSearch } = await import('./pages/search.js');
         await renderSearch();
+    } else if (path === '/request') {
+        setMetaTags({
+            title: 'Submit a Report - The Unlabeled',
+            description: 'Submit a report or tip about corruption and misconduct in Greece.',
+            url: 'https://the-unlabeled.com/request'
+        });
+        const { renderRequest } = await import('./pages/request.js');
+        renderRequest();
     } else if (path === '/about') {
         setMetaTags({
             title: 'About Us - The Unlabeled',

@@ -18,7 +18,6 @@ function getMenuItems() {
     const items = [...baseMenuItems];
     if (!authLoaded) return items;
     if (currentUser) {
-        if (isAdmin) items.push({ label: 'Dashboard', link: '/admin' });
         items.push({ label: 'Account', link: '/account', type: 'account-link' });
     } else {
         items.push({ label: 'Login', link: '/login', type: 'auth-link' });
@@ -147,6 +146,9 @@ export function initLayout() {
                 <div class="govuk-footer__meta">
                     <div class="govuk-footer__meta-item govuk-footer__meta-item--grow">
                         <ul class="govuk-footer__inline-list">
+                            <li class="govuk-footer__inline-list-item">
+                                <a class="govuk-footer__link" href="/request">Submit a request</a>
+                            </li>
                             <li class="govuk-footer__inline-list-item">
                                 <a class="govuk-footer__link" href="/legal#privacy">Privacy</a>
                             </li>
