@@ -27,6 +27,7 @@ import {
     deleteArticle,
     toggleDraft,
 } from '../data/admin.js';
+import { getAllSubmissions, deleteSubmission } from '../data/submissions.js';
 
 import { supabase } from '../lib/supabase.js';
 
@@ -95,6 +96,10 @@ async function showList() {
         <div id="admin-users-body">
             <p class="govuk-body govuk-hint">Loading users…</p>
         </div>
+        <h2 class="govuk-heading-m govuk-!-margin-top-8">Submissions</h2>
+        <div id="admin-submissions-body">
+            <p class="govuk-body govuk-hint">Loading submissions…</p>
+        </div>
     `);
 
     document.getElementById('test-notif-btn')?.addEventListener('click', async () => {
@@ -118,10 +123,11 @@ async function showList() {
         btn.disabled = false;
     });
 
-    const [articlesResult, commentsResult, usersResult] = await Promise.allSettled([
+    const [articlesResult, commentsResult, usersResult, submissionsResult] = await Promise.allSettled([
         getAllArticles(),
         getAllComments(),
         listAllUsers(),
+        getAllSubmissions(),
     ]);
 
     if (articlesResult.status === 'rejected') {
@@ -164,6 +170,20 @@ async function showList() {
             </div>`;
     } else {
         renderUsersSection(usersResult.value);
+    }
+
+    if (submissionsResult.status === 'rejected') {
+        document.getElementById('admin-submissions-body').innerHTML = `
+            <div class="govuk-error-summary" data-module="govuk-error-summary">
+                <div role="alert">
+                    <h2 class="govuk-error-summary__title">Could not load submissions</h2>
+                    <div class="govuk-error-summary__body">
+                        <p class="govuk-body">${escapeHtml(submissionsResult.reason.message)}</p>
+                    </div>
+                </div>
+            </div>`;
+    } else {
+        renderSubmissionsSection(submissionsResult.value);
     }
 }
 
@@ -295,6 +315,139 @@ function bindCommentDelete(comment) {
     document.getElementById(`cmt-delete-${comment.id}`)?.addEventListener('click', e => {
         e.preventDefault();
         showDeleteCommentConfirm(comment);
+    });
+}
+
+// ── Submissions section ───────────────────────────────────────────────────────
+
+function renderSubmissionsSection(submissions) {
+    const el = document.getElementById('admin-submissions-body');
+    if (!submissions.length) {
+        el.innerHTML = `<p class="govuk-body govuk-hint">No submissions yet.</p>`;
+        return;
+    }
+
+    const plural = submissions.length === 1 ? 'submission' : 'submissions';
+    el.innerHTML = `
+        <p class="govuk-body govuk-hint govuk-!-margin-bottom-2">${submissions.length} ${plural}</p>
+        <div class="table-scroll table-truncate">
+            <table class="govuk-table govuk-!-margin-bottom-0">
+                <caption class="govuk-table__caption govuk-visually-hidden">All submissions</caption>
+                <thead class="govuk-table__head">
+                    <tr class="govuk-table__row">
+                        <th class="govuk-table__header" scope="col">Title</th>
+                        <th class="govuk-table__header" scope="col">Description</th>
+                        <th class="govuk-table__header" scope="col">Source</th>
+                        <th class="govuk-table__header" scope="col">Contact</th>
+                        <th class="govuk-table__header" scope="col">Date</th>
+                        <th class="govuk-table__header" scope="col">
+                            <span class="govuk-visually-hidden">Actions</span>
+                        </th>
+                    </tr>
+                </thead>
+                <tbody class="govuk-table__body">
+                    ${submissions.map(s => submissionRow(s)).join('')}
+                </tbody>
+            </table>
+        </div>
+    `;
+
+    submissions.forEach(s => {
+        document.getElementById(`sub-delete-${s.id}`)?.addEventListener('click', e => {
+            e.preventDefault();
+            showDeleteSubmissionConfirm(s);
+        });
+    });
+}
+
+function submissionRow(s) {
+    const title = escapeHtml(s.title || '—');
+    const raw = s.description || '';
+    const description = escapeHtml(raw.length > 100 ? raw.slice(0, 100) + '…' : raw);
+    const source = s.source_url
+        ? `<a class="govuk-link" href="${escapeAttr(s.source_url)}" target="_blank" rel="noopener noreferrer">Link ↗</a>`
+        : '—';
+    const contact = escapeHtml(s.contact || '—');
+    const date = s.submitted_at ? new Date(s.submitted_at).toLocaleDateString('en-GB') : '—';
+
+    return `
+        <tr class="govuk-table__row" id="sub-row-${s.id}">
+            <td class="govuk-table__cell admin-nowrap">${title}</td>
+            <td class="govuk-table__cell">${description}</td>
+            <td class="govuk-table__cell">${source}</td>
+            <td class="govuk-table__cell admin-nowrap">${contact}</td>
+            <td class="govuk-table__cell admin-nowrap">${date}</td>
+            <td class="govuk-table__cell">
+                <a class="govuk-link admin-link--danger" href="#" id="sub-delete-${s.id}">Dismiss<span class="govuk-visually-hidden"> submission: ${title}</span></a>
+            </td>
+        </tr>`;
+}
+
+function showDeleteSubmissionConfirm(submission) {
+    const title = escapeHtml(submission.title || '—');
+    const raw = submission.description || '';
+    const description = escapeHtml(raw.length > 200 ? raw.slice(0, 200) + '…' : raw);
+
+    updateContent(`
+        <div class="govuk-grid-row">
+            <div class="govuk-grid-column-two-thirds">
+
+                <a href="#" class="govuk-back-link" id="delete-back">Back to admin</a>
+                <span class="govuk-caption-xl">Content management</span>
+                <h1 class="govuk-heading-l">Dismiss submission</h1>
+
+                <dl class="govuk-summary-list govuk-!-margin-bottom-6">
+                    <div class="govuk-summary-list__row">
+                        <dt class="govuk-summary-list__key">Title</dt>
+                        <dd class="govuk-summary-list__value">${title}</dd>
+                    </div>
+                    <div class="govuk-summary-list__row">
+                        <dt class="govuk-summary-list__key">Description</dt>
+                        <dd class="govuk-summary-list__value">${description}</dd>
+                    </div>
+                    ${submission.contact ? `
+                    <div class="govuk-summary-list__row">
+                        <dt class="govuk-summary-list__key">Contact</dt>
+                        <dd class="govuk-summary-list__value">${escapeHtml(submission.contact)}</dd>
+                    </div>` : ''}
+                </dl>
+
+                <div id="delete-error"></div>
+
+                <div class="govuk-button-group govuk-!-margin-top-4">
+                    <button class="govuk-button govuk-button--warning" id="confirm-delete-btn">
+                        Dismiss submission
+                    </button>
+                    <a class="govuk-link" href="#" id="cancel-delete-btn">Cancel</a>
+                </div>
+
+            </div>
+        </div>
+    `);
+
+    document.getElementById('delete-back').addEventListener('click', e => { e.preventDefault(); go(''); });
+    document.getElementById('cancel-delete-btn').addEventListener('click', e => { e.preventDefault(); go(''); });
+
+    const confirmBtn = document.getElementById('confirm-delete-btn');
+    confirmBtn.addEventListener('click', async () => {
+        confirmBtn.disabled = true;
+        confirmBtn.textContent = 'Dismissing…';
+        try {
+            await deleteSubmission(submission.id);
+            go('');
+        } catch (err) {
+            document.getElementById('delete-error').innerHTML = `
+                <div class="govuk-error-summary" role="alert">
+                    <div>
+                        <h2 class="govuk-error-summary__title">There is a problem</h2>
+                        <div class="govuk-error-summary__body">
+                            <p class="govuk-body">${escapeHtml(err.message)}</p>
+                        </div>
+                    </div>
+                </div>`;
+            confirmBtn.disabled = false;
+            confirmBtn.textContent = 'Dismiss submission';
+        }
     });
 }
 

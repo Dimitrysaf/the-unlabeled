@@ -2,12 +2,13 @@
 import { updateContent } from '../components/Layout.js';
 import { navigate } from '../router.js';
 import { getCurrentUser, signOut } from '../lib/auth.js';
+import { checkIsAdmin } from '../data/admin.js';
 import { isPushSupported, getSubscriptionState, subscribe, unsubscribe } from '../lib/notifications.js';
 
 export async function renderAccount() {
-    let user;
+    let user, isAdmin;
     try {
-        user = await getCurrentUser();
+        [user, isAdmin] = await Promise.all([getCurrentUser(), checkIsAdmin()]);
     } catch (error) {
         console.error('Error retrieving user data:', error);
         updateContent(`
@@ -207,6 +208,16 @@ export async function renderAccount() {
                         <button class="govuk-button govuk-button--secondary" id="notify-btn" disabled>
                             Subscribe to notifications
                         </button>
+                    </div>
+                    ` : ''}
+
+                    ${isAdmin ? `
+                    <hr class="govuk-section-break govuk-section-break--m govuk-section-break--visible govuk-!-margin-top-6">
+                    <h2 class="govuk-heading-m">Admin</h2>
+                    <p class="govuk-body">Manage content and review user submissions.</p>
+                    <div class="govuk-button-group">
+                        <a href="/admin" class="govuk-button govuk-button--secondary">Admin panel</a>
+                        <a href="/admin#admin-submissions-body" class="govuk-link">View submissions</a>
                     </div>
                     ` : ''}
 
