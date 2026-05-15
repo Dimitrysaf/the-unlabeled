@@ -8,17 +8,31 @@ export function initRouter(renderPageFn, onNavigateFn) {
     _onNavigate = onNavigateFn;
 
     window.addEventListener('popstate', e => {
-        if (window.location.pathname + window.location.search ===
-            (e.state?._path ?? window.location.pathname + window.location.search)) {
-            const id = window.location.hash.slice(1);
-            if (id) {
-                document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        const currentBase = window.location.pathname + window.location.search;
+
+        // Hash-scroll entries are the only ones where _path contains '#'.
+        // Their base path (before '#') matches the current location and the
+        // fragment tells us where to scroll. Everything else — including forward
+        // navigation and back to the initial page (null state) — must re-render.
+        if (e.state?._path?.includes('#')) {
+            const [stateBase, stateHash] = e.state._path.split('#');
+            if (stateBase === currentBase && stateHash) {
+                document.getElementById(stateHash)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                return;
             }
-            return;
         }
 
         if (_onNavigate) _onNavigate();
-        _renderPage(window.location.pathname + window.location.search);
+        _renderPage(currentBase);
+    });
+
+    // Mobile browsers restore pages from bfcache on back/forward; popstate may
+    // not fire in that case. pageshow with persisted=true always fires instead.
+    window.addEventListener('pageshow', e => {
+        if (e.persisted) {
+            if (_onNavigate) _onNavigate();
+            _renderPage(window.location.pathname + window.location.search);
+        }
     });
 
     document.addEventListener('click', e => {
