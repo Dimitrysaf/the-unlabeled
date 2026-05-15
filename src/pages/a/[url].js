@@ -4,7 +4,7 @@ import { renderError } from '../../components/ErrorPage.js';
 import { navigate, hasNavigated } from '../../router.js';
 import { getArticleBySlug } from '../../data/articles.js';
 import { checkIsAdmin } from '../../data/admin.js';
-import { renderMarkdown } from '../../lib/markdown.js';
+import { renderMarkdown, renderMarkdownParts } from '../../lib/markdown.js';
 import { setMetaTags, addStructuredData } from '../../lib/seo.js';
 import { sanitizeHtml } from '../../lib/sanitize.js';
 import { escapeHtml, escapeAttr } from '../../lib/escape.js';
@@ -74,7 +74,6 @@ function buildMarkdownLayout(bodyHtml, sidebarHtml) {
         <div class="govuk-grid-row article-markdown-layout">
             <aside class="govuk-grid-column-one-third article-meta-sidebar">
                 ${sidebarHtml}
-                <div id="vote-container" class="govuk-!-margin-top-4"></div>
             </aside>
             <div class="govuk-grid-column-two-thirds article-body-column">
                 ${bodyHtml}
@@ -93,32 +92,28 @@ function buildMarkdownLayout(bodyHtml, sidebarHtml) {
  */
 function buildPage(article, bodyHtml, options = {}) {
     const { title = 'Untitled', subtitle = '', image = '', tags = [], author = {}, date = '' } = article;
-    const sidebarHtml = `${buildMeta(author, date)}${buildTags(tags)}`;
+    const sidebarHtml = `${buildMeta(author, date)}${buildTags(tags)}${options.toc || ''}`;
 
     const imageHtml = image
         ? `<img class="article-image" src="${escapeAttr(image)}" alt="${escapeAttr(title)}">`
         : '';
 
-    // For markdown the vote widget lives in the sidebar; for all other layouts
-    // it sits below the share actions, right-aligned in the meta row.
-    const metaRowRight = options.markdown
-        ? `<div>${buildShare()}</div>`
-        : `<div class="article-meta-row__end">
-               ${buildShare()}
-           </div>`;
+    const metaRowRight = `<div>${buildShare()}</div>`;
 
     return `
-        ${article.is_draft ? buildDraftBanner(article.id) : ''}
-        ${imageHtml}
-        <div class="article-meta-row">
-            <div class="article-meta-row__breadcrumb">${buildBreadcrumb()}</div>
-            ${metaRowRight}
+        <div class="article-header-band">
+            ${article.is_draft ? buildDraftBanner(article.id) : ''}
+            <div class="govuk-width-container article-header-band__inner">
+                ${imageHtml}
+                <div class="article-meta-row">
+                    <div class="article-meta-row__breadcrumb">${buildBreadcrumb()}</div>
+                    ${metaRowRight}
+                </div>
+                <h1 class="govuk-heading-xl govuk-!-margin-bottom-2">${title}</h1>
+                ${subtitle ? `<p class="govuk-body-l govuk-!-colour-secondary govuk-!-margin-bottom-4">${subtitle}</p>` : ''}
+            </div>
         </div>
-        <h1 class="govuk-heading-xl govuk-!-margin-bottom-2">${title}</h1>
-        ${subtitle ? `<p class="govuk-body-l govuk-!-colour-secondary govuk-!-margin-bottom-4">${subtitle}</p>` : ''}
-        <hr class="govuk-section-break govuk-section-break--m govuk-section-break--visible">
         ${options.markdown ? buildMarkdownLayout(bodyHtml, sidebarHtml) : `${sidebarHtml}${bodyHtml}`}
-        <div id="article-engagement"></div>
     `;
 }
 
@@ -154,13 +149,26 @@ function initArticleActions() {
     }
 }
 
+/** Moves .article-header-band outside the govuk-width-container so it can span full width. */
+function hoistArticleHeader() {
+    const main = document.getElementById('main-content');
+    const header = main?.querySelector('.article-header-band');
+    const container = main?.querySelector(':scope > .govuk-width-container');
+    if (!header || !main || !container) return;
+    main.insertBefore(header, container);
+}
+
 /**
  * Kick off the engagement section (votes + comments) after the article is
  * in the DOM.  The engagement section loads independently of article content.
  */
 function loadEngagement(articleId) {
-    const el = document.getElementById('article-engagement');
-    if (el) renderEngagementSection(articleId, el);
+    const main = document.getElementById('main-content');
+    if (!main) return;
+    const el = document.createElement('div');
+    el.id = 'article-engagement';
+    main.appendChild(el);
+    renderEngagementSection(articleId, el);
 }
 
 function buildLoadingShell() {
@@ -178,7 +186,7 @@ function buildLoadingShell() {
 export async function renderArticlePage(slug) {
     const normalized = slug?.toLowerCase?.().trim();
 
-    updateContent(buildLoadingShell());
+    updateContent(buildLoadingShell(), { final: false });
 
     let articleMeta;
     try {
@@ -238,6 +246,7 @@ export async function renderArticlePage(slug) {
         try {
             const mod = await loader();
             updateContent(buildPage(articleMeta, mod.getCalcHTML()));
+            hoistArticleHeader();
             initArticleActions();
             mod.initCalc();
             loadEngagement(articleMeta.id);
@@ -250,12 +259,13 @@ export async function renderArticlePage(slug) {
 
     // ── 2. Markdown content ──
     if (articleMeta.md_content) {
-        const html = renderMarkdown(articleMeta.md_content);
+        const { body, toc } = renderMarkdownParts(articleMeta.md_content);
         updateContent(buildPage(
             articleMeta,
-            `<div class="article-body">${html}</div>`,
-            { markdown: true }
+            `<div class="article-body">${body}</div>`,
+            { markdown: true, toc }
         ));
+        hoistArticleHeader();
         initArticleActions();
         loadEngagement(articleMeta.id);
         return;
@@ -267,6 +277,7 @@ export async function renderArticlePage(slug) {
             articleMeta,
             `<div class="article-body">${sanitizeHtml(articleMeta.html_content)}</div>`
         ));
+        hoistArticleHeader();
         initArticleActions();
         loadEngagement(articleMeta.id);
         return;

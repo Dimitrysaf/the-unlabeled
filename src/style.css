@@ -52,6 +52,42 @@ body {
   min-height: 100vh;
 }
 
+/* Remove main padding when article bands are present */
+#main-content:has(.article-header-band) {
+  padding-top: 0;
+}
+
+#main-content:has(#article-engagement) {
+  padding-bottom: 0;
+}
+
+/* ── Article header band ── */
+.article-header-band {
+  background: var(--c-light);
+  border-bottom: 3px solid var(--c-black);
+  margin-bottom: 2rem;
+}
+
+.article-header-band .article-image {
+  border-bottom: none;
+  aspect-ratio: unset;
+  max-height: none;
+  height: auto;
+  object-fit: fill;
+}
+
+.article-header-band__inner {
+  padding-top: 1.5rem;
+  padding-bottom: 1.5rem;
+}
+
+/* ── Sidebar vertical separator (tablet and above) ── */
+@media (min-width: 40.0625em) {
+  .article-body-column {
+    border-left: 1px solid var(--c-border);
+  }
+}
+
 .content-area {
   flex: 1 0 auto;
 }
@@ -211,6 +247,31 @@ body {
 
 .news-card--hero .news-card__excerpt {
   color: #fff;
+}
+
+/* ── Page loading bar ── */
+#page-loading-bar {
+  height: 3px;
+  overflow: hidden;
+  position: relative;
+  background: transparent;
+  flex-shrink: 0;
+}
+
+#page-loading-bar.is-loading::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -45%;
+  width: 45%;
+  height: 100%;
+  background: #1d70b8;
+  border-radius: 0 2px 2px 0;
+  animation: page-load-slide 1s linear infinite;
+}
+
+@keyframes page-load-slide {
+  to { left: 110%; }
 }
 
 /* ── Skeleton loading ── */
@@ -388,20 +449,32 @@ body {
 /* ── Article ToC ── */
 .article-toc .govuk-list,
 .article-toc .govuk-list li,
-.article-toc .govuk-list ul {
+.article-toc .govuk-list ul,
+.article-toc-sidebar .govuk-list,
+.article-toc-sidebar .govuk-list li,
+.article-toc-sidebar .govuk-list ul {
   list-style: none !important;
   list-style-type: none !important;
   margin: 0;
   padding-left: 0 !important;
 }
 
-.article-toc .govuk-list li {
+.article-toc .govuk-list li,
+.article-toc-sidebar .govuk-list li {
   margin-top: 0.25rem;
 }
 
 .article-toc .govuk-list li::marker,
-.article-toc .govuk-list ul::marker {
+.article-toc .govuk-list ul::marker,
+.article-toc-sidebar .govuk-list li::marker,
+.article-toc-sidebar .govuk-list ul::marker {
   content: none !important;
+}
+
+/* ── Article ToC — sidebar variant ── */
+.article-toc-sidebar a.govuk-link {
+  font-size: 0.875rem;
+  color: var(--c-black);
 }
 
 .article-toc__subitem {

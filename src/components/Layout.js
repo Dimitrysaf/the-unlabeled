@@ -139,6 +139,8 @@ export function initLayout() {
             </div>
         </div>
 
+        <div id="page-loading-bar" aria-hidden="true"></div>
+
         <main class="content-area govuk-main-wrapper" id="main-content" role="main" tabindex="-1"></main>
 
         <footer class="govuk-footer">
@@ -320,8 +322,18 @@ function _initServiceNavFallback() {
     applyViewport(MOBILE_MQ);
 }
 
-/** Replaces the main content area and scrolls back to the top. */
-export function updateContent(html) {
+export function showPageLoading() {
+    document.getElementById('page-loading-bar')?.classList.add('is-loading');
+}
+
+export function hidePageLoading() {
+    document.getElementById('page-loading-bar')?.classList.remove('is-loading');
+}
+
+/** Replaces the main content area and scrolls back to the top.
+ *  Pass { final: false } for skeleton/intermediate renders to keep the loading bar alive. */
+export function updateContent(html, { final = true } = {}) {
+    if (final) hidePageLoading();
     const slot = document.getElementById('main-content');
     if (!slot) return;
     slot.innerHTML = `<div class="govuk-width-container">${html}</div>`;

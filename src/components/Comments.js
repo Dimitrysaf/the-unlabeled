@@ -212,30 +212,58 @@ function buildDeleteConfirm() {
         </div>`;
 }
 
-/** Vote widget with optimistic up/down toggling. */
-function buildVoteWidget(score, userVote) {
-    const upActive = userVote === 1;
-    const downActive = userVote === -1;
-    const scoreClass = score > 0 ? ' vote-widget__score--positive'
-        : score < 0 ? ' vote-widget__score--negative' : '';
+// ── Vote widget — GOV.UK "Was this article helpful?" pattern ─────────────────
 
+function buildVotePrompt(score) {
+    const countHtml = score !== 0
+        ? `<span class="page-useful-bar__count govuk-hint govuk-!-margin-bottom-0">${score > 0 ? '+' : ''}${score} votes</span>`
+        : '';
     return `
-        <div class="vote-widget" role="group" aria-label="Vote on this article">
-            <button type="button" class="vote-widget__btn vote-widget__btn--up"
-                    aria-label="Upvote this article" aria-pressed="${upActive}">
-                <svg width="11" height="10" viewBox="0 0 11 10" fill="none" aria-hidden="true" focusable="false">
-                    <path d="M5.5 0L11 10H0L5.5 0Z" fill="currentColor"/>
-                </svg>
-            </button>
-            <span class="vote-widget__score${scoreClass}"
-                  aria-live="polite" aria-label="Current score: ${score}">${score}</span>
-            <button type="button" class="vote-widget__btn vote-widget__btn--down"
-                    aria-label="Downvote this article" aria-pressed="${downActive}">
-                <svg width="11" height="10" viewBox="0 0 11 10" fill="none" aria-hidden="true" focusable="false">
-                    <path d="M5.5 10L0 0H11L5.5 10Z" fill="currentColor"/>
-                </svg>
-            </button>
+        <div class="page-useful-bar">
+            <div class="page-useful-bar__prompt">
+                <h2 class="page-useful-bar__question govuk-body govuk-!-margin-bottom-0">Is this article helpful?</h2>
+                <ul class="page-useful-bar__options">
+                    <li class="page-useful-bar__option">
+                        <button type="button"
+                                class="govuk-button govuk-button--secondary govuk-!-margin-bottom-0"
+                                data-vote="1">
+                            Yes <span class="govuk-visually-hidden">this article is helpful</span>
+                        </button>
+                    </li>
+                    <li class="page-useful-bar__option">
+                        <button type="button"
+                                class="govuk-button govuk-button--secondary govuk-!-margin-bottom-0"
+                                data-vote="-1">
+                            No <span class="govuk-visually-hidden">this article is not helpful</span>
+                        </button>
+                    </li>
+                </ul>
+                ${countHtml}
+            </div>
+            <div class="page-useful-bar__problem">
+                <a class="govuk-link" href="/request">Report a problem with this page</a>
+            </div>
         </div>`;
+}
+
+function buildVotedBanner(score) {
+    const countHtml = score !== 0
+        ? `<span class="page-useful-bar__count govuk-hint govuk-!-margin-bottom-0 govuk-!-margin-left-3">${score > 0 ? '+' : ''}${score} votes</span>`
+        : '';
+    return `
+        <div class="page-useful-bar page-useful-bar--success">
+            <div class="page-useful-bar__prompt">
+                <p class="govuk-body govuk-!-margin-bottom-0" role="alert">Thank you for your feedback</p>
+                ${countHtml}
+            </div>
+            <a class="govuk-link" href="#" data-change-vote>Change your answer</a>
+        </div>`;
+}
+
+function buildVoteWidget(score, userVote) {
+    return (userVote !== null && userVote !== undefined)
+        ? buildVotedBanner(score)
+        : buildVotePrompt(score);
 }
 
 // ── Vote widget mount ─────────────────────────────────────────────────────────
@@ -244,7 +272,27 @@ function mountVoteWidget(container, { articleId, initialScore, initialUserVote }
     let score = initialScore;
     let userVote = initialUserVote;
 
-    const rerender = () => { container.innerHTML = buildVoteWidget(score, userVote); bindButtons(); };
+    const render = () => {
+        container.innerHTML = buildVoteWidget(score, userVote);
+        container.querySelectorAll('[data-vote]').forEach(btn => {
+            btn.addEventListener('click', () => handleVote(Number(btn.dataset.vote)));
+        });
+        container.querySelector('[data-change-vote]')?.addEventListener('click', async e => {
+            e.preventDefault();
+            const previousVote = userVote;
+            score -= previousVote ?? 0;
+            userVote = null;
+            render();
+            try {
+                await castVote(articleId, null);
+            } catch (err) {
+                score += previousVote ?? 0;
+                userVote = previousVote;
+                render();
+                console.error('[votes]', err);
+            }
+        });
+    };
 
     const handleVote = async (targetVote) => {
         const user = await getCurrentUser().catch(() => null);
@@ -255,24 +303,19 @@ function mountVoteWidget(container, { articleId, initialScore, initialUserVote }
 
         score += delta;
         userVote = newVote;
-        rerender();
+        render();
 
         try {
             await castVote(articleId, newVote);
         } catch (err) {
             score -= delta;
             userVote = targetVote;
-            rerender();
+            render();
             console.error('[votes]', err);
         }
     };
 
-    const bindButtons = () => {
-        container.querySelector('.vote-widget__btn--up')?.addEventListener('click', () => handleVote(1));
-        container.querySelector('.vote-widget__btn--down')?.addEventListener('click', () => handleVote(-1));
-    };
-
-    rerender();
+    render();
 }
 
 // ── Comment form mount ────────────────────────────────────────────────────────
@@ -591,12 +634,20 @@ async function loadComments(articleId) {
  */
 export async function renderEngagementSection(articleId, containerEl) {
     containerEl.innerHTML = `
-        <hr class="govuk-section-break govuk-section-break--l govuk-section-break--visible">
-        <h2 class="govuk-heading-m" id="comments-heading">Comments</h2>
-        <div id="comment-form-container" class="govuk-!-margin-bottom-6">
-            <p class="govuk-body govuk-hint">Loading…</p>
+        <div class="engagement-band engagement-band--vote">
+            <div class="govuk-width-container">
+                <div id="vote-container"></div>
+            </div>
         </div>
-        <div id="comments-list"></div>`;
+        <div class="engagement-band engagement-band--comments">
+            <div class="govuk-width-container">
+                <h2 class="govuk-heading-m govuk-!-margin-top-6" id="comments-heading">Comments</h2>
+                <div id="comment-form-container" class="govuk-!-margin-bottom-6">
+                    <p class="govuk-body govuk-hint">Loading…</p>
+                </div>
+                <div id="comments-list" class="govuk-!-padding-bottom-8"></div>
+            </div>
+        </div>`;
 
     loadVotes(articleId);
     loadComments(articleId);

@@ -18,10 +18,11 @@ function slugify(text) {
 
 // ── Table of contents builder ────────────────────────────────────────────────
 
-function buildToc(headings) {
+function buildToc(headings, sidebar = false) {
     if (!headings.length) return '';
 
-    const lines = ['<ul class="govuk-list govuk-!-margin-top-3 govuk-!-margin-bottom-0">'];
+    const topMargin = sidebar ? 'govuk-!-margin-top-0' : 'govuk-!-margin-top-3';
+    const lines = [`<ul class="govuk-list ${topMargin} govuk-!-margin-bottom-0">`];
 
     for (let i = 0; i < headings.length; i++) {
         const { depth, text, id } = headings[i];
@@ -47,6 +48,18 @@ function buildToc(headings) {
     }
 
     lines.push('</ul>');
+
+    if (sidebar) {
+        return `
+<details class="govuk-details govuk-!-margin-bottom-0 article-toc article-toc-sidebar" open>
+  <summary class="govuk-details__summary">
+    <span class="govuk-details__summary-text">Contents</span>
+  </summary>
+  <div class="govuk-details__text">
+    ${lines.join('\n    ')}
+  </div>
+</details>`;
+    }
 
     return `
 <details class="govuk-details govuk-!-margin-bottom-6 article-toc">
@@ -166,22 +179,39 @@ marked.use({ gfm: true, breaks: true, renderer });
 
 // ── Public API ───────────────────────────────────────────────────────────────
 
-/**
- * Converts Markdown to HTML with GOV.UK styling and an auto-generated ToC.
- * The ToC is injected immediately after the first <h1>, or prepended if none.
- */
-export function renderMarkdown(md) {
-    if (!md) return '';
-
+function collectHeadings(md) {
     const headings = [];
     for (const token of marked.lexer(md)) {
         if (token.type === 'heading' && token.depth >= 2 && token.depth <= 3) {
             headings.push({ depth: token.depth, text: token.text, id: slugify(token.text) });
         }
     }
+    return headings;
+}
 
+/**
+ * Converts Markdown to HTML with GOV.UK styling and an auto-generated ToC.
+ * The ToC is injected immediately after the first <h1>, or prepended if none.
+ */
+export function renderMarkdown(md) {
+    if (!md) return '';
+    const headings = collectHeadings(md);
     const body = marked.parse(md);
     const toc = buildToc(headings);
     const withToc = body.replace(/(<h1[^>]*>.*?<\/h1>\n?)/s, `$1${toc}`);
     return withToc === body ? toc + body : withToc;
+}
+
+/**
+ * Returns the article body HTML and a sidebar-style TOC separately,
+ * so the TOC can be placed in the sticky sidebar rather than inline.
+ * The body HTML contains no embedded TOC.
+ */
+export function renderMarkdownParts(md) {
+    if (!md) return { body: '', toc: '' };
+    const headings = collectHeadings(md);
+    return {
+        body: marked.parse(md),
+        toc: buildToc(headings, true),
+    };
 }

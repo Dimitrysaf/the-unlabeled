@@ -11,8 +11,8 @@ export async function renderHome() {
         </div>
     `;
 
-    // Show skeleton immediately
-    updateContent(heroHtml + renderGrid([], { loading: true }));
+    // Show skeleton immediately — keep the loading bar running until real content arrives
+    updateContent(heroHtml + renderGrid([], { loading: true }), { final: false });
 
     try {
         const articles = await getArticles();

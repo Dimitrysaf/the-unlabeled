@@ -26,8 +26,9 @@ import {
     updateArticle,
     deleteArticle,
     toggleDraft,
+    clearAdminDataCache,
 } from '../data/admin.js';
-import { getAllSubmissions, dismissSubmission, deleteSubmission } from '../data/submissions.js';
+import { getAllSubmissions, dismissSubmission, deleteSubmission, clearSubmissionsCache } from '../data/submissions.js';
 
 import { supabase } from '../lib/supabase.js';
 
@@ -68,6 +69,21 @@ function go(search) {
     navigate('/admin' + (search ? '?' + search : ''));
 }
 
+function sectionSkeleton(rows = 4) {
+    const row = `
+        <div class="admin-skeleton-row">
+            <span class="skeleton-line" style="flex:3;margin:0;min-width:0;"></span>
+            <span class="skeleton-line skeleton-line--short" style="flex:1.5;margin:0;min-width:0;"></span>
+            <span class="skeleton-line skeleton-line--shorter" style="flex:1;margin:0;min-width:0;"></span>
+            <span class="skeleton-line skeleton-line--shorter" style="flex:0.8;margin:0;min-width:0;"></span>
+        </div>`;
+    return `
+        <div class="admin-skeleton">
+            <div class="skeleton-line admin-skeleton-count"></div>
+            <div class="admin-skeleton-rows">${row.repeat(rows)}</div>
+        </div>`;
+}
+
 // ── List view ─────────────────────────────────────────────────────────────
 
 async function showList() {
@@ -82,25 +98,34 @@ async function showList() {
             <button class="govuk-link" id="test-notif-btn" style="background:none;border:none;cursor:pointer;padding:0;font:inherit;">
                 Send test notification
             </button>
+            <button class="govuk-link" id="admin-refresh-btn" style="background:none;border:none;cursor:pointer;padding:0;font:inherit;">
+                Refresh ↻
+            </button>
         </div>
         <div id="admin-banner"></div>
         <h2 class="govuk-heading-m">Articles</h2>
         <div id="admin-list-body">
-            <p class="govuk-body govuk-hint">Loading articles…</p>
+            ${sectionSkeleton(4)}
         </div>
         <h2 class="govuk-heading-m govuk-!-margin-top-8">Comments</h2>
         <div id="admin-comments-body">
-            <p class="govuk-body govuk-hint">Loading comments…</p>
+            ${sectionSkeleton(3)}
         </div>
         <h2 class="govuk-heading-m govuk-!-margin-top-8">Users</h2>
         <div id="admin-users-body">
-            <p class="govuk-body govuk-hint">Loading users…</p>
+            ${sectionSkeleton(4)}
         </div>
         <h2 class="govuk-heading-m govuk-!-margin-top-8">Submissions</h2>
         <div id="admin-submissions-body">
-            <p class="govuk-body govuk-hint">Loading submissions…</p>
+            ${sectionSkeleton(2)}
         </div>
     `);
+
+    document.getElementById('admin-refresh-btn')?.addEventListener('click', () => {
+        clearAdminDataCache();
+        clearSubmissionsCache();
+        showList();
+    });
 
     document.getElementById('test-notif-btn')?.addEventListener('click', async () => {
         const btn = document.getElementById('test-notif-btn');
@@ -1260,7 +1285,13 @@ async function showUserDetail(userId) {
         <a href="#" class="govuk-back-link" id="user-back">Back to admin</a>
         <span class="govuk-caption-xl">User management</span>
         <h1 class="govuk-heading-l">User detail</h1>
-        <p class="govuk-body govuk-hint">Loading…</p>
+        <div class="admin-skeleton" style="max-width:40rem;">
+            ${Array.from({length: 8}, () => `
+                <div style="display:flex;gap:2rem;padding:0.6rem 0;border-bottom:1px solid #b1b4b6;">
+                    <span class="skeleton-line skeleton-line--shorter" style="flex:1;margin:0;min-width:0;"></span>
+                    <span class="skeleton-line" style="flex:2;margin:0;min-width:0;"></span>
+                </div>`).join('')}
+        </div>
     `);
     document.getElementById('user-back')?.addEventListener('click', e => { e.preventDefault(); go(''); });
 
@@ -1304,7 +1335,7 @@ async function showUserDetail(userId) {
             <div class="govuk-grid-column-two-thirds">
                 <a href="#" class="govuk-back-link" id="user-back">Back to admin</a>
                 <span class="govuk-caption-xl">User management</span>
-                <h1 class="govuk-heading-l">${email}</h1>
+                <h1 class="govuk-heading-l" style="overflow-wrap:break-word;word-break:break-all;">${email}</h1>
 
                 <dl class="govuk-summary-list">
                     <div class="govuk-summary-list__row">
@@ -1427,7 +1458,7 @@ async function showBanUserForm(userId) {
         <a href="#" class="govuk-back-link" id="ban-back">Back</a>
         <span class="govuk-caption-xl">User management</span>
         <h1 class="govuk-heading-l">Ban user</h1>
-        <p class="govuk-body govuk-hint">Loading…</p>
+        <div class="skeleton-line skeleton-line--short" style="max-width:24rem;height:1rem;margin-bottom:1rem;"></div>
     `);
     document.getElementById('ban-back')?.addEventListener('click', e => { e.preventDefault(); go(`view-user=${userId}`); });
 
@@ -1556,7 +1587,7 @@ async function showDeleteUserConfirm(userId) {
         <a href="#" class="govuk-back-link" id="delete-back">Back</a>
         <span class="govuk-caption-xl">User management</span>
         <h1 class="govuk-heading-l">Delete user</h1>
-        <p class="govuk-body govuk-hint">Loading…</p>
+        <div class="skeleton-line skeleton-line--short" style="max-width:24rem;height:1rem;margin-bottom:1rem;"></div>
     `);
     document.getElementById('delete-back')?.addEventListener('click', e => { e.preventDefault(); go(`view-user=${userId}`); });
 

@@ -1,7 +1,7 @@
 // src/main.js
 import { inject as injectAnalytics } from '@vercel/analytics';
 import { injectSpeedInsights } from '@vercel/speed-insights';
-import { initLayout, updateNavigation } from './components/Layout.js';
+import { initLayout, updateNavigation, showPageLoading } from './components/Layout.js';
 import { initRouter } from './router.js';
 import { renderError } from './components/ErrorPage.js';
 import { readCookiePreferences } from './lib/cookiePreferences.js';
@@ -44,6 +44,7 @@ function redirectAuthHashIfNeeded() {
 }
 
 async function renderPage(fullPath) {
+    showPageLoading();
     const path = fullPath.split('?')[0].split('#')[0];
 
     if (path === '/' || path === '/index.html') {
