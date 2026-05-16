@@ -2,6 +2,7 @@
 let _renderPage = null;
 let _onNavigate = null;
 let _hasNavigated = false;
+let _navStack = []; // paths we navigated FROM, in order
 
 export function initRouter(renderPageFn, onNavigateFn) {
     _renderPage = renderPageFn;
@@ -59,6 +60,25 @@ export function hasNavigated() {
     return _hasNavigated;
 }
 
+/**
+ * Returns how many browser-history steps to go back to reach the nearest path
+ * that is neither the current page nor matches any blacklisted substring.
+ * Each navigate() call is one pushState, so the stack index maps 1-to-1 with
+ * browser history depth.  Returns 0 when no suitable entry is found — the
+ * caller should fall back to navigate('/').
+ * @param {string[]} blacklist
+ */
+export function getBackSteps(blacklist = []) {
+    const current = window.location.pathname + window.location.search;
+    for (let i = _navStack.length - 1; i >= 0; i--) {
+        const p = _navStack[i];
+        if (p !== current && !blacklist.some(pat => p.includes(pat))) {
+            return _navStack.length - i; // steps = distance from end of stack to target
+        }
+    }
+    return 0;
+}
+
 export function navigate(path) {
     const currentBase = window.location.pathname + window.location.search;
     const newBase = path.split('#')[0];
@@ -72,6 +92,7 @@ export function navigate(path) {
     }
 
     if (window.location.pathname + window.location.search !== path) {
+        _navStack.push(window.location.pathname + window.location.search);
         history.pushState({ _path: path }, '', path);
     }
     _hasNavigated = true;

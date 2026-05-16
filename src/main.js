@@ -55,6 +55,17 @@ async function renderPage(fullPath) {
         });
         const { renderHome } = await import('./home.js');
         await renderHome();
+    } else if (path.startsWith('/a/') && path.endsWith('/history')) {
+        const slug = path.replace('/a/', '').replace(/\/history$/, '').replace(/\/+$/, '');
+        const searchParams = new URLSearchParams(fullPath.split('?')[1] ?? '');
+        setMetaTags({
+            title: 'Revision history — The Unlabeled',
+            description: 'View the edit history of this article.',
+            url: `https://the-unlabeled.com${path}`,
+            robots: 'noindex',
+        });
+        const { renderHistoryPage } = await import('./pages/a/history.js');
+        await renderHistoryPage(slug, searchParams);
     } else if (path.startsWith('/a/')) {
         const slug = path.replace('/a/', '').replace(/\/+$/, '');
         const { renderArticlePage } = await import('./pages/a/[url].js');

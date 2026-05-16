@@ -1,7 +1,7 @@
 // src/pages/a/[url].js
 import { updateContent } from '../../components/Layout.js';
 import { renderError } from '../../components/ErrorPage.js';
-import { navigate, hasNavigated } from '../../router.js';
+import { navigate, getBackSteps } from '../../router.js';
 import { getArticleBySlug } from '../../data/articles.js';
 import { checkIsAdmin } from '../../data/admin.js';
 import { renderMarkdown, renderMarkdownParts } from '../../lib/markdown.js';
@@ -22,10 +22,11 @@ function buildBreadcrumb() {
     return `<a class="govuk-back-link" href="/" id="article-back-link">Back</a>`;
 }
 
-function buildShare() {
+function buildShare(slug) {
     return `
         <span class="article-actions">
             <a class="govuk-link" href="#" id="copy-link-btn" aria-label="Copy link to this article">Copy link</a>
+            <a class="govuk-link" href="/a/${slug}/history" id="history-btn" aria-label="View revision history of this article">History</a>
             <a class="govuk-link" href="#" id="print-btn" aria-label="Print this article">Print</a>
         </span>`;
 }
@@ -98,7 +99,7 @@ function buildPage(article, bodyHtml, options = {}) {
         ? `<img class="article-image" src="${escapeAttr(image)}" alt="${escapeAttr(title)}">`
         : '';
 
-    const metaRowRight = `<div>${buildShare()}</div>`;
+    const metaRowRight = `<div>${buildShare(article.slug)}</div>`;
 
     return `
         <div class="article-header-band">
@@ -122,7 +123,8 @@ function initArticleActions() {
     if (backLink) {
         backLink.addEventListener('click', e => {
             e.preventDefault();
-            if (hasNavigated()) history.back();
+            const steps = getBackSteps(['/history']);
+            if (steps > 0) history.go(-steps);
             else navigate('/');
         });
     }

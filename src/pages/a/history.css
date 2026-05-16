@@ -1,0 +1,68 @@
+/* src/pages/a/history.css — revision history page */
+
+/* ── Diff block ─────────────────────────────────────────────────────── */
+.history-diff {
+  font-family: ui-monospace, 'Courier New', monospace;
+  font-size: 0.8125rem;
+  line-height: 1.6;
+  border: 1px solid #b1b4b6;
+  overflow-x: auto;
+  background: #f3f2f1;
+  margin-bottom: 1.25rem;
+}
+
+.history-diff__line {
+  display: flex;
+  align-items: flex-start;
+  padding: 1px 0.75rem;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.history-diff__line--add  { background: #d4edd6; color: #0a3d0a; }
+.history-diff__line--del  { background: #fde8e8; color: #520000; }
+.history-diff__line--same { color: #505a5f; }
+
+.history-diff__sign {
+  min-width: 1.5em;
+  flex-shrink: 0;
+  user-select: none;
+  opacity: 0.7;
+}
+
+.history-diff__ellipsis {
+  padding: 3px 0.75rem;
+  color: #505a5f;
+  background: #e8e8e8;
+  font-style: italic;
+  text-align: center;
+  border-top: 1px dashed #b1b4b6;
+  border-bottom: 1px dashed #b1b4b6;
+  font-size: 0.8125rem;
+  font-family: ui-monospace, 'Courier New', monospace;
+}
+
+/* ── Diff legend ─────────────────────────────────────────────────────── */
+.history-diff-legend--del { color: #d4351c; font-weight: 700; }
+.history-diff-legend--add { color: #00703c; font-weight: 700; }
+
+/* ── Metadata change cells ───────────────────────────────────────────── */
+.history-meta-old {
+  text-decoration: line-through;
+  color: #d4351c;
+  margin-right: 0.25rem;
+}
+.history-meta-new {
+  color: #00703c;
+  font-weight: 700;
+}
+
+/* ── "No changes" / identical notice ────────────────────────────────── */
+.history-identical {
+  padding: 0.75rem 1rem;
+  border: 1px solid #b1b4b6;
+  background: #f3f2f1;
+  color: #505a5f;
+  font-size: 1rem;
+  margin-bottom: 1.25rem;
+}

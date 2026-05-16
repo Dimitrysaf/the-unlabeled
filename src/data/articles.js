@@ -8,6 +8,17 @@
 
 import { from, supabase } from '../lib/supabase.js';
 
+/** Fetches all saved revisions for an article, newest first. */
+export async function getArticleRevisions(articleId) {
+    const { data, error } = await supabase
+        .from('article_revisions')
+        .select('id, article_id, slug, title, subtitle, excerpt, image, tags, author, date, link, code_module, published_at, is_draft, md_content, html_content, revised_at')
+        .eq('article_id', articleId)
+        .order('revised_at', { ascending: false });
+    if (error) throw error;
+    return data ?? [];
+}
+
 const CACHE_TTL = 5 * 60 * 1000;
 let _cache = null; // { data: Article[], ts: number }
 
