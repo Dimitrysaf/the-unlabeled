@@ -16,6 +16,9 @@
   --c-green: #00703c;
 }
 
+/* govuk's .govuk-error-message{display:block} wins over [hidden]{display:none} at equal specificity */
+.govuk-error-message[hidden] { display: none !important; }
+
 /* ── Scrollbar — GOV.UK Design System colours ── */
 * {
   scrollbar-width: thin;

@@ -39,8 +39,17 @@ export function initRouter(renderPageFn, onNavigateFn) {
         const link = e.target.closest('a[href]');
         if (!link) return;
         const href = link.getAttribute('href');
-        if (!href || href.startsWith('#') || href.startsWith('http') || href.startsWith('//') || link.target === '_blank' || link.hasAttribute('download')) return;
+        if (!href || href.startsWith('http') || href.startsWith('//') || link.target === '_blank' || link.hasAttribute('download')) return;
         e.preventDefault();
+        if (href.startsWith('#')) {
+            const id = href.slice(1);
+            if (id) {
+                const path = window.location.pathname + window.location.search + href;
+                history.pushState({ _path: path }, '', path);
+                document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+            return;
+        }
         navigate(href);
     });
 }
