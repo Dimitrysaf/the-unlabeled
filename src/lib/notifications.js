@@ -12,6 +12,13 @@ export const isPushSupported =
   'serviceWorker' in navigator &&
   'PushManager' in window;
 
+// On iOS, Web Push only works when the site is installed as a PWA (Add to Home Screen).
+// Safari in a normal tab creates subscriptions but the OS never delivers background pushes.
+export const isIosNotPwa =
+  typeof window !== 'undefined' &&
+  /iP(hone|ad|od)/.test(navigator.userAgent) &&
+  !window.navigator.standalone;
+
 export async function registerServiceWorker() {
   if (!isPushSupported) return null;
   return navigator.serviceWorker.register('/sw.js');

@@ -3,7 +3,7 @@ import { updateContent } from '../components/Layout.js';
 import { navigate } from '../router.js';
 import { getCurrentUser, signOut } from '../lib/auth.js';
 import { checkIsAdmin } from '../data/admin.js';
-import { isPushSupported, getSubscriptionState, subscribe, unsubscribe } from '../lib/notifications.js';
+import { isPushSupported, isIosNotPwa, getSubscriptionState, subscribe, unsubscribe } from '../lib/notifications.js';
 
 export async function renderAccount() {
     let user, isAdmin;
@@ -203,12 +203,21 @@ export async function renderAccount() {
 
                     ${isPushSupported ? `
                     <h2 class="govuk-heading-m govuk-!-margin-top-6">Notifications</h2>
+                    ${isIosNotPwa ? `
+                    <p class="govuk-body">To receive notifications on iPhone or iPad, you need to install this site first.</p>
+                    <ol class="govuk-list govuk-list--number govuk-body">
+                        <li>Tap the <strong>Share</strong> button in Safari (the box with an arrow pointing up)</li>
+                        <li>Select <strong>Add to Home Screen</strong></li>
+                        <li>Open the app from your home screen, then return here to subscribe</li>
+                    </ol>
+                    ` : `
                     <p class="govuk-body" id="notify-status-text">Checking notification status…</p>
                     <div class="govuk-button-group">
                         <button class="govuk-button govuk-button--secondary" id="notify-btn" disabled>
                             Subscribe to notifications
                         </button>
                     </div>
+                    `}
                     ` : ''}
 
                     ${isAdmin ? `
