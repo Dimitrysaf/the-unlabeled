@@ -123,7 +123,6 @@ export function initLayout() {
                 </div>
             </div>
         </header>
-
         <div class="govuk-service-navigation" data-module="govuk-service-navigation">
             <div class="govuk-width-container">
                 <div class="govuk-service-navigation__container">

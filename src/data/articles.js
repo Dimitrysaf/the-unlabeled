@@ -32,17 +32,36 @@ export async function getArticleBySlug(slug) {
     return article ? normalize(article) : null;
 }
 
-/** Full-text search across title, subtitle, excerpt, and tags. */
+/** Full-text search across title, subtitle, excerpt, and tags with relevance ranking. */
 export async function searchArticles(query) {
     const q = query.trim();
     if (!q) return [];
-    const pattern = `%${q}%`;
-    const { data, error } = await supabase
-        .from('articles')
-        .select('*')
-        .eq('is_draft', false)
-        .or(`title.ilike.${pattern},subtitle.ilike.${pattern},excerpt.ilike.${pattern}`)
-        .order('published_at', { ascending: false });
-    if (error) throw error;
-    return (data ?? []).map(normalize);
+
+    const tokens = q.toLowerCase().split(/\s+/).filter(Boolean);
+    const articles = await getArticles();
+
+    const scored = articles.map(a => {
+        const title    = (a.title    ?? '').toLowerCase();
+        const subtitle = (a.subtitle ?? '').toLowerCase();
+        const excerpt  = (a.excerpt  ?? '').toLowerCase();
+        const tags     = (a.tags     ?? []).map(t => (t.label ?? t).toLowerCase()).join(' ');
+
+        let score = 0;
+        for (const token of tokens) {
+            if (title.includes(token))    score += 10;
+            if (tags.includes(token))     score += 6;
+            if (subtitle.includes(token)) score += 4;
+            if (excerpt.includes(token))  score += 2;
+        }
+
+        // Bonus for exact phrase match in title
+        if (tokens.length > 1 && title.includes(q.toLowerCase())) score += 15;
+
+        return { article: a, score };
+    });
+
+    return scored
+        .filter(({ score }) => score > 0)
+        .sort((a, b) => b.score - a.score || new Date(b.article.published_at) - new Date(a.article.published_at))
+        .map(({ article }) => article);
 }

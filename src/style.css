@@ -16,6 +16,35 @@
   --c-green: #00703c;
 }
 
+/* ── Scrollbar — GOV.UK Design System colours ── */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--c-border) var(--c-light);
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--c-light);
+  border-radius: 0;
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: var(--c-border);
+  border-radius: 0;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background-color: var(--c-secondary);
+}
+
+::-webkit-scrollbar-corner {
+  background: var(--c-light);
+}
+
 /* ── Font — GDS Transport unavailable outside gov domains; use Arial ── */
 @font-face {
   font-family: "GDS Transport";
@@ -230,7 +259,8 @@ body {
   position: relative;
   z-index: 1;
   margin-top: auto;
-  background: transparent;
+  background: linear-gradient(to top, rgba(11, 12, 12, 0.85) 0%, rgba(11, 12, 12, 0) 100%);
+  padding-top: 3.5rem;
 }
 
 .news-card--hero .news-card__category,
@@ -251,11 +281,15 @@ body {
 
 /* ── Page loading bar ── */
 #page-loading-bar {
-  height: 3px;
+  height: 0;
   overflow: hidden;
   position: relative;
   background: transparent;
   flex-shrink: 0;
+}
+
+#page-loading-bar.is-loading {
+  height: 3px;
 }
 
 #page-loading-bar.is-loading::before {

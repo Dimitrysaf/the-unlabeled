@@ -212,7 +212,7 @@ function buildDeleteConfirm() {
         </div>`;
 }
 
-// ── Vote widget — GOV.UK "Was this article helpful?" pattern ─────────────────
+// ── Vote widget — GOV.UK "Did you like this article?" pattern ─────────────────
 
 function buildVotePrompt(score) {
     const countHtml = score !== 0
@@ -221,21 +221,17 @@ function buildVotePrompt(score) {
     return `
         <div class="page-useful-bar">
             <div class="page-useful-bar__prompt">
-                <h2 class="page-useful-bar__question govuk-body govuk-!-margin-bottom-0">Is this article helpful?</h2>
+                <h2 class="page-useful-bar__question govuk-body govuk-!-margin-bottom-0">Did you like this article?</h2>
                 <ul class="page-useful-bar__options">
                     <li class="page-useful-bar__option">
-                        <button type="button"
-                                class="govuk-button govuk-button--secondary govuk-!-margin-bottom-0"
-                                data-vote="1">
-                            Yes <span class="govuk-visually-hidden">this article is helpful</span>
-                        </button>
+                        <a class="govuk-link govuk-!-margin-bottom-0" data-vote="1" style="cursor: pointer;">
+                            Yes <span class="govuk-visually-hidden">you liked this article</span>
+                        </a>
                     </li>
                     <li class="page-useful-bar__option">
-                        <button type="button"
-                                class="govuk-button govuk-button--secondary govuk-!-margin-bottom-0"
-                                data-vote="-1">
-                            No <span class="govuk-visually-hidden">this article is not helpful</span>
-                        </button>
+                        <a class="govuk-link govuk-!-margin-bottom-0" data-vote="-1" style="cursor: pointer;">
+                            No <span class="govuk-visually-hidden">you did not like this article</span>
+                        </a>
                     </li>
                 </ul>
                 ${countHtml}
