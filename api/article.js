@@ -49,7 +49,7 @@ export default async function handler(req, res) {
     const html = injectMeta(htmlResult.value, slug, article);
 
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
-    res.setHeader('Cache-Control', 's-maxage=300, stale-while-revalidate=3600');
+    res.setHeader('Cache-Control', 'private, max-age=300');
     return res.status(200).send(html);
 }
 
