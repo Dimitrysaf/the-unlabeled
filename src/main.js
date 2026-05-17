@@ -86,6 +86,14 @@ async function renderPage(fullPath) {
         });
         const { renderRequest } = await import('./pages/request.js');
         renderRequest();
+    } else if (path === '/donate') {
+        setMetaTags({
+            title: 'Support Us - The Unlabeled',
+            description: 'Support The Unlabeled with a one-time or monthly donation via Ko-fi.',
+            url: 'https://the-unlabeled.com/donate'
+        });
+        const { renderDonate } = await import('./pages/donate.js');
+        renderDonate();
     } else if (path === '/about') {
         setMetaTags({
             title: 'About Us - The Unlabeled',

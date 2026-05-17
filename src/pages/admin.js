@@ -95,6 +95,12 @@ async function showList() {
                target="_blank" rel="noopener noreferrer">Vercel ↗</a>
             <a class="govuk-link" href="https://supabase.com/dashboard/project/zapruosojosnbdttkvab/auth/users"
                target="_blank" rel="noopener noreferrer">Supabase users ↗</a>
+            <a class="govuk-link" href="https://adsense.google.com/"
+               target="_blank" rel="noopener noreferrer">AdSense ↗</a>
+            <a class="govuk-link" href="https://search.google.com/search-console/"
+               target="_blank" rel="noopener noreferrer">Search Console ↗</a>
+            <a class="govuk-link" href="https://ko-fi.com/theunlabeled"
+               target="_blank" rel="noopener noreferrer">Ko-fi ↗</a>
             <button class="govuk-link" id="test-notif-btn" style="background:none;border:none;cursor:pointer;padding:0;font:inherit;">
                 Send test notification
             </button>

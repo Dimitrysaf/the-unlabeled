@@ -1,0 +1,58 @@
+/* src/pages/donate.css — only loads on /donate */
+
+.donate-layout {
+  display: grid;
+  grid-template-columns: 1fr 340px;
+  gap: 2rem;
+  align-items: start;
+}
+
+.donate-intro {
+  margin-bottom: 0;
+}
+
+.donate-reasons {
+  list-style: none;
+  padding: 0;
+  margin: 1.5rem 0 0;
+}
+
+.donate-reasons li {
+  padding: 0.5rem 0 0.5rem 1.5rem;
+  position: relative;
+  border-bottom: 1px solid #f3f2f1;
+}
+
+.donate-reasons li svg {
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #1d70b8;
+  flex-shrink: 0;
+}
+
+.donate-widget-panel {
+  background: #f3f2f1;
+  border-left: 4px solid #1d70b8;
+  padding: 0;
+  overflow: hidden;
+}
+
+.donate-widget-panel iframe {
+  display: block;
+  width: 100%;
+  border: none;
+  background: transparent;
+}
+
+@media (max-width: 768px) {
+  .donate-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .donate-widget-panel {
+    border-left: none;
+    border-top: 4px solid #1d70b8;
+  }
+}

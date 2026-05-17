@@ -154,6 +154,9 @@ export function initLayout() {
                                 <a class="govuk-footer__link" href="/legal#privacy">Privacy</a>
                             </li>
                             <li class="govuk-footer__inline-list-item">
+                                <a class="govuk-footer__link" href="/donate">Donate</a>
+                            </li>
+                            <li class="govuk-footer__inline-list-item">
                                 <a class="govuk-footer__link" target="_blank" href="https://github.com/Dimitrysaf/the-unlabeled">Source code</a>
                             </li>
                         </ul>
