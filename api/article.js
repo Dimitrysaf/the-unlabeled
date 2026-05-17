@@ -80,7 +80,8 @@ async function fetchIndexHtml(baseUrl) {
         headers: { Accept: 'text/html' },
     });
     if (!res.ok) throw new Error(`index.html fetch failed: ${res.status}`);
-    return res.text();
+    const buf = await res.arrayBuffer();
+    return new TextDecoder('utf-8').decode(buf);
 }
 
 function resolveBodyHtml(article) {
