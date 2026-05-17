@@ -639,7 +639,11 @@ export async function renderEngagementSection(articleId, containerEl) {
             <div class="govuk-width-container">
                 <h2 class="govuk-heading-m govuk-!-margin-top-6" id="comments-heading">Comments</h2>
                 <div id="comment-form-container" class="govuk-!-margin-bottom-6">
-                    <p class="govuk-body govuk-hint">Loading…</p>
+                    <div class="comment-form-skeleton" aria-hidden="true">
+                        <div class="skeleton-line skeleton-line--short govuk-!-margin-bottom-3"></div>
+                        <div class="skeleton-textarea govuk-!-margin-bottom-2"></div>
+                        <div class="skeleton-line skeleton-line--shorter"></div>
+                    </div>
                 </div>
                 <div id="comments-list" class="govuk-!-padding-bottom-8"></div>
             </div>

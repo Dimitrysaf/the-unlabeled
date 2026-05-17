@@ -337,6 +337,14 @@ body {
   width: 38%;
 }
 
+.skeleton-textarea {
+  height: 110px;
+  background: linear-gradient(90deg, var(--c-light) 25%, #fff 50%, var(--c-light) 75%);
+  background-size: 200% 100%;
+  animation: govuk-shimmer 1.4s infinite;
+  border-radius: 1px;
+}
+
 @keyframes govuk-shimmer {
   0% {
     background-position: 200% 0;
