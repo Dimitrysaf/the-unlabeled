@@ -6,8 +6,7 @@ const SUPABASE_URL = process.env.VITE_SUPABASE_URL;
 const SUPABASE_ANON_KEY = process.env.VITE_SUPABASE_ANON_KEY;
 const SITE_URL = 'https://the-unlabeled.com';
 
-const SEARCH_BOTS = /googlebot|bingbot|yandex|duckduckbot|slurp/i;
-const SOCIAL_BOTS = /facebookexternalhit|twitterbot|linkedinbot|slackbot|discordbot|whatsapp|telegrambot/i;
+const CRAWLERS = /googlebot|bingbot|yandex|duckduckbot|slurp|facebookexternalhit|twitterbot|linkedinbot|slackbot|discordbot|whatsapp|telegrambot/i;
 
 export default async function handler(req, res) {
     const slug = String(req.query.slug || '').replace(/[^\w-]/g, '');
@@ -17,14 +16,13 @@ export default async function handler(req, res) {
     }
 
     const userAgent = req.headers['user-agent'] || '';
-    const isSearchBot = SEARCH_BOTS.test(userAgent);
-    const isSocialBot = SOCIAL_BOTS.test(userAgent);
+    const isCrawler = CRAWLERS.test(userAgent);
 
     const proto = req.headers['x-forwarded-proto'] || 'https';
     const host = req.headers['x-forwarded-host'] || req.headers.host || 'the-unlabeled.com';
     const baseUrl = `${proto}://${host}`;
 
-    if (isSearchBot) {
+    if (isCrawler) {
         const article = await fetchArticle(slug);
 
         if (!article || article.is_draft) {
@@ -33,7 +31,7 @@ export default async function handler(req, res) {
         }
 
         res.setHeader('Content-Type', 'text/html; charset=utf-8');
-        res.setHeader('Cache-Control', 's-maxage=300, stale-while-revalidate=3600');
+        res.setHeader('Cache-Control', 'no-store');
         return res.status(200).send(renderArticleHtml(article, slug));
     }
 
@@ -179,20 +177,6 @@ function renderArticleHtml(article, slug) {
   }
   </script>
 
-  <style>
-    body { font-family: sans-serif; max-width: 860px; margin: 0 auto; padding: 2rem 1rem; color: #222; line-height: 1.6; }
-    h1 { font-size: 2rem; line-height: 1.2; margin-bottom: 0.5rem; }
-    h2 { font-size: 1.5rem; margin-top: 2rem; }
-    h3 { font-size: 1.2rem; margin-top: 1.5rem; }
-    .meta { color: #666; font-size: 0.9rem; margin-bottom: 2rem; }
-    .tags { margin-bottom: 1rem; }
-    .tag { background: #1d4e89; color: #fff; padding: 0.2rem 0.6rem; border-radius: 3px; font-size: 0.8rem; margin-right: 0.4rem; }
-    .content { font-size: 1.05rem; }
-    img { max-width: 100%; height: auto; }
-    blockquote { border-left: 4px solid #ccc; margin-left: 0; padding-left: 1rem; color: #555; }
-    a { color: #1d4e89; }
-    .site-link { display: block; margin-top: 3rem; padding-top: 1rem; border-top: 1px solid #eee; font-size: 0.9rem; color: #666; }
-  </style>
 </head>
 <body>
   <article>
