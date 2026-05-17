@@ -1,15 +1,13 @@
 // api/article.js
-// Intercepts /a/:slug requests so that:
-// - Search engine bots (Google, Bing, etc.) receive full article HTML for indexing
-// - Social-media crawlers (Slack, Discord, Twitter) receive correct Open Graph meta tags
-// - Real browsers receive the full SPA so the Vite router initialises normally
+
+import { marked } from 'marked';
 
 const SUPABASE_URL = process.env.VITE_SUPABASE_URL;
 const SUPABASE_ANON_KEY = process.env.VITE_SUPABASE_ANON_KEY;
 const SITE_URL = 'https://the-unlabeled.com';
 
 const SEARCH_BOTS = /googlebot|bingbot|yandex|duckduckbot|slurp/i;
-const SOCIAL_BOTS = /facebookexternalhit|twitterbot|linkedinbot|slackbot|discordbot|whatsapp|telegrambot|imessage/i;
+const SOCIAL_BOTS = /facebookexternalhit|twitterbot|linkedinbot|slackbot|discordbot|whatsapp|telegrambot/i;
 
 export default async function handler(req, res) {
     const slug = String(req.query.slug || '').replace(/[^\w-]/g, '');
@@ -21,7 +19,6 @@ export default async function handler(req, res) {
     const userAgent = req.headers['user-agent'] || '';
     const isSearchBot = SEARCH_BOTS.test(userAgent);
     const isSocialBot = SOCIAL_BOTS.test(userAgent);
-    const isBot = isSearchBot || isSocialBot;
 
     const proto = req.headers['x-forwarded-proto'] || 'https';
     const host = req.headers['x-forwarded-host'] || req.headers.host || 'the-unlabeled.com';
@@ -30,7 +27,7 @@ export default async function handler(req, res) {
     if (isSearchBot) {
         const article = await fetchArticle(slug);
 
-        if (!article) {
+        if (!article || article.is_draft) {
             res.writeHead(404);
             return res.end('Not found');
         }
@@ -40,7 +37,6 @@ export default async function handler(req, res) {
         return res.status(200).send(renderArticleHtml(article, slug));
     }
 
-    // Social bots and real browsers: fetch both in parallel
     const [articleResult, htmlResult] = await Promise.allSettled([
         fetchArticle(slug),
         fetchIndexHtml(baseUrl),
@@ -65,8 +61,9 @@ async function fetchArticle(slug) {
     const url =
         `${SUPABASE_URL}/rest/v1/articles` +
         `?slug=eq.${encodeURIComponent(slug)}` +
-        `&is_draft=eq.false` +
-        `&select=title,excerpt,image,slug,content,author,created_at` +
+        `&select=id,title,subtitle,excerpt,image,slug,is_draft,` +
+        `md_content,html_content,code_module,` +
+        `author,published_at,updated_at,tags` +
         `&limit=1`;
 
     const res = await fetch(url, {
@@ -88,6 +85,20 @@ async function fetchIndexHtml(baseUrl) {
     return res.text();
 }
 
+function resolveBodyHtml(article) {
+    if (article.md_content) {
+        return marked.parse(article.md_content);
+    }
+    if (article.html_content) {
+        return article.html_content;
+    }
+    if (article.code_module) {
+        return `<p>${e(article.excerpt || article.subtitle || '')}</p>
+                <p><em>This article contains an interactive tool. Visit the full page to use it.</em></p>`;
+    }
+    return '';
+}
+
 function renderArticleHtml(article, slug) {
     const title = `${e(article.title)} | The Unlabeled`;
     const canonicalUrl = `${SITE_URL}/a/${slug}`;
@@ -96,11 +107,20 @@ function renderArticleHtml(article, slug) {
         ? (rawImage.startsWith('http') ? rawImage : `${SITE_URL}${rawImage}`)
         : `${SITE_URL}/favicon.png`;
 
-    const dateStr = article.created_at
-        ? new Date(article.created_at).toISOString().split('T')[0]
+    const publishedDate = article.published_at
+        ? new Date(article.published_at).toISOString().split('T')[0]
+        : '';
+    const modifiedDate = article.updated_at
+        ? new Date(article.updated_at).toISOString().split('T')[0]
         : '';
 
-    const bodyContent = article.content || '';
+    const authorName = article.author?.name || 'The Unlabeled';
+
+    const tags = Array.isArray(article.tags)
+        ? article.tags.map(t => e(t.label)).join(', ')
+        : '';
+
+    const bodyHtml = resolveBodyHtml(article);
 
     return `<!DOCTYPE html>
 <html lang="en">
@@ -108,14 +128,15 @@ function renderArticleHtml(article, slug) {
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>${title}</title>
-  <meta name="description" content="${e(article.excerpt)}">
+  <meta name="description" content="${e(article.excerpt || article.subtitle || '')}">
   <link rel="canonical" href="${e(canonicalUrl)}">
+  ${tags ? `<meta name="keywords" content="${tags}">` : ''}
 
   <!-- Open Graph -->
   <meta property="og:type" content="article">
   <meta property="og:url" content="${e(canonicalUrl)}">
   <meta property="og:title" content="${e(article.title)}">
-  <meta property="og:description" content="${e(article.excerpt)}">
+  <meta property="og:description" content="${e(article.excerpt || article.subtitle || '')}">
   <meta property="og:image" content="${e(image)}">
   <meta property="og:site_name" content="The Unlabeled">
 
@@ -123,63 +144,87 @@ function renderArticleHtml(article, slug) {
   <meta name="twitter:card" content="summary_large_image">
   <meta property="twitter:url" content="${e(canonicalUrl)}">
   <meta property="twitter:title" content="${e(article.title)}">
-  <meta property="twitter:description" content="${e(article.excerpt)}">
+  <meta property="twitter:description" content="${e(article.excerpt || article.subtitle || '')}">
   <meta property="twitter:image" content="${e(image)}">
 
-  <!-- Article structured data for Google -->
+  <!-- Schema.org structured data -->
   <script type="application/ld+json">
   {
     "@context": "https://schema.org",
     "@type": "Article",
     "headline": "${e(article.title)}",
-    "description": "${e(article.excerpt)}",
+    "description": "${e(article.excerpt || article.subtitle || '')}",
     "image": "${e(image)}",
     "url": "${e(canonicalUrl)}",
-    "datePublished": "${dateStr}",
+    "datePublished": "${publishedDate}",
+    "dateModified": "${modifiedDate}",
     "author": {
       "@type": "Person",
-      "name": "${e(article.author || 'The Unlabeled')}"
+      "name": "${e(authorName)}"
     },
     "publisher": {
       "@type": "Organization",
       "name": "The Unlabeled",
-      "url": "${SITE_URL}"
+      "url": "${SITE_URL}",
+      "logo": {
+        "@type": "ImageObject",
+        "url": "${SITE_URL}/favicon.png"
+      }
+    },
+    "mainEntityOfPage": {
+      "@type": "WebPage",
+      "@id": "${e(canonicalUrl)}"
     }
+    ${tags ? `,"keywords": "${tags}"` : ''}
   }
   </script>
 
   <style>
-    body { font-family: sans-serif; max-width: 800px; margin: 0 auto; padding: 2rem 1rem; color: #222; }
+    body { font-family: sans-serif; max-width: 860px; margin: 0 auto; padding: 2rem 1rem; color: #222; line-height: 1.6; }
     h1 { font-size: 2rem; line-height: 1.2; margin-bottom: 0.5rem; }
+    h2 { font-size: 1.5rem; margin-top: 2rem; }
+    h3 { font-size: 1.2rem; margin-top: 1.5rem; }
     .meta { color: #666; font-size: 0.9rem; margin-bottom: 2rem; }
-    .content { line-height: 1.7; font-size: 1.1rem; }
+    .tags { margin-bottom: 1rem; }
+    .tag { background: #1d4e89; color: #fff; padding: 0.2rem 0.6rem; border-radius: 3px; font-size: 0.8rem; margin-right: 0.4rem; }
+    .content { font-size: 1.05rem; }
+    img { max-width: 100%; height: auto; }
+    blockquote { border-left: 4px solid #ccc; margin-left: 0; padding-left: 1rem; color: #555; }
     a { color: #1d4e89; }
+    .site-link { display: block; margin-top: 3rem; padding-top: 1rem; border-top: 1px solid #eee; font-size: 0.9rem; color: #666; }
   </style>
 </head>
 <body>
   <article>
+    ${rawImage ? `<img src="${e(image)}" alt="${e(article.title)}" style="width:100%;max-height:400px;object-fit:cover;margin-bottom:1.5rem;">` : ''}
+
     <h1>${e(article.title)}</h1>
+
+    ${article.subtitle ? `<p style="font-size:1.15rem;color:#444;margin-bottom:1rem;">${e(article.subtitle)}</p>` : ''}
+
     <p class="meta">
-      ${article.author ? `By ${e(article.author)}` : 'The Unlabeled'}
-      ${dateStr ? ` · ${dateStr}` : ''}
+      By <strong>${e(authorName)}</strong>
+      ${publishedDate ? ` · ${publishedDate}` : ''}
     </p>
-    <div class="content">${bodyContent}</div>
+
+    ${tags ? `<p class="tags">${article.tags.map(t => `<span class="tag">${e(t.label)}</span>`).join('')
+            }</p>` : ''}
+
+    <div class="content">
+      ${bodyHtml}
+    </div>
   </article>
 
-  <script>
-    // If a real browser somehow receives this page (rare edge case),
-    // redirect them to the SPA version which has the full UI.
-    if (typeof window !== 'undefined' && !navigator.userAgent.match(/googlebot|bingbot|yandex/i)) {
-      window.location.replace('/a/${slug}?spa=1');
-    }
-  </script>
+  <p class="site-link">
+    Read more at <a href="${SITE_URL}">${SITE_URL}</a>
+  </p>
 </body>
 </html>`;
 }
 
 function injectMeta(html, slug, article) {
     const title = article?.title ? `${article.title} | The Unlabeled` : 'The Unlabeled';
-    const description = article?.excerpt ?? 'A political blog and data initiative providing analysis, political facts, and commentary rooted in evidence.';
+    const description = article?.excerpt ?? article?.subtitle ?? 'A political blog and data initiative providing analysis, political facts, and commentary rooted in evidence.';
     const rawImage = article?.image;
     const image = rawImage
         ? (rawImage.startsWith('http') ? rawImage : `${SITE_URL}${rawImage}`)
@@ -187,41 +232,29 @@ function injectMeta(html, slug, article) {
     const canonicalUrl = `${SITE_URL}/a/${slug}`;
 
     return html
-        .replace(
-            /<title>[^<]*<\/title>/,
+        .replace(/<title>[^<]*<\/title>/,
             `<title>${e(title)}</title>`)
-        .replace(
-            /(<meta\s+name="description"\s+content=")[^"]*(")/,
+        .replace(/(<meta\s+name="description"\s+content=")[^"]*(")/,
             `$1${e(description)}$2`)
-        .replace(
-            /(<link\s+rel="canonical"\s+href=")[^"]*(")/,
+        .replace(/(<link\s+rel="canonical"\s+href=")[^"]*(")/,
             `$1${e(canonicalUrl)}$2`)
-        .replace(
-            /(<meta\s+property="og:type"\s+content=")[^"]*(")/,
+        .replace(/(<meta\s+property="og:type"\s+content=")[^"]*(")/,
             `$1article$2`)
-        .replace(
-            /(<meta\s+property="og:url"\s+content=")[^"]*(")/,
+        .replace(/(<meta\s+property="og:url"\s+content=")[^"]*(")/,
             `$1${e(canonicalUrl)}$2`)
-        .replace(
-            /(<meta\s+property="og:title"\s+content=")[^"]*(")/,
+        .replace(/(<meta\s+property="og:title"\s+content=")[^"]*(")/,
             `$1${e(title)}$2`)
-        .replace(
-            /(<meta\s+property="og:description"[\s\S]*?content=")[^"]*(")/,
+        .replace(/(<meta\s+property="og:description"[\s\S]*?content=")[^"]*(")/,
             `$1${e(description)}$2`)
-        .replace(
-            /(<meta\s+property="og:image"\s+content=")[^"]*(")/,
+        .replace(/(<meta\s+property="og:image"\s+content=")[^"]*(")/,
             `$1${e(image)}$2`)
-        .replace(
-            /(<meta\s+property="twitter:url"\s+content=")[^"]*(")/,
+        .replace(/(<meta\s+property="twitter:url"\s+content=")[^"]*(")/,
             `$1${e(canonicalUrl)}$2`)
-        .replace(
-            /(<meta\s+property="twitter:title"\s+content=")[^"]*(")/,
+        .replace(/(<meta\s+property="twitter:title"\s+content=")[^"]*(")/,
             `$1${e(title)}$2`)
-        .replace(
-            /(<meta\s+property="twitter:description"[\s\S]*?content=")[^"]*(")/,
+        .replace(/(<meta\s+property="twitter:description"[\s\S]*?content=")[^"]*(")/,
             `$1${e(description)}$2`)
-        .replace(
-            /(<meta\s+property="twitter:image"\s+content=")[^"]*(")/,
+        .replace(/(<meta\s+property="twitter:image"\s+content=")[^"]*(")/,
             `$1${e(image)}$2`);
 }
 
