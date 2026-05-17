@@ -192,8 +192,7 @@ function renderArticleHtml(article, slug) {
       ${publishedDate ? ` · ${publishedDate}` : ''}
     </p>
 
-    ${tags ? `<p class="tags">${article.tags.map(t => `<span class="tag">${e(t.label)}</span>`).join('')
-            }</p>` : ''}
+    ${tags ? `<p>${article.tags.map(t => e(t.label)).join(', ')}</p>` : ''}
 
     <div class="content">
       ${bodyHtml}
