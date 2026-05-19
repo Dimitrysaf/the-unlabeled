@@ -130,15 +130,29 @@ async function showList() {
         btn.disabled = true;
         btn.textContent = 'Sending…';
         try {
+            let endpoint = null;
+            try {
+                const reg = await navigator.serviceWorker.ready;
+                const sub = await reg.pushManager.getSubscription();
+                if (sub) endpoint = sub.toJSON().endpoint;
+            } catch { /* service worker unavailable */ }
+
+            if (!endpoint) {
+                throw new Error('This device is not subscribed to notifications. Enable notifications first.');
+            }
+
             const { data: { session } } = await supabase.auth.getSession();
             const res = await fetch('/api/test-notification', {
                 method: 'POST',
-                headers: { Authorization: `Bearer ${session?.access_token}` }
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${session?.access_token}`,
+                },
+                body: JSON.stringify({ endpoint }),
             });
             const json = await res.json();
             if (!res.ok) throw new Error(json.error || `HTTP ${res.status}`);
-            const { sent } = json;
-            showBanner('success', `Test notification sent to ${sent} subscriber${sent !== 1 ? 's' : ''}.`);
+            showBanner('success', 'Test notification sent to this device.');
         } catch (err) {
             showBanner('error', `Failed to send test notification: ${err.message}`);
         }

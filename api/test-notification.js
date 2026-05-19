@@ -52,35 +52,37 @@ export default async function handler(req, res) {
   const admins = await dbFetch(`admin_users?user_id=eq.${userId}&select=id`);
   if (!admins?.length) return res.status(403).json({ error: 'Not admin' });
 
-  const subscribers = await dbFetch('push_subscriptions?select=endpoint,p256dh,auth');
-  if (!subscribers?.length) return res.status(200).json({ sent: 0 });
+  const { endpoint } = req.body ?? {};
+  if (!endpoint) return res.status(400).json({ error: 'No endpoint provided' });
 
+  const subs = await dbFetch(
+    `push_subscriptions?endpoint=eq.${encodeURIComponent(endpoint)}&select=endpoint,p256dh,auth`
+  );
+  if (!subs?.length) return res.status(400).json({ error: 'This device is not subscribed to notifications.' });
+
+  const sub = subs[0];
   const payload = JSON.stringify({
     title: 'Test notification',
     body: 'Push notifications are working correctly.',
     url: SITE_URL
   });
 
-  let sent = 0;
-  await Promise.allSettled(
-    subscribers.map(async sub => {
-      try {
-        await webpush.sendNotification(
-          { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },
-          payload,
-          { urgency: 'high', TTL: 86400 }
-        );
-        sent++;
-      } catch (err) {
-        if (err.statusCode === 410) {
-          await dbFetch(
-            `push_subscriptions?endpoint=eq.${encodeURIComponent(sub.endpoint)}`,
-            { method: 'DELETE' }
-          );
-        }
-      }
-    })
-  );
+  try {
+    await webpush.sendNotification(
+      { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },
+      payload,
+      { urgency: 'high', TTL: 86400 }
+    );
+  } catch (err) {
+    if (err.statusCode === 410) {
+      await dbFetch(
+        `push_subscriptions?endpoint=eq.${encodeURIComponent(sub.endpoint)}`,
+        { method: 'DELETE' }
+      );
+      return res.status(400).json({ error: 'Subscription has expired. Please re-enable notifications.' });
+    }
+    throw err;
+  }
 
-  return res.status(200).json({ sent });
+  return res.status(200).json({ sent: 1 });
 }
