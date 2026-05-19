@@ -7,7 +7,7 @@ import { logger } from './lib/logger.js';
 export async function renderHome() {
     const heroHtml = `
         <div class="govuk-!-margin-bottom-6">
-            <h1 class="govuk-heading-xl">Home</h1>
+            <h1 class="govuk-heading-xl">Home page</h1>
             <hr class="govuk-section-break govuk-section-break--m govuk-section-break--visible">
         </div>
     `;
