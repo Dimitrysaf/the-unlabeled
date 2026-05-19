@@ -220,7 +220,7 @@ function renderEmailSentPage(email) {
                     <h1 class="govuk-panel__title">Check your email</h1>
                     <div class="govuk-panel__body">
                         We sent a confirmation link to<br>
-                        <strong>${escapeHtml(email)}</strong>
+                        <strong style="word-break: break-all;">${escapeHtml(email)}</strong>
                     </div>
                 </div>
 
