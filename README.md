@@ -2,7 +2,7 @@
 
 A personal blog. Previous attempts didn't pass the vibe check — this one might.
 
-**Live:** [the-unlabeled.vercel.app](https://the-unlabeled.vercel.app)
+**Live:** [the-unlabeled.com](https://the-unlabeled.com)
 
 ---
 
@@ -13,12 +13,15 @@ A personal blog. Previous attempts didn't pass the vibe check — this one might
 | Build | [Vite](https://vite.dev) |
 | UI Framework | [GOV.UK Frontend](https://frontend.design-system.service.gov.uk/) v5.9 |
 | Styling | GOV.UK CSS + custom `style.css` overrides |
-| Scripting | Vanilla JS + [jQuery](https://jquery.com/) |
+| Scripting | Vanilla JS |
+| Database & Auth | [Supabase](https://supabase.com) |
+| Markdown | [marked](https://marked.js.org) + [EasyMDE](https://easymde.github.io/EasyMDE/) |
 | Charts | [Chart.js](https://www.chartjs.org/) + chartjs-plugin-zoom |
-| Icons | Font Awesome 6 |
+| Push notifications | [web-push](https://github.com/web-push-libs/web-push) |
+| Analytics | Vercel Analytics + Vercel Speed Insights |
 | Deploy | [Vercel](https://vercel.com) |
 
-The GOV.UK design system handles the heavy lifting for layout and accessibility. `src/style.css` customises it to feel less like a government portal and more like an actual blog.
+The GOV.UK design system handles layout and accessibility. `src/style.css` customises it to feel less like a government portal.
 
 ---
 
@@ -26,13 +29,18 @@ The GOV.UK design system handles the heavy lifting for layout and accessibility.
 
 ```
 the-unlabeled/
-├── public/          # Static assets
+├── api/             # Vercel serverless functions (article SSR, sitemap, push)
+├── public/          # Static assets (favicon, sw.js, manifest)
 ├── src/
-│   ├── main.js      # Entry point
+│   ├── components/  # Shared UI components (Layout, Grid, Comments, etc.)
+│   ├── data/        # Supabase query helpers
+│   ├── lib/         # Utilities (auth, validation, logger, markdown, etc.)
+│   ├── pages/       # Page renderers (one file per route)
+│   ├── main.js      # Entry point and client-side router
 │   └── style.css    # GOV.UK overrides & custom styles
 ├── index.html
-├── package.json
-└── vercel.json
+├── vercel.json
+└── package.json
 ```
 
 ---
@@ -40,24 +48,29 @@ the-unlabeled/
 ## Getting Started
 
 ```bash
-npm install
-npm run dev
+pnpm install
+pnpm run dev
 ```
 
 Other scripts:
 
 ```bash
-npm run build    # Production build
-npm run preview  # Preview the production build locally
+pnpm run build    # Production build
+pnpm run preview  # Preview the production build locally
 ```
+
+Copy `.env.example` to `.env.local` and fill in your Supabase and VAPID keys before running locally.
 
 ---
 
 ## Roadmap
 
-- [x] Database integration for post metadata
-- [x] Markdown support for post content (if the schema stays simple enough)
-- [ ] More posts, presumably
+- [x] Database integration (Supabase)
+- [x] Markdown support for article content
+- [x] Comments and voting system
+- [x] Push notifications
+- [x] Admin panel
+- [ ] More articles, presumably
 
 ---
 

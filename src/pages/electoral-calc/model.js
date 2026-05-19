@@ -280,8 +280,8 @@ export function summariseSimulation(simulation) {
     for (const [party, seatResults] of Object.entries(simulation.partySeatResults)) {
         partyStats[party] = {
             median: percentile(seatResults, 50),
-            low:    percentile(seatResults, 10),
-            high:   percentile(seatResults, 90),
+            low: percentile(seatResults, 10),
+            high: percentile(seatResults, 90),
         };
     }
 

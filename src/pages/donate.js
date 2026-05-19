@@ -4,7 +4,7 @@ import './donate.css';
 
 export function renderDonate() {
     updateContent(`
-        <div class="govuk-width-container govuk-!-padding-top-6 govuk-!-padding-bottom-9">
+        <div class="govuk-!-padding-top-6 govuk-!-padding-bottom-9">
             <h1 class="govuk-heading-xl">Support The Unlabeled</h1>
             <div class="donate-layout">
                 <div class="donate-intro">

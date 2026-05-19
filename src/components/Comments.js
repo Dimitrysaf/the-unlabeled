@@ -11,6 +11,7 @@ import { profanity } from '@2toad/profanity';
 import { navigate } from '../router.js';
 import { getCurrentUser } from '../lib/auth.js';
 import { escapeHtml, escapeAttr } from '../lib/escape.js';
+import { logger } from '../lib/logger.js';
 import {
     getComments, postComment, editComment, deleteComment,
     getVoteScore, getUserVote, castVote,
@@ -285,7 +286,7 @@ function mountVoteWidget(container, { articleId, initialScore, initialUserVote }
                 score += previousVote ?? 0;
                 userVote = previousVote;
                 render();
-                console.error('[votes]', err);
+                logger.error('[votes] change vote failed', err);
             }
         });
     };
@@ -307,7 +308,7 @@ function mountVoteWidget(container, { articleId, initialScore, initialUserVote }
             score -= delta;
             userVote = targetVote;
             render();
-            console.error('[votes]', err);
+            logger.error('[votes] cast vote failed', err);
         }
     };
 
@@ -394,7 +395,7 @@ function mountCommentForm(formEl, { articleId, parentId, displayName, onSuccess 
             await postComment({ articleId, content, parentId: pid, displayName });
             onSuccess();
         } catch (err) {
-            console.error('[comments] post failed:', err);
+            logger.error('[comments] post failed', err);
             showError('Could not post your comment. Please try again.');
             submitBtn.disabled = false;
             submitBtn.textContent = pid ? 'Post reply' : 'Send';
@@ -511,7 +512,7 @@ function initListInteractions(listEl, { user, articleId, displayName, onSuccess 
             editComment(btn.dataset.commentId, content)
                 .then(() => onSuccess())
                 .catch(err => {
-                    console.error('[comments] edit failed:', err);
+                    logger.error('[comments] edit failed', err);
                     showErr('Could not save. Please try again.');
                     btn.disabled = false;
                     btn.textContent = 'Save changes';
@@ -541,7 +542,7 @@ function initListInteractions(listEl, { user, articleId, displayName, onSuccess 
             deleteComment(commentEl.dataset.commentId)
                 .then(() => onSuccess())
                 .catch(err => {
-                    console.error('[comments] delete failed:', err);
+                    logger.error('[comments] delete failed', err);
                     btn.disabled = false;
                     btn.textContent = 'Delete comment';
                 });
@@ -569,7 +570,7 @@ async function loadVotes(articleId) {
         const [score, userVote] = await Promise.all([getVoteScore(articleId), getUserVote(articleId)]);
         mountVoteWidget(container, { articleId, initialScore: score, initialUserVote: userVote });
     } catch (err) {
-        console.error('[votes] load failed:', err);
+        logger.error('[votes] load failed', err);
         container.innerHTML = '';
     }
 }
@@ -587,7 +588,7 @@ async function loadComments(articleId) {
             getComments(articleId),
         ]);
     } catch (err) {
-        console.error('[comments] load failed:', err);
+        logger.error('[comments] load failed', err);
         listEl.innerHTML = `<p class="govuk-body-s govuk-!-colour-secondary">Could not load comments.</p>`;
         return;
     }

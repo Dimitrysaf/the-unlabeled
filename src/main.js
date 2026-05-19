@@ -204,7 +204,7 @@ async function renderPage(fullPath) {
     } catch (err) {
         // Silence the losing side of the race so it doesn't surface as an
         // unhandled rejection if it settles after we've already shown the error.
-        renderPromise.catch(() => {});
+        renderPromise.catch(() => { });
 
         if (err.isTimeout) {
             logger.warn('Page load timed out', { path, timeout: PAGE_LOAD_TIMEOUT_MS });
@@ -223,7 +223,7 @@ async function renderPage(fullPath) {
                 onRetry: () => renderPage(fullPath),
             });
         } else {
-            console.error('Page render error:', err);
+            logger.error('Page render error', err);
             renderError('500');
         }
     }

@@ -73,7 +73,7 @@ export async function renderChange(field) {
         navigate('/login');
         return;
     }
-    if (!user) { window.location.href = '/login'; return; }
+    if (!user) { navigate('/login'); return; }
 
     renderChangeForm(config, config.getCurrentValue(user));
 }

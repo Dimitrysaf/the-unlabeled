@@ -19,9 +19,19 @@
   word-break: break-word;
 }
 
-.history-diff__line--add  { background: #d4edd6; color: #0a3d0a; }
-.history-diff__line--del  { background: #fde8e8; color: #520000; }
-.history-diff__line--same { color: #505a5f; }
+.history-diff__line--add {
+  background: #d4edd6;
+  color: #0a3d0a;
+}
+
+.history-diff__line--del {
+  background: #fde8e8;
+  color: #520000;
+}
+
+.history-diff__line--same {
+  color: #505a5f;
+}
 
 .history-diff__sign {
   min-width: 1.5em;
@@ -43,8 +53,15 @@
 }
 
 /* ── Diff legend ─────────────────────────────────────────────────────── */
-.history-diff-legend--del { color: #d4351c; font-weight: 700; }
-.history-diff-legend--add { color: #00703c; font-weight: 700; }
+.history-diff-legend--del {
+  color: #d4351c;
+  font-weight: 700;
+}
+
+.history-diff-legend--add {
+  color: #00703c;
+  font-weight: 700;
+}
 
 /* ── Metadata change cells ───────────────────────────────────────────── */
 .history-meta-old {
@@ -52,6 +69,7 @@
   color: #d4351c;
   margin-right: 0.25rem;
 }
+
 .history-meta-new {
   color: #00703c;
   font-weight: 700;

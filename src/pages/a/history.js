@@ -8,8 +8,8 @@ import { checkIsAdmin } from '../../data/admin.js';
 import { escapeHtml } from '../../lib/escape.js';
 import { setMetaTags } from '../../lib/seo.js';
 
-const GITHUB_REPO  = 'https://github.com/Dimitrysaf/the-unlabeled';
-const GITHUB_API   = 'https://api.github.com/repos/Dimitrysaf/the-unlabeled';
+const GITHUB_REPO = 'https://github.com/Dimitrysaf/the-unlabeled';
+const GITHUB_API = 'https://api.github.com/repos/Dimitrysaf/the-unlabeled';
 const CONTEXT = 3; // unchanged lines kept around each changed block
 
 // ── Utilities ─────────────────────────────────────────────────────────────
@@ -58,7 +58,7 @@ async function ghFetch(url) {
 async function fetchModuleCommits(module) {
     // Fetch commits for the main file and for the sub-directory in parallel
     const mainPath = `src/pages/${module}.js`;
-    const dirPath  = `src/pages/${module}`;
+    const dirPath = `src/pages/${module}`;
     const [main, dir] = await Promise.allSettled([
         ghFetch(`${GITHUB_API}/commits?path=${encodeURIComponent(mainPath)}&per_page=100`),
         ghFetch(`${GITHUB_API}/commits?path=${encodeURIComponent(dirPath)}&per_page=100`),
@@ -117,9 +117,9 @@ function renderPatchHtml(chunks) {
         if (c.type === 'hunk') {
             html += `<div class="history-diff__ellipsis">${escapeHtml(c.line)}</div>`;
         } else {
-            const cls    = c.type === 'add' ? 'history-diff__line--add'
-                         : c.type === 'del' ? 'history-diff__line--del'
-                         : 'history-diff__line--same';
+            const cls = c.type === 'add' ? 'history-diff__line--add'
+                : c.type === 'del' ? 'history-diff__line--del'
+                    : 'history-diff__line--same';
             const prefix = c.type === 'add' ? '+' : c.type === 'del' ? '−' : ' ';
             html += `<div class="history-diff__line ${cls}"><span class="history-diff__sign" aria-hidden="true">${prefix}</span><span>${escapeHtml(c.line)}</span></div>`;
         }
@@ -182,7 +182,7 @@ function renderDiffHtml(chunks) {
             html += `<div class="history-diff__ellipsis">… ${count} line${count === 1 ? '' : 's'} unchanged …</div>`;
             idx = j;
         } else {
-            const c   = chunks[idx];
+            const c = chunks[idx];
             const cls = c.type === 'add' ? 'history-diff__line--add' : c.type === 'del' ? 'history-diff__line--del' : 'history-diff__line--same';
             const pfx = c.type === 'add' ? '+' : c.type === 'del' ? '−' : ' ';
             html += `<div class="history-diff__line ${cls}"><span class="history-diff__sign" aria-hidden="true">${pfx}</span><span>${escapeHtml(c.line)}</span></div>`;
@@ -243,7 +243,7 @@ function ghErrorBanner(message) {
 
 async function renderCodeModuleHistory(article, revisions) {
     const titleText = escapeHtml(article.title || 'Untitled');
-    const backHref  = `/a/${article.slug}`;
+    const backHref = `/a/${article.slug}`;
     const moduleKey = escapeHtml(article.code_module);
 
     // Render shell with skeleton table immediately
@@ -302,10 +302,10 @@ async function renderCodeModuleHistory(article, revisions) {
     }
 
     tbody.innerHTML = commits.map(c => {
-        const sha     = c.sha.slice(0, 7);
+        const sha = c.sha.slice(0, 7);
         const message = escapeHtml((c.commit.message || '').split('\n')[0]); // first line only
-        const author  = escapeHtml(c.commit.author?.name || '—');
-        const date    = fmtDateTime(c.commit.author?.date);
+        const author = escapeHtml(c.commit.author?.name || '—');
+        const date = fmtDateTime(c.commit.author?.date);
         return `
             <tr class="govuk-table__row">
                 <td class="govuk-table__cell">
@@ -362,8 +362,8 @@ function buildMetaRevisionsTable(article, revisions) {
                             <td class="govuk-table__cell">${escapeHtml(fmtDateTime(rev.revised_at))}</td>
                             <td class="govuk-table__cell">
                                 ${rev.is_draft
-                                    ? `<strong class="govuk-tag govuk-tag--yellow">Draft</strong>`
-                                    : `<strong class="govuk-tag govuk-tag--green">Published</strong>`}
+            ? `<strong class="govuk-tag govuk-tag--yellow">Draft</strong>`
+            : `<strong class="govuk-tag govuk-tag--green">Published</strong>`}
                             </td>
                             <td class="govuk-table__cell">
                                 <a class="govuk-link govuk-link--no-visited-state"
@@ -389,7 +389,7 @@ function bindMetaRevisionLinks(article, revisions) {
 
 async function renderCommitDiffView(article, sha) {
     const titleText = escapeHtml(article.title || 'Untitled');
-    const backHref  = `/a/${article.slug}/history`;
+    const backHref = `/a/${article.slug}/history`;
 
     updateContent(`
         <div>
@@ -416,11 +416,11 @@ async function renderCommitDiffView(article, sha) {
     }
 
     const { commit, stats, files } = details;
-    const shortSha   = sha.slice(0, 7);
-    const message    = escapeHtml(commit.message || '(no message)');
-    const author     = escapeHtml(commit.author?.name || '—');
-    const date       = fmtDateTime(commit.author?.date);
-    const ghUrl      = escapeHtml(`${GITHUB_REPO}/commit/${sha}`);
+    const shortSha = sha.slice(0, 7);
+    const message = escapeHtml(commit.message || '(no message)');
+    const author = escapeHtml(commit.author?.name || '—');
+    const date = fmtDateTime(commit.author?.date);
+    const ghUrl = escapeHtml(`${GITHUB_REPO}/commit/${sha}`);
 
     const statsHtml = stats
         ? `<strong class="history-diff-legend--add">+${stats.additions}</strong> / <strong class="history-diff-legend--del">−${stats.deletions}</strong> across ${stats.total} change${stats.total === 1 ? '' : 's'}`
@@ -492,7 +492,7 @@ async function renderCommitDiffView(article, sha) {
 
 function renderHistoryList(article, revisions) {
     const titleText = escapeHtml(article.title || 'Untitled');
-    const backHref  = `/a/${article.slug}`;
+    const backHref = `/a/${article.slug}`;
 
     if (!revisions.length) {
         updateContent(`
@@ -507,8 +507,8 @@ function renderHistoryList(article, revisions) {
     }
 
     const rowsHtml = revisions.map((rev, idx) => {
-        const revNum    = revisions.length - idx;
-        const date      = fmtDateTime(rev.revised_at);
+        const revNum = revisions.length - idx;
+        const date = fmtDateTime(rev.revised_at);
         const statusTag = rev.is_draft
             ? `<strong class="govuk-tag govuk-tag--yellow">Draft</strong>`
             : `<strong class="govuk-tag govuk-tag--green">Published</strong>`;
@@ -566,8 +566,8 @@ function renderHistoryList(article, revisions) {
 
 function renderRevisionDiffView(article, revision, nextState, allRevisions, revIdx) {
     const titleText = escapeHtml(article.title || 'Untitled');
-    const backHref  = `/a/${article.slug}/history`;
-    const revNum    = allRevisions.length - revIdx;
+    const backHref = `/a/${article.slug}/history`;
+    const revNum = allRevisions.length - revIdx;
 
     const isMd = revision.md_content !== null || nextState.md_content !== null;
     const metaChanges = findMetadataChanges(revision, nextState);
@@ -648,7 +648,7 @@ export async function renderHistoryPage(slug, params) {
 
     if (article.is_draft) {
         let isAdmin = false;
-        try { isAdmin = await checkIsAdmin(); } catch {}
+        try { isAdmin = await checkIsAdmin(); } catch { }
         if (!isAdmin) { renderError('404'); return; }
     }
 
@@ -660,7 +660,7 @@ export async function renderHistoryPage(slug, params) {
     });
 
     const commitSha = params?.get('commit');
-    const revId     = params?.get('v');
+    const revId = params?.get('v');
 
     // Code module + commit SHA → GitHub commit diff
     if (article.code_module && commitSha) {

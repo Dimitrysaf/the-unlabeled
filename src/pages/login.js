@@ -2,7 +2,7 @@
 import { updateContent } from '../components/Layout.js';
 import { navigate } from '../router.js';
 import { getCurrentUser, signIn } from '../lib/auth.js';
-import { validateEmail, clearFieldErrors, setFieldError, setButtonLoading, resetButton, showErrorSummary } from '../lib/validation.js';
+import { validateEmail, clearFieldErrors, setFieldError, setButtonLoading, resetButton, showErrorSummary, showAuthErrorSummary } from '../lib/validation.js';
 import { logger } from '../lib/logger.js';
 
 export async function renderLogin() {
@@ -134,12 +134,3 @@ function validateLoginPassword(password) {
     return '';
 }
 
-function showAuthErrorSummary(form, message) {
-    const summary = form.querySelector('.govuk-error-summary');
-    const list = summary?.querySelector('.govuk-error-summary__list');
-    if (!summary || !list) return;
-
-    list.innerHTML = `<li><a href="#">${message}</a></li>`;
-    summary.hidden = false;
-    summary.focus();
-}

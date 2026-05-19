@@ -1,4 +1,5 @@
 import { updateContent } from '../components/Layout.js';
+import { logger } from '../lib/logger.js';
 import './electoral-calc.css';
 import './electoral-calc.mobile.css';
 import './electoral-calc.print.css';
@@ -434,7 +435,7 @@ function loadPolls() {
             });
         })
         .catch(err => {
-            console.error(err);
+            logger.error('[electoral-calc] polling data load failed', err);
             document.getElementById('polls-loading').innerHTML =
                 `<div class="govuk-error-summary"><div role="alert">
                     <h2 class="govuk-error-summary__title">There is a problem</h2>

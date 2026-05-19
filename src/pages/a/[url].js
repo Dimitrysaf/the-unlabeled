@@ -8,13 +8,13 @@ import { renderMarkdown, renderMarkdownParts } from '../../lib/markdown.js';
 import { setMetaTags, addStructuredData } from '../../lib/seo.js';
 import { sanitizeHtml } from '../../lib/sanitize.js';
 import { escapeHtml, escapeAttr } from '../../lib/escape.js';
+import { logger } from '../../lib/logger.js';
 import { renderEngagementSection } from '../../components/Comments.js';
 
 // ── Module registry ───────────────────────────────────────────────────────
 const MODULE_REGISTRY = {
     'electoral-calc': () => import('../electoral-calc.js'),
 };
-
 
 // ── Builders ──────────────────────────────────────────────────────────────
 
@@ -194,7 +194,7 @@ export async function renderArticlePage(slug) {
     try {
         articleMeta = await getArticleBySlug(normalized);
     } catch (err) {
-        console.error('[article] DB lookup failed:', err);
+        logger.error('[article] DB lookup failed', err);
         renderError('500');
         return;
     }
@@ -253,7 +253,7 @@ export async function renderArticlePage(slug) {
             mod.initCalc();
             loadEngagement(articleMeta.id);
         } catch (err) {
-            console.error('[article] module load failed:', err);
+            logger.error('[article] module load failed', err);
             renderError('500');
         }
         return;

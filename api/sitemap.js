@@ -1,17 +1,14 @@
 // api/sitemap.js
-// Place this file at: /api/sitemap.js in your project root
-// Vercel will serve it at: https://the-unlabeled.com/sitemap.xml
-// via the rewrite rule in vercel.json (see below)
 
 const SUPABASE_URL = process.env.VITE_SUPABASE_URL;
 const SUPABASE_ANON_KEY = process.env.VITE_SUPABASE_ANON_KEY;
 
 const STATIC_PAGES = [
-    { loc: '/',        changefreq: 'daily',   priority: '1.0' },
-    { loc: '/about',   changefreq: 'monthly', priority: '0.8' },
-    { loc: '/search',  changefreq: 'weekly',  priority: '0.6' },
-    { loc: '/legal',   changefreq: 'yearly',  priority: '0.3' },
-    { loc: '/cookies', changefreq: 'yearly',  priority: '0.3' },
+    { loc: '/', changefreq: 'daily', priority: '1.0' },
+    { loc: '/about', changefreq: 'monthly', priority: '0.8' },
+    { loc: '/search', changefreq: 'weekly', priority: '0.6' },
+    { loc: '/legal', changefreq: 'yearly', priority: '0.3' },
+    { loc: '/cookies', changefreq: 'yearly', priority: '0.3' },
 ];
 
 const BASE_URL = 'https://the-unlabeled.com';

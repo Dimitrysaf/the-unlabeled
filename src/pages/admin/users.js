@@ -1,5 +1,6 @@
 // src/pages/admin/users.js
 import { escapeHtml } from '../../lib/escape.js';
+import { logger } from '../../lib/logger.js';
 import { updateContent } from '../../components/Layout.js';
 import {
     listAllUsers,
@@ -100,7 +101,7 @@ export async function showUserDetail(userId) {
         <span class="govuk-caption-xl">User management</span>
         <h1 class="govuk-heading-l">User detail</h1>
         <div class="admin-skeleton" style="max-width:40rem;">
-            ${Array.from({length: 8}, () => `
+            ${Array.from({ length: 8 }, () => `
                 <div style="display:flex;gap:2rem;padding:0.6rem 0;border-bottom:1px solid #b1b4b6;">
                     <span class="skeleton-line skeleton-line--shorter" style="flex:1;margin:0;min-width:0;"></span>
                     <span class="skeleton-line" style="flex:2;margin:0;min-width:0;"></span>
@@ -202,9 +203,9 @@ export async function showUserDetail(userId) {
                 <div id="user-action-status" class="govuk-!-margin-bottom-4"></div>
                 <div class="govuk-button-group">
                     ${isBanned
-                        ? `<button class="govuk-button govuk-button--secondary" id="btn-unban">Unban</button>`
-                        : `<button class="govuk-button govuk-button--secondary" id="btn-ban">Ban user</button>`
-                    }
+            ? `<button class="govuk-button govuk-button--secondary" id="btn-unban">Unban</button>`
+            : `<button class="govuk-button govuk-button--secondary" id="btn-ban">Ban user</button>`
+        }
                     <button class="govuk-button govuk-button--secondary" id="btn-reset-pwd">Send password reset</button>
                     <button class="govuk-button govuk-button--secondary" id="btn-magic-link">Send magic link</button>
                     ${hasMfa ? `<button class="govuk-button govuk-button--secondary" id="btn-remove-mfa">Remove 2FA</button>` : ''}
@@ -217,16 +218,18 @@ export async function showUserDetail(userId) {
     document.getElementById('user-back')?.addEventListener('click', e => { e.preventDefault(); go(''); });
     document.getElementById('btn-ban')?.addEventListener('click', () => go(`ban-user=${user.id}`));
 
-    checkIsAdmin(user.id).then(targetIsAdmin => {
-        const el = document.getElementById('delete-user-action');
-        if (!el) return;
-        if (targetIsAdmin) {
-            el.innerHTML = `<span class="govuk-body govuk-hint govuk-!-margin-bottom-0">Admin accounts cannot be deleted.</span>`;
-        } else {
-            el.innerHTML = `<button class="govuk-button govuk-button--warning" id="btn-delete-user">Delete user</button>`;
-            document.getElementById('btn-delete-user')?.addEventListener('click', () => go(`delete-user=${user.id}`));
-        }
-    });
+    checkIsAdmin(user.id)
+        .then(targetIsAdmin => {
+            const el = document.getElementById('delete-user-action');
+            if (!el) return;
+            if (targetIsAdmin) {
+                el.innerHTML = `<span class="govuk-body govuk-hint govuk-!-margin-bottom-0">Admin accounts cannot be deleted.</span>`;
+            } else {
+                el.innerHTML = `<button class="govuk-button govuk-button--warning" id="btn-delete-user">Delete user</button>`;
+                document.getElementById('btn-delete-user')?.addEventListener('click', () => go(`delete-user=${user.id}`));
+            }
+        })
+        .catch(err => logger.error('[users] checkIsAdmin failed', err));
 
     document.getElementById('btn-unban')?.addEventListener('click', () =>
         inlineUserAction('btn-unban', 'Unbanning…', () => unbanUser(user.id), 'User unbanned successfully.'));

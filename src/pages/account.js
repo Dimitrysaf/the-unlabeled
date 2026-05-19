@@ -5,13 +5,14 @@ import { navigate } from '../router.js';
 import { getCurrentUser, signOut } from '../lib/auth.js';
 import { checkIsAdmin } from '../data/admin.js';
 import { isPushSupported, isIosNotPwa, getSubscriptionState, subscribe, unsubscribe } from '../lib/notifications.js';
+import { logger } from '../lib/logger.js';
 
 export async function renderAccount() {
     let user, isAdmin;
     try {
         [user, isAdmin] = await Promise.all([getCurrentUser(), checkIsAdmin()]);
     } catch (error) {
-        console.error('Error retrieving user data:', error);
+        logger.error('Error retrieving user data', error);
         renderRetryError({
             message: 'We could not load your account details.',
             causes: CONNECTION_ERROR_CAUSES,
@@ -258,7 +259,7 @@ function initAccountPage() {
                 await signOut();
                 navigate('/');
             } catch (error) {
-                console.error('Sign out error:', error);
+                logger.error('Sign out error', error);
                 const errEl = document.getElementById('sign-out-error');
                 if (errEl) errEl.style.display = 'block';
             }

@@ -2,6 +2,7 @@
 import { updateContent } from './components/Layout.js';
 import { renderGrid } from './components/Grid.js';
 import { getArticles } from './data/articles.js';
+import { logger } from './lib/logger.js';
 
 export async function renderHome() {
     const heroHtml = `
@@ -18,7 +19,7 @@ export async function renderHome() {
         const articles = await getArticles();
         updateContent(heroHtml + renderGrid(articles, { columns: 3 }));
     } catch (err) {
-        console.error('[home] failed to load articles:', err);
+        logger.error('[home] failed to load articles', err);
         updateContent(heroHtml + `
             <div class="govuk-error-summary" role="alert">
                 <h2 class="govuk-error-summary__title">There is a problem</h2>

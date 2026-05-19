@@ -12,11 +12,11 @@
 
 const NS = 'Unlabeled';
 const S = {
-    ns:   'background:#1d70b8;color:#fff;padding:1px 5px;border-radius:3px;font-weight:bold',
-    dim:  'color:#505a5f',
-    ok:   'color:#00703c;font-weight:bold',
+    ns: 'background:#1d70b8;color:#fff;padding:1px 5px;border-radius:3px;font-weight:bold',
+    dim: 'color:#505a5f',
+    ok: 'color:#00703c;font-weight:bold',
     warn: 'color:#b58900;font-weight:bold',
-    err:  'color:#d4351c;font-weight:bold',
+    err: 'color:#d4351c;font-weight:bold',
 };
 
 let _enabled = false;

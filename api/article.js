@@ -92,14 +92,14 @@ function resolveBodyHtml(article) {
         return article.html_content;
     }
     if (article.code_module) {
-        return `<p>${e(article.excerpt || article.subtitle || '')}</p>
+        return `<p>${escapeHtml(article.excerpt || article.subtitle || '')}</p>
                 <p><em>This article contains an interactive tool. Visit the full page to use it.</em></p>`;
     }
     return '';
 }
 
 function renderArticleHtml(article, slug) {
-    const title = `${e(article.title)} | The Unlabeled`;
+    const title = `${escapeHtml(article.title)} | The Unlabeled`;
     const canonicalUrl = `${SITE_URL}/a/${slug}`;
     const rawImage = article.image;
     const image = rawImage
@@ -116,7 +116,7 @@ function renderArticleHtml(article, slug) {
     const authorName = article.author?.name || 'The Unlabeled';
 
     const tags = Array.isArray(article.tags)
-        ? article.tags.map(t => e(t.label)).join(', ')
+        ? article.tags.map(t => escapeHtml(t.label)).join(', ')
         : '';
 
     const bodyHtml = resolveBodyHtml(article);
@@ -127,39 +127,39 @@ function renderArticleHtml(article, slug) {
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>${title}</title>
-  <meta name="description" content="${e(article.excerpt || article.subtitle || '')}">
-  <link rel="canonical" href="${e(canonicalUrl)}">
+  <meta name="description" content="${escapeHtml(article.excerpt || article.subtitle || '')}">
+  <link rel="canonical" href="${escapeHtml(canonicalUrl)}">
   ${tags ? `<meta name="keywords" content="${tags}">` : ''}
 
   <!-- Open Graph -->
   <meta property="og:type" content="article">
-  <meta property="og:url" content="${e(canonicalUrl)}">
-  <meta property="og:title" content="${e(article.title)}">
-  <meta property="og:description" content="${e(article.excerpt || article.subtitle || '')}">
-  <meta property="og:image" content="${e(image)}">
+  <meta property="og:url" content="${escapeHtml(canonicalUrl)}">
+  <meta property="og:title" content="${escapeHtml(article.title)}">
+  <meta property="og:description" content="${escapeHtml(article.excerpt || article.subtitle || '')}">
+  <meta property="og:image" content="${escapeHtml(image)}">
   <meta property="og:site_name" content="The Unlabeled">
 
   <!-- Twitter -->
   <meta name="twitter:card" content="summary_large_image">
-  <meta property="twitter:url" content="${e(canonicalUrl)}">
-  <meta property="twitter:title" content="${e(article.title)}">
-  <meta property="twitter:description" content="${e(article.excerpt || article.subtitle || '')}">
-  <meta property="twitter:image" content="${e(image)}">
+  <meta property="twitter:url" content="${escapeHtml(canonicalUrl)}">
+  <meta property="twitter:title" content="${escapeHtml(article.title)}">
+  <meta property="twitter:description" content="${escapeHtml(article.excerpt || article.subtitle || '')}">
+  <meta property="twitter:image" content="${escapeHtml(image)}">
 
   <!-- Schema.org structured data -->
   <script type="application/ld+json">
   {
     "@context": "https://schema.org",
     "@type": "Article",
-    "headline": "${e(article.title)}",
-    "description": "${e(article.excerpt || article.subtitle || '')}",
-    "image": "${e(image)}",
-    "url": "${e(canonicalUrl)}",
+    "headline": "${escapeHtml(article.title)}",
+    "description": "${escapeHtml(article.excerpt || article.subtitle || '')}",
+    "image": "${escapeHtml(image)}",
+    "url": "${escapeHtml(canonicalUrl)}",
     "datePublished": "${publishedDate}",
     "dateModified": "${modifiedDate}",
     "author": {
       "@type": "Person",
-      "name": "${e(authorName)}"
+      "name": "${escapeHtml(authorName)}"
     },
     "publisher": {
       "@type": "Organization",
@@ -172,7 +172,7 @@ function renderArticleHtml(article, slug) {
     },
     "mainEntityOfPage": {
       "@type": "WebPage",
-      "@id": "${e(canonicalUrl)}"
+      "@id": "${escapeHtml(canonicalUrl)}"
     }
     ${tags ? `,"keywords": "${tags}"` : ''}
   }
@@ -181,18 +181,18 @@ function renderArticleHtml(article, slug) {
 </head>
 <body>
   <article>
-    ${rawImage ? `<img src="${e(image)}" alt="${e(article.title)}" style="width:100%;max-height:400px;object-fit:cover;margin-bottom:1.5rem;">` : ''}
+    ${rawImage ? `<img src="${escapeHtml(image)}" alt="${escapeHtml(article.title)}" style="width:100%;max-height:400px;object-fit:cover;margin-bottom:1.5rem;">` : ''}
 
-    <h1>${e(article.title)}</h1>
+    <h1>${escapeHtml(article.title)}</h1>
 
-    ${article.subtitle ? `<p style="font-size:1.15rem;color:#444;margin-bottom:1rem;">${e(article.subtitle)}</p>` : ''}
+    ${article.subtitle ? `<p style="font-size:1.15rem;color:#444;margin-bottom:1rem;">${escapeHtml(article.subtitle)}</p>` : ''}
 
     <p class="meta">
-      By <strong>${e(authorName)}</strong>
+      By <strong>${escapeHtml(authorName)}</strong>
       ${publishedDate ? ` · ${publishedDate}` : ''}
     </p>
 
-    ${tags ? `<p>${article.tags.map(t => e(t.label)).join(', ')}</p>` : ''}
+    ${tags ? `<p>${article.tags.map(t => escapeHtml(t.label)).join(', ')}</p>` : ''}
 
     <div class="content">
       ${bodyHtml}
@@ -217,32 +217,32 @@ function injectMeta(html, slug, article) {
 
     return html
         .replace(/<title>[^<]*<\/title>/,
-            `<title>${e(title)}</title>`)
+            `<title>${escapeHtml(title)}</title>`)
         .replace(/(<meta\s+name="description"\s+content=")[^"]*(")/,
-            `$1${e(description)}$2`)
+            `$1${escapeHtml(description)}$2`)
         .replace(/(<link\s+rel="canonical"\s+href=")[^"]*(")/,
-            `$1${e(canonicalUrl)}$2`)
+            `$1${escapeHtml(canonicalUrl)}$2`)
         .replace(/(<meta\s+property="og:type"\s+content=")[^"]*(")/,
             `$1article$2`)
         .replace(/(<meta\s+property="og:url"\s+content=")[^"]*(")/,
-            `$1${e(canonicalUrl)}$2`)
+            `$1${escapeHtml(canonicalUrl)}$2`)
         .replace(/(<meta\s+property="og:title"\s+content=")[^"]*(")/,
-            `$1${e(title)}$2`)
+            `$1${escapeHtml(title)}$2`)
         .replace(/(<meta\s+property="og:description"[\s\S]*?content=")[^"]*(")/,
-            `$1${e(description)}$2`)
+            `$1${escapeHtml(description)}$2`)
         .replace(/(<meta\s+property="og:image"\s+content=")[^"]*(")/,
-            `$1${e(image)}$2`)
+            `$1${escapeHtml(image)}$2`)
         .replace(/(<meta\s+property="twitter:url"\s+content=")[^"]*(")/,
-            `$1${e(canonicalUrl)}$2`)
+            `$1${escapeHtml(canonicalUrl)}$2`)
         .replace(/(<meta\s+property="twitter:title"\s+content=")[^"]*(")/,
-            `$1${e(title)}$2`)
+            `$1${escapeHtml(title)}$2`)
         .replace(/(<meta\s+property="twitter:description"[\s\S]*?content=")[^"]*(")/,
-            `$1${e(description)}$2`)
+            `$1${escapeHtml(description)}$2`)
         .replace(/(<meta\s+property="twitter:image"\s+content=")[^"]*(")/,
-            `$1${e(image)}$2`);
+            `$1${escapeHtml(image)}$2`);
 }
 
-function e(str) {
+function escapeHtml(str) {
     return String(str)
         .replace(/&/g, '&amp;')
         .replace(/"/g, '&quot;')

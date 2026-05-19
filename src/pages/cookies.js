@@ -63,8 +63,6 @@ export function renderCookies() {
     : 'Current setting: no preference saved yet';
 
   updateContent(`
-<div class="govuk-width-container">
-  <main class="govuk-main-wrapper" id="main-content" role="main">
     <div class="govuk-grid-row">
       <div class="govuk-grid-column-two-thirds">
         <h1 class="govuk-heading-l">Cookies</h1>
@@ -176,8 +174,6 @@ export function renderCookies() {
         </form>
       </div>
     </div>
-  </main>
-</div>
 `);
 
   initCookieSettingsForm();

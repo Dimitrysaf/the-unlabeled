@@ -22,11 +22,12 @@ export function renderLegal() {
 
         <div class="govuk-tabs__panel" id="privacy">
           <h2 class="govuk-heading-l">Privacy Policy</h2>
-          <p class="govuk-body govuk-!-colour-secondary govuk-!-margin-bottom-6">Last updated: April 2026</p>
+          <p class="govuk-body govuk-!-colour-secondary govuk-!-margin-bottom-6">Last updated: May 2026</p>
 
           <h3 class="govuk-heading-m">1. Who We Are</h3>
           <p class="govuk-body">
-            The Unlabeled is an independent news and analysis platform. For the purposes of the General Data Protection Regulation
+            The Unlabeled is an independent platform for news, analysis, and commentary across a range of topics including
+            politics, technology, and current affairs. For the purposes of the General Data Protection Regulation
             (EU) 2016/679 (<strong>GDPR</strong>) and any applicable national implementing legislation, The Unlabeled acts as the
             <strong>data controller</strong> for personal data collected through this website.
           </p>
@@ -40,7 +41,7 @@ export function renderLegal() {
           <ul class="govuk-list govuk-list--bullet">
             <li><strong>Account data</strong> — your email address, display name, and encrypted password when you register for an account.</li>
             <li><strong>Authentication data</strong> — session tokens and timestamps used to keep you signed in securely.</li>
-            <li><strong>Usage data</strong> — if you have consented to analytics cookies, anonymised data about pages visited, time spent on the site, and device/browser type via Vercel Analytics. This data does not identify you personally.</li>
+            <li><strong>Usage data</strong> — if you have consented to analytics cookies, anonymised data about pages visited, time spent on the site, and device/browser type via Vercel Analytics and Vercel Speed Insights. Speed Insights collects Core Web Vitals and real-user performance metrics. Neither service links this data to your identity.</li>
             <li><strong>Communications</strong> — any messages or feedback you send to us directly.</li>
           </ul>
           <p class="govuk-body">We do not collect sensitive categories of personal data (such as health, biometric, or financial information).</p>
@@ -80,7 +81,7 @@ export function renderLegal() {
           </p>
           <ul class="govuk-list govuk-list--bullet">
             <li><strong>Supabase</strong> — provides our database and authentication infrastructure. Data may be stored in data centres within the EU or EEA. Supabase is compliant with GDPR.</li>
-            <li><strong>Vercel</strong> — hosts the website and, if you have consented, provides anonymised analytics. Vercel processes data in accordance with its Data Processing Agreement.</li>
+            <li><strong>Vercel</strong> — hosts the website and, if you have consented, provides anonymised analytics (Vercel Analytics) and real-user performance monitoring (Vercel Speed Insights). Vercel processes data in accordance with its Data Processing Agreement.</li>
           </ul>
           <p class="govuk-body">
             We do not share personal data with any other third parties unless required to do so by law or a competent authority.
@@ -141,7 +142,7 @@ export function renderLegal() {
 
         <div class="govuk-tabs__panel" id="terms" style="display:none">
           <h2 class="govuk-heading-l">Terms of Use</h2>
-          <p class="govuk-body govuk-!-colour-secondary govuk-!-margin-bottom-6">Last updated: April 2026</p>
+          <p class="govuk-body govuk-!-colour-secondary govuk-!-margin-bottom-6">Last updated: May 2026</p>
 
           <h3 class="govuk-heading-m">1. Acceptance of Terms</h3>
           <p class="govuk-body">
@@ -152,9 +153,9 @@ export function renderLegal() {
 
           <h3 class="govuk-heading-m">2. Description of Service</h3>
           <p class="govuk-body">
-            The Unlabeled is an independent digital platform providing news analysis, data visualisations, and editorial commentary.
-            The platform is provided free of charge. We reserve the right to modify, suspend, or discontinue any part of the
-            service at any time with reasonable notice where possible.
+            The Unlabeled is an independent digital platform providing analysis, commentary, and editorial content across a range
+            of subjects including politics, technology, and current affairs. The platform is provided free of charge. We reserve
+            the right to modify, suspend, or discontinue any part of the service at any time with reasonable notice where possible.
           </p>
 
           <h3 class="govuk-heading-m">3. Eligibility</h3>

@@ -52,17 +52,17 @@ export async function searchArticles(query) {
     const articles = await getArticles();
 
     const scored = articles.map(a => {
-        const title    = (a.title    ?? '').toLowerCase();
+        const title = (a.title ?? '').toLowerCase();
         const subtitle = (a.subtitle ?? '').toLowerCase();
-        const excerpt  = (a.excerpt  ?? '').toLowerCase();
-        const tags     = (a.tags     ?? []).map(t => (t.label ?? t).toLowerCase()).join(' ');
+        const excerpt = (a.excerpt ?? '').toLowerCase();
+        const tags = (a.tags ?? []).map(t => (t.label ?? t).toLowerCase()).join(' ');
 
         let score = 0;
         for (const token of tokens) {
-            if (title.includes(token))    score += 10;
-            if (tags.includes(token))     score += 6;
+            if (title.includes(token)) score += 10;
+            if (tags.includes(token)) score += 6;
             if (subtitle.includes(token)) score += 4;
-            if (excerpt.includes(token))  score += 2;
+            if (excerpt.includes(token)) score += 2;
         }
 
         // Bonus for exact phrase match in title
