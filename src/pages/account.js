@@ -1,5 +1,6 @@
 // src/pages/account.js
 import { updateContent } from '../components/Layout.js';
+import { renderRetryError, CONNECTION_ERROR_CAUSES } from '../components/ErrorPage.js';
 import { navigate } from '../router.js';
 import { getCurrentUser, signOut } from '../lib/auth.js';
 import { checkIsAdmin } from '../data/admin.js';
@@ -11,16 +12,11 @@ export async function renderAccount() {
         [user, isAdmin] = await Promise.all([getCurrentUser(), checkIsAdmin()]);
     } catch (error) {
         console.error('Error retrieving user data:', error);
-        updateContent(`
-            <div class="govuk-!-padding-bottom-9">
-                <div class="govuk-grid-row">
-                    <div class="govuk-grid-column-two-thirds">
-                        <h1 class="govuk-heading-xl">Your account</h1>
-                        <p class="govuk-body">Error retrieving data. Please try refreshing the page.</p>
-                    </div>
-                </div>
-            </div>
-        `);
+        renderRetryError({
+            message: 'We could not load your account details.',
+            causes: CONNECTION_ERROR_CAUSES,
+            onRetry: () => renderAccount(),
+        });
         return;
     }
 

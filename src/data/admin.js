@@ -15,20 +15,27 @@ export function clearAdminDataCache() {
     _usersCache = null;
 }
 
-/** Checks whether the currently logged-in user is in the admin_users table. */
-export async function checkIsAdmin() {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) { _adminCache = null; return false; }
-    if (_adminCache?.userId === user.id) return _adminCache.result;
+/**
+ * Checks whether the given user is in the admin_users table.
+ * Pass userId when you already have it to avoid a redundant getUser() call
+ * (which would compete for the Supabase auth Web Lock).
+ */
+export async function checkIsAdmin(userId) {
+    if (!userId) {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) { _adminCache = null; return false; }
+        userId = user.id;
+    }
+    if (_adminCache?.userId === userId) return _adminCache.result;
 
     const { data, error } = await supabase
         .from('admin_users')
         .select('user_id')
-        .eq('user_id', user.id)
+        .eq('user_id', userId)
         .maybeSingle();
 
     const result = !error && data !== null;
-    _adminCache = { userId: user.id, result };
+    _adminCache = { userId, result };
     return result;
 }
 

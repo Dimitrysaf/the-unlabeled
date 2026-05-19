@@ -33,6 +33,7 @@
     <link rel="icon" href="/favicon.png" type="image/png" />
     <link rel="apple-touch-icon" href="/favicon.png" />
     <link rel="manifest" href="/manifest.json" />
+    <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <meta name="apple-mobile-web-app-title" content="The Unlabeled">
@@ -59,13 +60,6 @@
     <a href="#main-content" class="govuk-skip-link" data-module="govuk-skip-link">Skip to main content</a>
     <div id="app"></div>
     <script type="module" src="/src/main.js"></script>
-    <!-- Initialise GOV.UK Frontend modules (header toggle, skip link, etc.) -->
-    <script type="module">
-        import { initAll } from 'https://cdn.jsdelivr.net/npm/govuk-frontend@5.9.0/dist/govuk/govuk-frontend.min.js';
-        document.addEventListener('DOMContentLoaded', () => {
-            try { initAll(); } catch (e) { console.warn('govuk-frontend init:', e); }
-        });
-    </script>
     <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-3149818688658752"
         crossorigin="anonymous"></script>
 </body>

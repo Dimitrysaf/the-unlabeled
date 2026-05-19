@@ -94,6 +94,11 @@ function renderChangeForm(config, currentValue) {
 
                 <form id="change-form" novalidate>
 
+                    ${config.type === 'password' ? `
+                    <input type="text" name="username" autocomplete="username"
+                           style="display:none" aria-hidden="true" tabindex="-1">
+                    ` : ''}
+
                     <div class="govuk-error-summary" data-module="govuk-error-summary" id="change-error-summary" hidden>
                         <div role="alert">
                             <h2 class="govuk-error-summary__title">There is a problem</h2>

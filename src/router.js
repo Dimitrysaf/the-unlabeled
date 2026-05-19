@@ -1,4 +1,6 @@
 // src/router.js
+import { logger } from './lib/logger.js';
+
 let _renderPage = null;
 let _onNavigate = null;
 let _hasNavigated = false;
@@ -80,6 +82,7 @@ export function getBackSteps(blacklist = []) {
 }
 
 export function navigate(path) {
+    logger.route(path);
     const currentBase = window.location.pathname + window.location.search;
     const newBase = path.split('#')[0];
 

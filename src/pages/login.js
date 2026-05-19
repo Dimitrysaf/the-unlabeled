@@ -3,6 +3,7 @@ import { updateContent } from '../components/Layout.js';
 import { navigate } from '../router.js';
 import { getCurrentUser, signIn } from '../lib/auth.js';
 import { validateEmail, clearFieldErrors, setFieldError, setButtonLoading, resetButton, showErrorSummary } from '../lib/validation.js';
+import { logger } from '../lib/logger.js';
 
 export async function renderLogin() {
     try {
@@ -12,7 +13,7 @@ export async function renderLogin() {
             return;
         }
     } catch (error) {
-        console.error('Error checking auth state on login page:', error);
+        logger.error('Error checking auth state on login page', error);
     }
 
     updateContent(`

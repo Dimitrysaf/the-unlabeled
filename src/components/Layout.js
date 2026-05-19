@@ -1,9 +1,10 @@
 // src/components/Layout.js
 import { renderLogo } from './Logo.js';
-import { getCurrentUser, onAuthStateChange, signOut } from '../lib/auth.js';
+import { onAuthStateChange } from '../lib/auth.js';
 import { readCookiePreferences, setSessionCookie, writeCookiePreferences } from '../lib/cookiePreferences.js';
 import { checkIsAdmin, clearAdminCache } from '../data/admin.js';
 import { navigate } from '../router.js';
+import { logger, enableAdminDebug } from '../lib/logger.js';
 
 const baseMenuItems = [
     { label: 'Home', link: '/' },
@@ -233,33 +234,31 @@ function _initCookieBanner() {
 }
 
 function initAuth() {
-    getCurrentUser()
-        .then(user => {
-            currentUser = user;
-            setSessionCookie(Boolean(user));
-            if (user) {
-                checkIsAdmin()
-                    .then(result => { isAdmin = result; authLoaded = true; updateNavigation(); })
-                    .catch(() => { authLoaded = true; updateNavigation(); });
-            } else {
-                authLoaded = true;
-                updateNavigation();
-            }
-        })
-        .catch(() => {
-            currentUser = null;
-            authLoaded = true;
-            setSessionCookie(false);
-            updateNavigation();
-        });
-
+    // Rely solely on onAuthStateChange for session state — Supabase fires
+    // INITIAL_SESSION immediately on init. Calling getCurrentUser() separately
+    // causes concurrent Web Lock contention (both try to acquire the same
+    // auth token lock, leading to 5-second timeouts and AbortErrors).
     onAuthStateChange((_event, session) => {
         currentUser = session?.user || null;
         setSessionCookie(Boolean(currentUser));
+        logger.auth(_event, currentUser ? { id: currentUser.id } : null);
+
         if (currentUser) {
-            checkIsAdmin()
-                .then(result => { isAdmin = result; authLoaded = true; updateNavigation(); })
-                .catch(() => { isAdmin = false; authLoaded = true; updateNavigation(); });
+            // Pass userId so checkIsAdmin skips its own getUser() lock acquisition
+            checkIsAdmin(currentUser.id)
+                .then(result => {
+                    isAdmin = result;
+                    authLoaded = true;
+                    if (result) enableAdminDebug();
+                    logger.auth('admin:resolved', { isAdmin: result });
+                    updateNavigation();
+                })
+                .catch(err => {
+                    logger.error('Admin check failed', err);
+                    isAdmin = false;
+                    authLoaded = true;
+                    updateNavigation();
+                });
         } else {
             clearAdminCache();
             isAdmin = false;
