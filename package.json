@@ -14,11 +14,14 @@
     "@vercel/analytics": "^1.5.0",
     "@vercel/speed-insights": "^1.2.0",
     "easymde": "^2.20.0",
-    "marked": "^18.0.2",
+    "marked": "^18.0.3",
     "web-push": "^3.6.7"
   },
   "devDependencies": {
     "vercel": "^51.6.1",
     "vite": "^8.0.4"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": ["esbuild"]
   }
 }

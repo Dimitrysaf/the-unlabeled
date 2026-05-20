@@ -17,7 +17,7 @@ const IDEOLOGICAL_ORDER = {
 };
 
 const ARCS = [
-    { r: 80,  count: 21 },
+    { r: 80, count: 21 },
     { r: 100, count: 24 },
     { r: 120, count: 27 },
     { r: 140, count: 30 },

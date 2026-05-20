@@ -7,7 +7,8 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
-node_modules
+node_modules*
+node_modules_old_npm
 dist
 dist-ssr
 *.local
@@ -26,3 +27,4 @@ dist-ssr
 .*
 .vercel
 .env*.local
+

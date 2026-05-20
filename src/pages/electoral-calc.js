@@ -1,4 +1,5 @@
 import { updateContent } from '../components/Layout.js';
+import { logger } from '../lib/logger.js';
 import './electoral-calc.css';
 import './electoral-calc.mobile.css';
 import './electoral-calc.print.css';
@@ -434,7 +435,7 @@ function loadPolls() {
             });
         })
         .catch(err => {
-            console.error(err);
+            logger.error('[electoral-calc] polling data load failed', err);
             document.getElementById('polls-loading').innerHTML =
                 `<div class="govuk-error-summary"><div role="alert">
                     <h2 class="govuk-error-summary__title">There is a problem</h2>
@@ -521,7 +522,35 @@ function applyForecastDefaults() {
     document.getElementById('reversion-value').textContent = String(forecastDefaults.reversionPct);
 }
 
+// Controls managed by renderPrediction internally (momentum/reversion) are excluded
+// so setControlsDisabled(false) doesn't override their state after calculation.
+const CALC_CONTROL_IDS = [
+    'dropout-slider', 'polls-count-select', 'nd-correction-checkbox',
+    'sample-weight-checkbox', 'house-effects-checkbox', 'lead-compression-checkbox',
+    'threshold-risk-checkbox', 'election-date-picker', 'reset-defaults-btn',
+];
+
+function setControlsDisabled(disabled) {
+    CALC_CONTROL_IDS.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.disabled = disabled;
+    });
+}
+
 function renderPrediction() {
+    setControlsDisabled(true);
+    // Yield to the browser so it can paint the disabled state before the
+    // synchronous 1000-iteration simulation blocks the main thread.
+    setTimeout(() => {
+        try {
+            _doRenderPrediction();
+        } finally {
+            setControlsDisabled(false);
+        }
+    }, 0);
+}
+
+function _doRenderPrediction() {
     const dropoutRate = parseInt(document.getElementById('dropout-slider').value) / 100;
     const pollsCountVal = document.getElementById('polls-count-select').value;
     const useNDCorrection = document.getElementById('nd-correction-checkbox').checked;
@@ -595,7 +624,7 @@ function renderPrediction() {
     renderCoalitions(seats);
     renderCoalitionProbabilityChart(summary);
     renderPredictionStats(predicted, rawBase);
-}
+} // end _doRenderPrediction
 
 function getForecastOutcome(recentPolls, options) {
     const {

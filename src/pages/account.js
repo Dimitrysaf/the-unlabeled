@@ -1,26 +1,23 @@
 // src/pages/account.js
 import { updateContent } from '../components/Layout.js';
+import { renderRetryError, CONNECTION_ERROR_CAUSES } from '../components/ErrorPage.js';
 import { navigate } from '../router.js';
 import { getCurrentUser, signOut } from '../lib/auth.js';
 import { checkIsAdmin } from '../data/admin.js';
-import { isPushSupported, getSubscriptionState, subscribe, unsubscribe } from '../lib/notifications.js';
+import { isPushSupported, isIosNotPwa, getSubscriptionState, subscribe, unsubscribe } from '../lib/notifications.js';
+import { logger } from '../lib/logger.js';
 
 export async function renderAccount() {
     let user, isAdmin;
     try {
         [user, isAdmin] = await Promise.all([getCurrentUser(), checkIsAdmin()]);
     } catch (error) {
-        console.error('Error retrieving user data:', error);
-        updateContent(`
-            <div class="govuk-!-padding-bottom-9">
-                <div class="govuk-grid-row">
-                    <div class="govuk-grid-column-two-thirds">
-                        <h1 class="govuk-heading-xl">Your account</h1>
-                        <p class="govuk-body">Error retrieving data. Please try refreshing the page.</p>
-                    </div>
-                </div>
-            </div>
-        `);
+        logger.error('Error retrieving user data', error);
+        renderRetryError({
+            message: 'We could not load your account details.',
+            causes: CONNECTION_ERROR_CAUSES,
+            onRetry: () => renderAccount(),
+        });
         return;
     }
 
@@ -203,12 +200,21 @@ export async function renderAccount() {
 
                     ${isPushSupported ? `
                     <h2 class="govuk-heading-m govuk-!-margin-top-6">Notifications</h2>
+                    ${isIosNotPwa ? `
+                    <p class="govuk-body">To receive notifications on iPhone or iPad, you need to install this site first.</p>
+                    <ol class="govuk-list govuk-list--number govuk-body">
+                        <li>Tap the <strong>Share</strong> button in Safari (the box with an arrow pointing up)</li>
+                        <li>Select <strong>Add to Home Screen</strong></li>
+                        <li>Open the app from your home screen, then return here to subscribe</li>
+                    </ol>
+                    ` : `
                     <p class="govuk-body" id="notify-status-text">Checking notification status…</p>
                     <div class="govuk-button-group">
                         <button class="govuk-button govuk-button--secondary" id="notify-btn" disabled>
                             Subscribe to notifications
                         </button>
                     </div>
+                    `}
                     ` : ''}
 
                     ${isAdmin ? `
@@ -253,7 +259,7 @@ function initAccountPage() {
                 await signOut();
                 navigate('/');
             } catch (error) {
-                console.error('Sign out error:', error);
+                logger.error('Sign out error', error);
                 const errEl = document.getElementById('sign-out-error');
                 if (errEl) errEl.style.display = 'block';
             }

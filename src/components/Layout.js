@@ -1,9 +1,10 @@
 // src/components/Layout.js
 import { renderLogo } from './Logo.js';
-import { getCurrentUser, onAuthStateChange, signOut } from '../lib/auth.js';
+import { onAuthStateChange } from '../lib/auth.js';
 import { readCookiePreferences, setSessionCookie, writeCookiePreferences } from '../lib/cookiePreferences.js';
 import { checkIsAdmin, clearAdminCache } from '../data/admin.js';
 import { navigate } from '../router.js';
+import { logger, enableAdminDebug } from '../lib/logger.js';
 
 const baseMenuItems = [
     { label: 'Home', link: '/' },
@@ -123,7 +124,6 @@ export function initLayout() {
                 </div>
             </div>
         </header>
-
         <div class="govuk-service-navigation" data-module="govuk-service-navigation">
             <div class="govuk-width-container">
                 <div class="govuk-service-navigation__container">
@@ -139,6 +139,8 @@ export function initLayout() {
             </div>
         </div>
 
+        <div id="page-loading-bar" aria-hidden="true"></div>
+
         <main class="content-area govuk-main-wrapper" id="main-content" role="main" tabindex="-1"></main>
 
         <footer class="govuk-footer">
@@ -151,6 +153,9 @@ export function initLayout() {
                             </li>
                             <li class="govuk-footer__inline-list-item">
                                 <a class="govuk-footer__link" href="/legal#privacy">Privacy</a>
+                            </li>
+                            <li class="govuk-footer__inline-list-item">
+                                <a class="govuk-footer__link" href="/donate">Donate</a>
                             </li>
                             <li class="govuk-footer__inline-list-item">
                                 <a class="govuk-footer__link" target="_blank" href="https://github.com/Dimitrysaf/the-unlabeled">Source code</a>
@@ -229,33 +234,31 @@ function _initCookieBanner() {
 }
 
 function initAuth() {
-    getCurrentUser()
-        .then(user => {
-            currentUser = user;
-            setSessionCookie(Boolean(user));
-            if (user) {
-                checkIsAdmin()
-                    .then(result => { isAdmin = result; authLoaded = true; updateNavigation(); })
-                    .catch(() => { authLoaded = true; updateNavigation(); });
-            } else {
-                authLoaded = true;
-                updateNavigation();
-            }
-        })
-        .catch(() => {
-            currentUser = null;
-            authLoaded = true;
-            setSessionCookie(false);
-            updateNavigation();
-        });
-
+    // Rely solely on onAuthStateChange for session state — Supabase fires
+    // INITIAL_SESSION immediately on init. Calling getCurrentUser() separately
+    // causes concurrent Web Lock contention (both try to acquire the same
+    // auth token lock, leading to 5-second timeouts and AbortErrors).
     onAuthStateChange((_event, session) => {
         currentUser = session?.user || null;
         setSessionCookie(Boolean(currentUser));
+        logger.auth(_event, currentUser ? { id: currentUser.id } : null);
+
         if (currentUser) {
-            checkIsAdmin()
-                .then(result => { isAdmin = result; authLoaded = true; updateNavigation(); })
-                .catch(() => { isAdmin = false; authLoaded = true; updateNavigation(); });
+            // Pass userId so checkIsAdmin skips its own getUser() lock acquisition
+            checkIsAdmin(currentUser.id)
+                .then(result => {
+                    isAdmin = result;
+                    authLoaded = true;
+                    if (result) enableAdminDebug();
+                    logger.auth('admin:resolved', { isAdmin: result });
+                    updateNavigation();
+                })
+                .catch(err => {
+                    logger.error('Admin check failed', err);
+                    isAdmin = false;
+                    authLoaded = true;
+                    updateNavigation();
+                });
         } else {
             clearAdminCache();
             isAdmin = false;
@@ -320,8 +323,18 @@ function _initServiceNavFallback() {
     applyViewport(MOBILE_MQ);
 }
 
-/** Replaces the main content area and scrolls back to the top. */
-export function updateContent(html) {
+export function showPageLoading() {
+    document.getElementById('page-loading-bar')?.classList.add('is-loading');
+}
+
+export function hidePageLoading() {
+    document.getElementById('page-loading-bar')?.classList.remove('is-loading');
+}
+
+/** Replaces the main content area and scrolls back to the top.
+ *  Pass { final: false } for skeleton/intermediate renders to keep the loading bar alive. */
+export function updateContent(html, { final = true } = {}) {
+    if (final) hidePageLoading();
     const slot = document.getElementById('main-content');
     if (!slot) return;
     slot.innerHTML = `<div class="govuk-width-container">${html}</div>`;

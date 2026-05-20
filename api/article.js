@@ -1,15 +1,12 @@
 // api/article.js
-// Intercepts /a/:slug requests so that social-media crawlers (Slack, Discord,
-// Twitter, iMessage, etc.) receive correct Open Graph meta tags in the
-// initial HTML response, without requiring JavaScript execution.
-//
-// Real browsers also hit this function. It fetches index.html from the same
-// deployment (via the x-forwarded-host header), swaps in the article meta
-// tags, and returns the full SPA so the Vite router initialises normally.
+
+import { marked } from 'marked';
 
 const SUPABASE_URL = process.env.VITE_SUPABASE_URL;
 const SUPABASE_ANON_KEY = process.env.VITE_SUPABASE_ANON_KEY;
 const SITE_URL = 'https://the-unlabeled.com';
+
+const CRAWLERS = /googlebot|bingbot|yandex|duckduckbot|slurp|facebookexternalhit|twitterbot|linkedinbot|slackbot|discordbot|whatsapp|telegrambot/i;
 
 export default async function handler(req, res) {
     const slug = String(req.query.slug || '').replace(/[^\w-]/g, '');
@@ -18,11 +15,25 @@ export default async function handler(req, res) {
         return res.end();
     }
 
-    // Derive the base URL of the current deployment so preview deployments
-    // fetch their own index.html (with the correct hashed asset paths).
+    const userAgent = req.headers['user-agent'] || '';
+    const isCrawler = CRAWLERS.test(userAgent);
+
     const proto = req.headers['x-forwarded-proto'] || 'https';
-    const host  = req.headers['x-forwarded-host'] || req.headers.host || 'the-unlabeled.com';
+    const host = req.headers['x-forwarded-host'] || req.headers.host || 'the-unlabeled.com';
     const baseUrl = `${proto}://${host}`;
+
+    if (isCrawler) {
+        const article = await fetchArticle(slug);
+
+        if (!article || article.is_draft) {
+            res.writeHead(404);
+            return res.end('Not found');
+        }
+
+        res.setHeader('Content-Type', 'text/html; charset=utf-8');
+        res.setHeader('Cache-Control', 'no-store');
+        return res.status(200).send(renderArticleHtml(article, slug));
+    }
 
     const [articleResult, htmlResult] = await Promise.allSettled([
         fetchArticle(slug),
@@ -30,7 +41,6 @@ export default async function handler(req, res) {
     ]);
 
     if (htmlResult.status === 'rejected') {
-        // Can't get index.html — fall back to plain redirect so the SPA loads.
         res.writeHead(302, { Location: '/' });
         return res.end();
     }
@@ -39,8 +49,7 @@ export default async function handler(req, res) {
     const html = injectMeta(htmlResult.value, slug, article);
 
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
-    // Cache 5 min at the CDN edge; serve stale for up to 1 h while revalidating.
-    res.setHeader('Cache-Control', 's-maxage=300, stale-while-revalidate=3600');
+    res.setHeader('Cache-Control', 'private, max-age=300');
     return res.status(200).send(html);
 }
 
@@ -50,8 +59,9 @@ async function fetchArticle(slug) {
     const url =
         `${SUPABASE_URL}/rest/v1/articles` +
         `?slug=eq.${encodeURIComponent(slug)}` +
-        `&is_draft=eq.false` +
-        `&select=title,excerpt,image,slug` +
+        `&select=id,title,subtitle,excerpt,image,slug,is_draft,` +
+        `md_content,html_content,code_module,` +
+        `author,published_at,updated_at,tags` +
         `&limit=1`;
 
     const res = await fetch(url, {
@@ -70,58 +80,169 @@ async function fetchIndexHtml(baseUrl) {
         headers: { Accept: 'text/html' },
     });
     if (!res.ok) throw new Error(`index.html fetch failed: ${res.status}`);
-    return res.text();
+    const buf = await res.arrayBuffer();
+    return new TextDecoder('utf-8').decode(buf);
+}
+
+function resolveBodyHtml(article) {
+    if (article.md_content) {
+        return marked.parse(article.md_content);
+    }
+    if (article.html_content) {
+        return article.html_content;
+    }
+    if (article.code_module) {
+        return `<p>${escapeHtml(article.excerpt || article.subtitle || '')}</p>
+                <p><em>This article contains an interactive tool. Visit the full page to use it.</em></p>`;
+    }
+    return '';
+}
+
+function renderArticleHtml(article, slug) {
+    const title = `${escapeHtml(article.title)} | The Unlabeled`;
+    const canonicalUrl = `${SITE_URL}/a/${slug}`;
+    const rawImage = article.image;
+    const image = rawImage
+        ? (rawImage.startsWith('http') ? rawImage : `${SITE_URL}${rawImage}`)
+        : `${SITE_URL}/favicon.png`;
+
+    const publishedDate = article.published_at
+        ? new Date(article.published_at).toISOString().split('T')[0]
+        : '';
+    const modifiedDate = article.updated_at
+        ? new Date(article.updated_at).toISOString().split('T')[0]
+        : '';
+
+    const authorName = article.author?.name || 'The Unlabeled';
+
+    const tags = Array.isArray(article.tags)
+        ? article.tags.map(t => escapeHtml(t.label)).join(', ')
+        : '';
+
+    const bodyHtml = resolveBodyHtml(article);
+
+    return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${title}</title>
+  <meta name="description" content="${escapeHtml(article.excerpt || article.subtitle || '')}">
+  <link rel="canonical" href="${escapeHtml(canonicalUrl)}">
+  ${tags ? `<meta name="keywords" content="${tags}">` : ''}
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="article">
+  <meta property="og:url" content="${escapeHtml(canonicalUrl)}">
+  <meta property="og:title" content="${escapeHtml(article.title)}">
+  <meta property="og:description" content="${escapeHtml(article.excerpt || article.subtitle || '')}">
+  <meta property="og:image" content="${escapeHtml(image)}">
+  <meta property="og:site_name" content="The Unlabeled">
+
+  <!-- Twitter -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta property="twitter:url" content="${escapeHtml(canonicalUrl)}">
+  <meta property="twitter:title" content="${escapeHtml(article.title)}">
+  <meta property="twitter:description" content="${escapeHtml(article.excerpt || article.subtitle || '')}">
+  <meta property="twitter:image" content="${escapeHtml(image)}">
+
+  <!-- Schema.org structured data -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "${escapeHtml(article.title)}",
+    "description": "${escapeHtml(article.excerpt || article.subtitle || '')}",
+    "image": "${escapeHtml(image)}",
+    "url": "${escapeHtml(canonicalUrl)}",
+    "datePublished": "${publishedDate}",
+    "dateModified": "${modifiedDate}",
+    "author": {
+      "@type": "Person",
+      "name": "${escapeHtml(authorName)}"
+    },
+    "publisher": {
+      "@type": "Organization",
+      "name": "The Unlabeled",
+      "url": "${SITE_URL}",
+      "logo": {
+        "@type": "ImageObject",
+        "url": "${SITE_URL}/favicon.png"
+      }
+    },
+    "mainEntityOfPage": {
+      "@type": "WebPage",
+      "@id": "${escapeHtml(canonicalUrl)}"
+    }
+    ${tags ? `,"keywords": "${tags}"` : ''}
+  }
+  </script>
+
+</head>
+<body>
+  <article>
+    ${rawImage ? `<img src="${escapeHtml(image)}" alt="${escapeHtml(article.title)}" style="width:100%;max-height:400px;object-fit:cover;margin-bottom:1.5rem;">` : ''}
+
+    <h1>${escapeHtml(article.title)}</h1>
+
+    ${article.subtitle ? `<p style="font-size:1.15rem;color:#444;margin-bottom:1rem;">${escapeHtml(article.subtitle)}</p>` : ''}
+
+    <p class="meta">
+      By <strong>${escapeHtml(authorName)}</strong>
+      ${publishedDate ? ` · ${publishedDate}` : ''}
+    </p>
+
+    ${tags ? `<p>${article.tags.map(t => escapeHtml(t.label)).join(', ')}</p>` : ''}
+
+    <div class="content">
+      ${bodyHtml}
+    </div>
+  </article>
+
+  <p class="site-link">
+    Read more at <a href="${SITE_URL}">${SITE_URL}</a>
+  </p>
+</body>
+</html>`;
 }
 
 function injectMeta(html, slug, article) {
-    const title       = article?.title ? `${article.title} | The Unlabeled` : 'The Unlabeled';
-    const description = article?.excerpt ?? 'A political blog and data initiative providing analysis, political facts, and commentary rooted in evidence.';
-    const rawImage    = article?.image;
-    const image       = rawImage
+    const title = article?.title ? `${article.title} | The Unlabeled` : 'The Unlabeled';
+    const description = article?.excerpt ?? article?.subtitle ?? 'A political blog and data initiative providing analysis, political facts, and commentary rooted in evidence.';
+    const rawImage = article?.image;
+    const image = rawImage
         ? (rawImage.startsWith('http') ? rawImage : `${SITE_URL}${rawImage}`)
         : `${SITE_URL}/favicon.png`;
     const canonicalUrl = `${SITE_URL}/a/${slug}`;
 
     return html
-        .replace(
-            /<title>[^<]*<\/title>/,
-            `<title>${e(title)}</title>`)
-        .replace(
-            /(<meta\s+name="description"\s+content=")[^"]*(")/,
-            `$1${e(description)}$2`)
-        .replace(
-            /(<link\s+rel="canonical"\s+href=")[^"]*(")/,
-            `$1${e(canonicalUrl)}$2`)
-        .replace(
-            /(<meta\s+property="og:type"\s+content=")[^"]*(")/,
+        .replace(/<title>[^<]*<\/title>/,
+            `<title>${escapeHtml(title)}</title>`)
+        .replace(/(<meta\s+name="description"\s+content=")[^"]*(")/,
+            `$1${escapeHtml(description)}$2`)
+        .replace(/(<link\s+rel="canonical"\s+href=")[^"]*(")/,
+            `$1${escapeHtml(canonicalUrl)}$2`)
+        .replace(/(<meta\s+property="og:type"\s+content=")[^"]*(")/,
             `$1article$2`)
-        .replace(
-            /(<meta\s+property="og:url"\s+content=")[^"]*(")/,
-            `$1${e(canonicalUrl)}$2`)
-        .replace(
-            /(<meta\s+property="og:title"\s+content=")[^"]*(")/,
-            `$1${e(title)}$2`)
-        .replace(
-            /(<meta\s+property="og:description"[\s\S]*?content=")[^"]*(")/,
-            `$1${e(description)}$2`)
-        .replace(
-            /(<meta\s+property="og:image"\s+content=")[^"]*(")/,
-            `$1${e(image)}$2`)
-        .replace(
-            /(<meta\s+property="twitter:url"\s+content=")[^"]*(")/,
-            `$1${e(canonicalUrl)}$2`)
-        .replace(
-            /(<meta\s+property="twitter:title"\s+content=")[^"]*(")/,
-            `$1${e(title)}$2`)
-        .replace(
-            /(<meta\s+property="twitter:description"[\s\S]*?content=")[^"]*(")/,
-            `$1${e(description)}$2`)
-        .replace(
-            /(<meta\s+property="twitter:image"\s+content=")[^"]*(")/,
-            `$1${e(image)}$2`);
+        .replace(/(<meta\s+property="og:url"\s+content=")[^"]*(")/,
+            `$1${escapeHtml(canonicalUrl)}$2`)
+        .replace(/(<meta\s+property="og:title"\s+content=")[^"]*(")/,
+            `$1${escapeHtml(title)}$2`)
+        .replace(/(<meta\s+property="og:description"[\s\S]*?content=")[^"]*(")/,
+            `$1${escapeHtml(description)}$2`)
+        .replace(/(<meta\s+property="og:image"\s+content=")[^"]*(")/,
+            `$1${escapeHtml(image)}$2`)
+        .replace(/(<meta\s+property="twitter:url"\s+content=")[^"]*(")/,
+            `$1${escapeHtml(canonicalUrl)}$2`)
+        .replace(/(<meta\s+property="twitter:title"\s+content=")[^"]*(")/,
+            `$1${escapeHtml(title)}$2`)
+        .replace(/(<meta\s+property="twitter:description"[\s\S]*?content=")[^"]*(")/,
+            `$1${escapeHtml(description)}$2`)
+        .replace(/(<meta\s+property="twitter:image"\s+content=")[^"]*(")/,
+            `$1${escapeHtml(image)}$2`);
 }
 
-function e(str) {
+function escapeHtml(str) {
     return String(str)
         .replace(/&/g, '&amp;')
         .replace(/"/g, '&quot;')

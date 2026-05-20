@@ -73,7 +73,7 @@ export async function renderChange(field) {
         navigate('/login');
         return;
     }
-    if (!user) { window.location.href = '/login'; return; }
+    if (!user) { navigate('/login'); return; }
 
     renderChangeForm(config, config.getCurrentValue(user));
 }
@@ -93,6 +93,11 @@ function renderChangeForm(config, currentValue) {
                 </h1>
 
                 <form id="change-form" novalidate>
+
+                    ${config.type === 'password' ? `
+                    <input type="text" name="username" autocomplete="username"
+                           style="display:none" aria-hidden="true" tabindex="-1">
+                    ` : ''}
 
                     <div class="govuk-error-summary" data-module="govuk-error-summary" id="change-error-summary" hidden>
                         <div role="alert">
@@ -215,7 +220,7 @@ function renderEmailSentPage(email) {
                     <h1 class="govuk-panel__title">Check your email</h1>
                     <div class="govuk-panel__body">
                         We sent a confirmation link to<br>
-                        <strong>${escapeHtml(email)}</strong>
+                        <strong style="word-break: break-all;">${escapeHtml(email)}</strong>
                     </div>
                 </div>
 

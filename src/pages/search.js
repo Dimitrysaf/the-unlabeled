@@ -3,6 +3,7 @@ import { updateContent } from '../components/Layout.js';
 import { renderGrid } from '../components/Grid.js';
 import { searchArticles } from '../data/articles.js';
 import { escapeHtml } from '../lib/escape.js';
+import { logger } from '../lib/logger.js';
 
 export async function renderSearch() {
     const params = new URLSearchParams(window.location.search);
@@ -44,7 +45,7 @@ export async function renderSearch() {
         updateContent(heroHtml + countLine +
             `<div class="search-results">${bodyHtml}</div></div>`);
     } catch (err) {
-        console.error('[search] failed:', err);
+        logger.error('[search] failed', err);
         updateContent(heroHtml + `
             <div class="govuk-error-summary" role="alert">
                 <h2 class="govuk-error-summary__title">There is a problem</h2>

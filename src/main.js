@@ -1,12 +1,15 @@
 // src/main.js
 import { inject as injectAnalytics } from '@vercel/analytics';
 import { injectSpeedInsights } from '@vercel/speed-insights';
-import { initLayout, updateNavigation } from './components/Layout.js';
+import { initLayout, updateNavigation, showPageLoading } from './components/Layout.js';
 import { initRouter } from './router.js';
-import { renderError } from './components/ErrorPage.js';
+import { renderError, renderRetryError, isConnectionError, CONNECTION_ERROR_CAUSES } from './components/ErrorPage.js';
 import { readCookiePreferences } from './lib/cookiePreferences.js';
 import { setMetaTags } from './lib/seo.js';
 import { registerServiceWorker } from './lib/notifications.js';
+import { logger } from './lib/logger.js';
+
+const PAGE_LOAD_TIMEOUT_MS = 10_000;
 
 let analyticsInitialized = false;
 
@@ -43,9 +46,8 @@ function redirectAuthHashIfNeeded() {
     return false;
 }
 
-async function renderPage(fullPath) {
-    const path = fullPath.split('?')[0].split('#')[0];
-
+/** All routing logic. Called by renderPage inside a timeout race. */
+async function _doRender(path, fullPath) {
     if (path === '/' || path === '/index.html') {
         setMetaTags({
             title: 'The Unlabeled - Latest Political Stories & Analysis',
@@ -54,6 +56,17 @@ async function renderPage(fullPath) {
         });
         const { renderHome } = await import('./home.js');
         await renderHome();
+    } else if (path.startsWith('/a/') && path.endsWith('/history')) {
+        const slug = path.replace('/a/', '').replace(/\/history$/, '').replace(/\/+$/, '');
+        const searchParams = new URLSearchParams(fullPath.split('?')[1] ?? '');
+        setMetaTags({
+            title: 'Revision history — The Unlabeled',
+            description: 'View the edit history of this article.',
+            url: `https://the-unlabeled.com${path}`,
+            robots: 'noindex',
+        });
+        const { renderHistoryPage } = await import('./pages/a/history.js');
+        await renderHistoryPage(slug, searchParams);
     } else if (path.startsWith('/a/')) {
         const slug = path.replace('/a/', '').replace(/\/+$/, '');
         const { renderArticlePage } = await import('./pages/a/[url].js');
@@ -74,6 +87,14 @@ async function renderPage(fullPath) {
         });
         const { renderRequest } = await import('./pages/request.js');
         renderRequest();
+    } else if (path === '/donate') {
+        setMetaTags({
+            title: 'Support Us - The Unlabeled',
+            description: 'Support The Unlabeled with a one-time or monthly donation via Ko-fi.',
+            url: 'https://the-unlabeled.com/donate'
+        });
+        const { renderDonate } = await import('./pages/donate.js');
+        renderDonate();
     } else if (path === '/about') {
         setMetaTags({
             title: 'About Us - The Unlabeled',
@@ -166,6 +187,48 @@ async function renderPage(fullPath) {
     }
 }
 
+async function renderPage(fullPath) {
+    showPageLoading();
+    const path = fullPath.split('?')[0].split('#')[0];
+
+    const renderPromise = _doRender(path, fullPath);
+    const timeoutPromise = new Promise((_, reject) =>
+        setTimeout(
+            () => reject(Object.assign(new Error('Page load timed out'), { isTimeout: true })),
+            PAGE_LOAD_TIMEOUT_MS,
+        ),
+    );
+
+    try {
+        await Promise.race([renderPromise, timeoutPromise]);
+    } catch (err) {
+        // Silence the losing side of the race so it doesn't surface as an
+        // unhandled rejection if it settles after we've already shown the error.
+        renderPromise.catch(() => { });
+
+        if (err.isTimeout) {
+            logger.warn('Page load timed out', { path, timeout: PAGE_LOAD_TIMEOUT_MS });
+            renderRetryError({
+                title: 'This page is taking too long to load',
+                message: 'The page did not load within the expected time.',
+                causes: CONNECTION_ERROR_CAUSES,
+                onRetry: () => renderPage(fullPath),
+            });
+        } else if (isConnectionError(err)) {
+            logger.warn('Connection error during page load', err);
+            renderRetryError({
+                title: 'Sorry, there is a problem loading this page',
+                message: 'We could not load this page.',
+                causes: CONNECTION_ERROR_CAUSES,
+                onRetry: () => renderPage(fullPath),
+            });
+        } else {
+            logger.error('Page render error', err);
+            renderError('500');
+        }
+    }
+}
+
 document.addEventListener('DOMContentLoaded', async () => {
     // Must run before initLayout so we don't render the wrong page first.
     if (redirectAuthHashIfNeeded()) return;
@@ -173,9 +236,21 @@ document.addEventListener('DOMContentLoaded', async () => {
     initObservabilityIfAllowed();
     registerServiceWorker();
     initLayout();
+
+    // Init govuk-frontend modules after the layout is in the DOM so elements exist.
+    try {
+        const { initAll } = await import('https://cdn.jsdelivr.net/npm/govuk-frontend@5.9.0/dist/govuk/govuk-frontend.min.js');
+        initAll();
+        logger.debug('govuk-frontend modules initialised');
+    } catch (e) {
+        logger.warn('govuk-frontend init failed', e);
+    }
+
     initRouter(renderPage, updateNavigation);
 
+    const t0 = performance.now();
     await renderPage(window.location.pathname + window.location.search);
+    logger.render(window.location.pathname, Math.round(performance.now() - t0));
 });
 
 window.addEventListener('cookie-consent-updated', () => {

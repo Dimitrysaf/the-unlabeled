@@ -85,3 +85,13 @@ export function showErrorSummary(form, errors) {
     summary.hidden = false;
     summary.focus();
 }
+
+/** Shows a single auth error message in the GOV.UK error summary on a form. */
+export function showAuthErrorSummary(form, message) {
+    const summary = form.querySelector('.govuk-error-summary');
+    const list = summary?.querySelector('.govuk-error-summary__list');
+    if (!summary || !list) return;
+    list.innerHTML = `<li><a href="#">${message}</a></li>`;
+    summary.hidden = false;
+    summary.focus();
+}

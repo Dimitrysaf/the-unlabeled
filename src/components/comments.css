@@ -3,92 +3,56 @@
    Everything else in the HTML uses govuk- classes directly. */
 
 
-/* ── Vote Widget ──────────────────────────────────────────────────────────────
-   Colours, focus ring and spacing all follow GOV.UK design tokens exactly.
+/* ── Vote Widget ─────────────────────────────────────────────────────────────
+   GOV.UK "Was this article helpful?" pattern.
+   Buttons and banner are standard govuk- components; no custom overrides needed.
    ─────────────────────────────────────────────────────────────────────────── */
 
-.vote-widget {
-  display: inline-flex;
-  align-items: stretch;
-  margin-bottom: 30px;
-  /* govuk spacing-6 */
+/* ── Engagement footer bands ─────────────────────────────────────────────── */
+
+.engagement-band--vote {
+  background: var(--c-light);
+  border-top: 1px solid var(--c-border);
+  margin-top: 2rem;
 }
 
-.vote-widget__btn {
-  display: inline-flex;
+.engagement-band--comments {
+  background: #e8e8e8;
+  border-top: 1px solid var(--c-border);
+}
+
+/* ── Vote bar — background/border live on the band now ───────────────────── */
+
+.page-useful-bar {
+  padding: 15px 0;
+  display: flex;
   align-items: center;
-  justify-content: center;
-  width: 40px;
-  min-height: 40px;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.page-useful-bar__prompt {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  flex-wrap: wrap;
+}
+
+.page-useful-bar__question {
+  margin: 0;
+}
+
+.page-useful-bar__options {
+  display: flex;
+  list-style: none;
+  margin: 0;
   padding: 0;
-  border: 2px solid #0b0c0c;
-  background-color: #ffffff;
-  color: #0b0c0c;
-  cursor: pointer;
-  font-family: arial, sans-serif;
-  font-size: 0.875rem;
-  line-height: 1;
-  border-radius: 0;
-  /* govuk has no border-radius on buttons */
+  gap: 10px;
 }
 
-.vote-widget__btn--up {
-  border-right-width: 0;
-}
-
-.vote-widget__btn--down {
-  border-left-width: 0;
-}
-
-.vote-widget__btn:hover {
-  background-color: #f3f2f1;
-  /* govuk-colour("light-grey") */
-}
-
-/* GOV.UK focus ring for non-link interactive elements */
-.vote-widget__btn:focus {
-  outline: 3px solid #ffdd00;
-  outline-offset: 0;
-  position: relative;
-  z-index: 1;
-}
-
-.vote-widget__btn--up[aria-pressed="true"] {
-  background-color: #00703c;
-  /* govuk-colour("green") */
-  border-color: #00703c;
-  color: #ffffff;
-}
-
-.vote-widget__btn--down[aria-pressed="true"] {
-  background-color: #d4351c;
-  /* govuk-colour("red") */
-  border-color: #d4351c;
-  color: #ffffff;
-}
-
-.vote-widget__score {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 44px;
-  padding: 0 5px;
-  border-top: 2px solid #0b0c0c;
-  border-bottom: 2px solid #0b0c0c;
-  font-family: arial, sans-serif;
-  font-weight: 700;
-  font-size: 1rem;
-  background-color: #f3f2f1;
-  color: #0b0c0c;
-  user-select: none;
-}
-
-.vote-widget__score--positive {
-  color: #00703c;
-}
-
-.vote-widget__score--negative {
-  color: #d4351c;
+.page-useful-bar__option {
+  margin: 0;
 }
 
 

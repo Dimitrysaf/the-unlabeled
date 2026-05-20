@@ -2,6 +2,36 @@
    Base layer — GOV.UK Design System tokens, shared components.
    Route-specific styles live in admin.css and electoral-calc.css. */
 
+/* ── GDS Transport font override ───────────────────────────── */
+/* govuk-frontend's compiled CDN CSS uses root-relative /assets/fonts/ paths
+   which resolve to https://cdn.jsdelivr.net/assets/fonts/ (404).
+   These @font-face rules (loaded after govuk's CSS) redirect to the correct
+   package path. font-display:optional prevents layout shift on slow networks. */
+@font-face {
+  font-family: "GDS Transport";
+  src: url("https://cdn.jsdelivr.net/npm/govuk-frontend@5.9.0/dist/govuk/assets/fonts/light-94a07e06a1-v2.woff2") format("woff2"),
+       url("https://cdn.jsdelivr.net/npm/govuk-frontend@5.9.0/dist/govuk/assets/fonts/light-f591b13f7d-v2.woff") format("woff");
+  font-weight: 300;
+  font-style: normal;
+  font-display: optional;
+}
+@font-face {
+  font-family: "GDS Transport";
+  src: url("https://cdn.jsdelivr.net/npm/govuk-frontend@5.9.0/dist/govuk/assets/fonts/bold-b542beb274-v2.woff2") format("woff2"),
+       url("https://cdn.jsdelivr.net/npm/govuk-frontend@5.9.0/dist/govuk/assets/fonts/bold-e702e75eff-v2.woff") format("woff");
+  font-weight: 700;
+  font-style: normal;
+  font-display: optional;
+}
+@font-face {
+  font-family: "GDS Transport";
+  src: url("https://cdn.jsdelivr.net/npm/govuk-frontend@5.9.0/dist/govuk/assets/fonts/regular-ece37e6a55-v2.woff2") format("woff2"),
+       url("https://cdn.jsdelivr.net/npm/govuk-frontend@5.9.0/dist/govuk/assets/fonts/regular-3858e84b65-v2.woff") format("woff");
+  font-weight: 400;
+  font-style: normal;
+  font-display: optional;
+}
+
 /* ── Colour tokens ─────────────────────────────────────────── */
 :root {
   --govuk-font-family: arial, sans-serif;
@@ -14,6 +44,38 @@
   --c-yellow: #ffdd00;
   --c-blue: #1d70b8;
   --c-green: #00703c;
+}
+
+/* govuk's .govuk-error-message{display:block} wins over [hidden]{display:none} at equal specificity */
+.govuk-error-message[hidden] { display: none !important; }
+
+/* ── Scrollbar — GOV.UK Design System colours ── */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--c-border) var(--c-light);
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--c-light);
+  border-radius: 0;
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: var(--c-border);
+  border-radius: 0;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background-color: var(--c-secondary);
+}
+
+::-webkit-scrollbar-corner {
+  background: var(--c-light);
 }
 
 /* ── Font — GDS Transport unavailable outside gov domains; use Arial ── */
@@ -50,6 +112,42 @@ body {
   display: flex;
   flex-direction: column;
   min-height: 100vh;
+}
+
+/* Remove main padding when article bands are present */
+#main-content:has(.article-header-band) {
+  padding-top: 0;
+}
+
+#main-content:has(#article-engagement) {
+  padding-bottom: 0;
+}
+
+/* ── Article header band ── */
+.article-header-band {
+  background: var(--c-light);
+  border-bottom: 3px solid var(--c-black);
+  margin-bottom: 2rem;
+}
+
+.article-header-band .article-image {
+  border-bottom: none;
+  aspect-ratio: unset;
+  max-height: none;
+  height: auto;
+  object-fit: fill;
+}
+
+.article-header-band__inner {
+  padding-top: 1.5rem;
+  padding-bottom: 1.5rem;
+}
+
+/* ── Sidebar vertical separator (tablet and above) ── */
+@media (min-width: 40.0625em) {
+  .article-body-column {
+    border-left: 1px solid var(--c-border);
+  }
 }
 
 .content-area {
@@ -194,7 +292,8 @@ body {
   position: relative;
   z-index: 1;
   margin-top: auto;
-  background: transparent;
+  background: linear-gradient(to top, rgba(11, 12, 12, 0.85) 0%, rgba(11, 12, 12, 0) 100%);
+  padding-top: 3.5rem;
 }
 
 .news-card--hero .news-card__category,
@@ -211,6 +310,35 @@ body {
 
 .news-card--hero .news-card__excerpt {
   color: #fff;
+}
+
+/* ── Page loading bar ── */
+#page-loading-bar {
+  height: 0;
+  overflow: hidden;
+  position: relative;
+  background: transparent;
+  flex-shrink: 0;
+}
+
+#page-loading-bar.is-loading {
+  height: 3px;
+}
+
+#page-loading-bar.is-loading::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -45%;
+  width: 45%;
+  height: 100%;
+  background: #1d70b8;
+  border-radius: 0 2px 2px 0;
+  animation: page-load-slide 1s linear infinite;
+}
+
+@keyframes page-load-slide {
+  to { left: 110%; }
 }
 
 /* ── Skeleton loading ── */
@@ -237,6 +365,14 @@ body {
 
 .skeleton-line--shorter {
   width: 38%;
+}
+
+.skeleton-textarea {
+  height: 110px;
+  background: linear-gradient(90deg, var(--c-light) 25%, #fff 50%, var(--c-light) 75%);
+  background-size: 200% 100%;
+  animation: govuk-shimmer 1.4s infinite;
+  border-radius: 1px;
 }
 
 @keyframes govuk-shimmer {
@@ -388,20 +524,32 @@ body {
 /* ── Article ToC ── */
 .article-toc .govuk-list,
 .article-toc .govuk-list li,
-.article-toc .govuk-list ul {
+.article-toc .govuk-list ul,
+.article-toc-sidebar .govuk-list,
+.article-toc-sidebar .govuk-list li,
+.article-toc-sidebar .govuk-list ul {
   list-style: none !important;
   list-style-type: none !important;
   margin: 0;
   padding-left: 0 !important;
 }
 
-.article-toc .govuk-list li {
+.article-toc .govuk-list li,
+.article-toc-sidebar .govuk-list li {
   margin-top: 0.25rem;
 }
 
 .article-toc .govuk-list li::marker,
-.article-toc .govuk-list ul::marker {
+.article-toc .govuk-list ul::marker,
+.article-toc-sidebar .govuk-list li::marker,
+.article-toc-sidebar .govuk-list ul::marker {
   content: none !important;
+}
+
+/* ── Article ToC — sidebar variant ── */
+.article-toc-sidebar a.govuk-link {
+  font-size: 0.875rem;
+  color: var(--c-black);
 }
 
 .article-toc__subitem {

@@ -68,7 +68,8 @@ export default async function handler(req, res) {
         try {
           await webpush.sendNotification(
             { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },
-            payload
+            payload,
+            { urgency: 'high', TTL: 86400 }
           );
           sent++;
         } catch (err) {
