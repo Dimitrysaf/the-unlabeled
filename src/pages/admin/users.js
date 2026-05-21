@@ -412,9 +412,12 @@ export async function showDeleteUserConfirm(userId) {
     `);
     document.getElementById('delete-back')?.addEventListener('click', e => { e.preventDefault(); go(`view-user=${userId}`); });
 
-    let user;
+    let user, targetIsAdmin;
     try {
-        user = await getUserById(userId);
+        [user, targetIsAdmin] = await Promise.all([
+            getUserById(userId),
+            checkIsAdmin(userId).catch(() => false),
+        ]);
     } catch (err) {
         updateContent(`
             <a href="#" class="govuk-back-link" id="delete-back">Back to user</a>
@@ -464,12 +467,24 @@ export async function showDeleteUserConfirm(userId) {
 
                 <div id="delete-error"></div>
 
-                <div class="govuk-button-group govuk-!-margin-top-4">
-                    <button class="govuk-button govuk-button--warning" id="confirm-delete-btn">
-                        Delete user
-                    </button>
-                    <a class="govuk-link" href="#" id="cancel-delete-btn">Cancel</a>
-                </div>
+                ${targetIsAdmin
+                    ? `<div class="govuk-warning-text govuk-!-margin-top-4">
+                        <span class="govuk-warning-text__icon" aria-hidden="true">!</span>
+                        <strong class="govuk-warning-text__text">
+                            <span class="govuk-warning-text__assistive">Warning</span>
+                            Admin accounts cannot be deleted.
+                        </strong>
+                    </div>
+                    <div class="govuk-button-group govuk-!-margin-top-4">
+                        <a class="govuk-link" href="#" id="cancel-delete-btn">Go back</a>
+                    </div>`
+                    : `<div class="govuk-button-group govuk-!-margin-top-4">
+                        <button class="govuk-button govuk-button--warning" id="confirm-delete-btn">
+                            Delete user
+                        </button>
+                        <a class="govuk-link" href="#" id="cancel-delete-btn">Cancel</a>
+                    </div>`
+                }
             </div>
         </div>
     `);
