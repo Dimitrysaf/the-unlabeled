@@ -2,7 +2,7 @@
 import { updateContent } from '../components/Layout.js';
 import { renderError } from '../components/ErrorPage.js';
 import { navigate } from '../router.js';
-import { getCurrentUser, updateUser, updateUserProfile } from '../lib/auth.js';
+import { getCurrentUser, updateUser, updateUserProfile, signIn } from '../lib/auth.js';
 import {
     validateEmail,
     validateDisplayName,
@@ -44,28 +44,13 @@ const FIELD_CONFIG = {
         validator: validateEmail,
         updatedKey: null,
     },
-    password: {
-        title: 'Change password',
-        caption: 'Your account',
-        label: 'New password',
-        hint: 'Must be at least 8 characters and include an uppercase letter, lowercase letter, number and special character.',
-        type: 'password',
-        autocomplete: 'new-password',
-        submitLabel: 'Save new password',
-        mode: 'direct',
-        requiresCurrentPassword: true,
-        getCurrentValue: () => '',
-        save: (value, nonce) => updateUser({ password: value, nonce }),
-        validator: validatePassword,
-        updatedKey: 'password',
-    },
+    password: null, // handled by two-step flow below
 };
 
 // ── Entry point ───────────────────────────────────────────────────────────
 
 export async function renderChange(field) {
-    const config = FIELD_CONFIG[field];
-    if (!config) { renderError('404'); return; }
+    if (field !== 'password' && !FIELD_CONFIG[field]) { renderError('404'); return; }
 
     let user;
     try {
@@ -76,10 +61,246 @@ export async function renderChange(field) {
     }
     if (!user) { navigate('/login'); return; }
 
+    if (field === 'password') {
+        renderPasswordStep1(user);
+        return;
+    }
+
+    const config = FIELD_CONFIG[field];
     renderChangeForm(config, config.getCurrentValue(user));
 }
 
-// ── Form page ─────────────────────────────────────────────────────────────
+// ── Password: step 1 — verify current password ────────────────────────────
+
+function renderPasswordStep1(user) {
+    updateContent(`
+        <div class="govuk-grid-row">
+            <div class="govuk-grid-column-two-thirds">
+
+                <a href="/account" class="govuk-back-link">Back</a>
+
+                <h1 class="govuk-heading-xl">
+                    <span class="govuk-caption-l">Your account</span>
+                    Change password
+                </h1>
+
+                <form id="change-form" novalidate>
+
+                    <input type="text" name="username" autocomplete="username"
+                           style="display:none" aria-hidden="true" tabindex="-1">
+
+                    <div class="govuk-error-summary" data-module="govuk-error-summary" id="change-error-summary" hidden>
+                        <div role="alert">
+                            <h2 class="govuk-error-summary__title">There is a problem</h2>
+                            <div class="govuk-error-summary__body">
+                                <ul class="govuk-list govuk-error-summary__list" id="change-error-list"></ul>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="govuk-form-group" id="change-field-group">
+                        <label class="govuk-label govuk-label--m" for="change-field">
+                            Current password
+                        </label>
+                        <p class="govuk-error-message" id="change-field-error" hidden>
+                            <span class="govuk-visually-hidden">Error:</span>
+                            <span id="change-field-error-text"></span>
+                        </p>
+                        <input
+                            class="govuk-input"
+                            id="change-field"
+                            name="current-password"
+                            type="password"
+                            autocomplete="current-password"
+                            aria-describedby="change-field-error"
+                        >
+                    </div>
+
+                    <div class="govuk-button-group">
+                        <button class="govuk-button" type="submit" id="change-submit-btn" data-module="govuk-button">
+                            Continue
+                        </button>
+                        <a class="govuk-link" href="/account">Cancel</a>
+                    </div>
+
+                </form>
+
+            </div>
+        </div>
+    `);
+
+    const form     = document.getElementById('change-form');
+    const submitBtn = document.getElementById('change-submit-btn');
+    const input    = document.getElementById('change-field');
+    const group    = document.getElementById('change-field-group');
+    const errorMsg = document.getElementById('change-field-error');
+    const errorText = document.getElementById('change-field-error-text');
+    const errorSummary = document.getElementById('change-error-summary');
+    const errorList = document.getElementById('change-error-list');
+
+    function clearErrors() {
+        group.classList.remove('govuk-form-group--error');
+        input.classList.remove('govuk-input--error');
+        input.removeAttribute('aria-invalid');
+        errorMsg.hidden = true;
+        errorSummary.hidden = true;
+    }
+
+    function showError(message) {
+        group.classList.add('govuk-form-group--error');
+        input.classList.add('govuk-input--error');
+        input.setAttribute('aria-invalid', 'true');
+        errorText.textContent = message;
+        errorMsg.hidden = false;
+        errorList.innerHTML = `<li><a href="#change-field">${escapeHtml(message)}</a></li>`;
+        errorSummary.hidden = false;
+        errorSummary.setAttribute('tabindex', '-1');
+        errorSummary.focus();
+    }
+
+    form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        clearErrors();
+
+        const currentPassword = input.value;
+        if (!currentPassword) {
+            showError('Enter your current password');
+            return;
+        }
+
+        setButtonLoading(submitBtn, 'Checking…');
+
+        try {
+            await signIn(user.email, currentPassword);
+            renderPasswordStep2(user, currentPassword);
+        } catch {
+            showError('Current password is incorrect');
+            resetButton(submitBtn, 'Continue');
+        }
+    });
+}
+
+// ── Password: step 2 — set new password ──────────────────────────────────
+
+function renderPasswordStep2(user, currentPassword) {
+    updateContent(`
+        <div class="govuk-grid-row">
+            <div class="govuk-grid-column-two-thirds">
+
+                <a href="#" class="govuk-back-link" id="change-back-link">Back</a>
+
+                <h1 class="govuk-heading-xl">
+                    <span class="govuk-caption-l">Your account</span>
+                    Change password
+                </h1>
+
+                <form id="change-form" novalidate>
+
+                    <input type="text" name="username" autocomplete="username"
+                           style="display:none" aria-hidden="true" tabindex="-1">
+
+                    <div class="govuk-error-summary" data-module="govuk-error-summary" id="change-error-summary" hidden>
+                        <div role="alert">
+                            <h2 class="govuk-error-summary__title">There is a problem</h2>
+                            <div class="govuk-error-summary__body">
+                                <ul class="govuk-list govuk-error-summary__list" id="change-error-list"></ul>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="govuk-form-group" id="change-field-group">
+                        <label class="govuk-label govuk-label--m" for="change-field">
+                            New password
+                        </label>
+                        <div id="change-field-hint" class="govuk-hint">
+                            Must be at least 8 characters and include an uppercase letter, lowercase letter, number and special character.
+                        </div>
+                        <p class="govuk-error-message" id="change-field-error" hidden>
+                            <span class="govuk-visually-hidden">Error:</span>
+                            <span id="change-field-error-text"></span>
+                        </p>
+                        <input
+                            class="govuk-input"
+                            id="change-field"
+                            name="new-password"
+                            type="password"
+                            autocomplete="new-password"
+                            aria-describedby="change-field-hint change-field-error"
+                        >
+                    </div>
+
+                    <div class="govuk-button-group">
+                        <button class="govuk-button" type="submit" id="change-submit-btn" data-module="govuk-button">
+                            Save new password
+                        </button>
+                        <a class="govuk-link" href="/account">Cancel</a>
+                    </div>
+
+                </form>
+
+            </div>
+        </div>
+    `);
+
+    document.getElementById('change-back-link').addEventListener('click', (e) => {
+        e.preventDefault();
+        renderPasswordStep1(user);
+    });
+
+    const form      = document.getElementById('change-form');
+    const submitBtn = document.getElementById('change-submit-btn');
+    const input     = document.getElementById('change-field');
+    const group     = document.getElementById('change-field-group');
+    const errorMsg  = document.getElementById('change-field-error');
+    const errorText = document.getElementById('change-field-error-text');
+    const errorSummary = document.getElementById('change-error-summary');
+    const errorList    = document.getElementById('change-error-list');
+
+    function clearErrors() {
+        group.classList.remove('govuk-form-group--error');
+        input.classList.remove('govuk-input--error');
+        input.removeAttribute('aria-invalid');
+        errorMsg.hidden = true;
+        errorSummary.hidden = true;
+    }
+
+    function showError(message) {
+        group.classList.add('govuk-form-group--error');
+        input.classList.add('govuk-input--error');
+        input.setAttribute('aria-invalid', 'true');
+        errorText.textContent = message;
+        errorMsg.hidden = false;
+        errorList.innerHTML = `<li><a href="#change-field">${escapeHtml(message)}</a></li>`;
+        errorSummary.hidden = false;
+        errorSummary.setAttribute('tabindex', '-1');
+        errorSummary.focus();
+    }
+
+    form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        clearErrors();
+
+        const newPassword = input.value;
+        const validationError = validatePassword(newPassword);
+        if (validationError) {
+            showError(validationError);
+            return;
+        }
+
+        setButtonLoading(submitBtn, 'Saving…');
+
+        try {
+            await updateUser({ password: newPassword, nonce: currentPassword });
+            navigate('/account?updated=password');
+        } catch (err) {
+            const msg = err?.message || 'Something went wrong. Please try again later.';
+            showError(msg);
+            resetButton(submitBtn, 'Save new password');
+        }
+    });
+}
+
+// ── Generic single-field change form ─────────────────────────────────────
 
 function renderChangeForm(config, currentValue) {
     updateContent(`
@@ -95,11 +316,6 @@ function renderChangeForm(config, currentValue) {
 
                 <form id="change-form" novalidate>
 
-                    ${config.type === 'password' ? `
-                    <input type="text" name="username" autocomplete="username"
-                           style="display:none" aria-hidden="true" tabindex="-1">
-                    ` : ''}
-
                     <div class="govuk-error-summary" data-module="govuk-error-summary" id="change-error-summary" hidden>
                         <div role="alert">
                             <h2 class="govuk-error-summary__title">There is a problem</h2>
@@ -108,26 +324,6 @@ function renderChangeForm(config, currentValue) {
                             </div>
                         </div>
                     </div>
-
-                    ${config.requiresCurrentPassword ? `
-                    <div class="govuk-form-group" id="change-current-field-group">
-                        <label class="govuk-label govuk-label--m" for="change-current-password">
-                            Current password
-                        </label>
-                        <p class="govuk-error-message" id="change-current-field-error" hidden>
-                            <span class="govuk-visually-hidden">Error:</span>
-                            <span id="change-current-field-error-text"></span>
-                        </p>
-                        <input
-                            class="govuk-input"
-                            id="change-current-password"
-                            name="current-password"
-                            type="password"
-                            autocomplete="current-password"
-                            aria-describedby="change-current-field-error"
-                        >
-                    </div>
-                    ` : ''}
 
                     <div class="govuk-form-group" id="change-field-group">
                         <label class="govuk-label govuk-label--m" for="change-field">
@@ -166,24 +362,17 @@ function renderChangeForm(config, currentValue) {
     initChangeForm(config);
 }
 
-// ── Form logic ────────────────────────────────────────────────────────────
+// ── Generic form logic ────────────────────────────────────────────────────
 
 function initChangeForm(config) {
-    const form = document.getElementById('change-form');
+    const form      = document.getElementById('change-form');
     const submitBtn = document.getElementById('change-submit-btn');
-    const input = document.getElementById('change-field');
-    const group = document.getElementById('change-field-group');
-    const errorMsg = document.getElementById('change-field-error');
+    const input     = document.getElementById('change-field');
+    const group     = document.getElementById('change-field-group');
+    const errorMsg  = document.getElementById('change-field-error');
     const errorText = document.getElementById('change-field-error-text');
     const errorSummary = document.getElementById('change-error-summary');
-    const errorList = document.getElementById('change-error-list');
-
-    const currentPasswordInput = config.requiresCurrentPassword
-        ? document.getElementById('change-current-password')
-        : null;
-    const currentGroup = document.getElementById('change-current-field-group');
-    const currentErrorMsg = document.getElementById('change-current-field-error');
-    const currentErrorText = document.getElementById('change-current-field-error-text');
+    const errorList    = document.getElementById('change-error-list');
 
     function clearErrors() {
         group.classList.remove('govuk-form-group--error');
@@ -193,30 +382,15 @@ function initChangeForm(config) {
         errorText.textContent = '';
         errorSummary.hidden = true;
         errorList.innerHTML = '';
-
-        if (currentPasswordInput) {
-            currentGroup.classList.remove('govuk-form-group--error');
-            currentPasswordInput.classList.remove('govuk-input--error');
-            currentPasswordInput.removeAttribute('aria-invalid');
-            currentErrorMsg.hidden = true;
-            currentErrorText.textContent = '';
-        }
     }
 
-    function showError(message, targetId = 'change-field') {
-        const isCurrentField = targetId === 'change-current-password';
-        const targetGroup = isCurrentField ? currentGroup : group;
-        const targetInput = isCurrentField ? currentPasswordInput : input;
-        const targetErrorMsg = isCurrentField ? currentErrorMsg : errorMsg;
-        const targetErrorText = isCurrentField ? currentErrorText : errorText;
-
-        targetGroup.classList.add('govuk-form-group--error');
-        targetInput.classList.add('govuk-input--error');
-        targetInput.setAttribute('aria-invalid', 'true');
-        targetErrorText.textContent = message;
-        targetErrorMsg.hidden = false;
-
-        errorList.innerHTML = `<li><a href="#${targetId}">${escapeHtml(message)}</a></li>`;
+    function showError(message) {
+        group.classList.add('govuk-form-group--error');
+        input.classList.add('govuk-input--error');
+        input.setAttribute('aria-invalid', 'true');
+        errorText.textContent = message;
+        errorMsg.hidden = false;
+        errorList.innerHTML = `<li><a href="#change-field">${escapeHtml(message)}</a></li>`;
         errorSummary.hidden = false;
         errorSummary.setAttribute('tabindex', '-1');
         errorSummary.focus();
@@ -225,11 +399,6 @@ function initChangeForm(config) {
     form.addEventListener('submit', async (e) => {
         e.preventDefault();
         clearErrors();
-
-        if (currentPasswordInput && !currentPasswordInput.value) {
-            showError('Enter your current password', 'change-current-password');
-            return;
-        }
 
         const value = input.value;
         const validationError = config.validator(value);
@@ -241,7 +410,7 @@ function initChangeForm(config) {
         setButtonLoading(submitBtn, 'Saving…');
 
         try {
-            await config.save(value, currentPasswordInput?.value);
+            await config.save(value);
 
             if (config.mode === 'email-confirm') {
                 renderEmailSentPage(value);
@@ -250,10 +419,7 @@ function initChangeForm(config) {
             }
         } catch (err) {
             const msg = err?.message || 'Something went wrong. Please try again later.';
-            // Supabase surfaces wrong current password as a credentials error
-            const isWrongCurrentPassword = currentPasswordInput &&
-                /invalid|credential|incorrect|wrong/i.test(msg);
-            showError(msg, isWrongCurrentPassword ? 'change-current-password' : 'change-field');
+            showError(msg);
             resetButton(submitBtn, config.submitLabel);
         }
     });
