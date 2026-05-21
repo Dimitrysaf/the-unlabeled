@@ -45,12 +45,12 @@ export function renderArticlesSection(articles) {
                 <caption class="govuk-table__caption govuk-visually-hidden">All articles</caption>
                 <thead class="govuk-table__head">
                     <tr class="govuk-table__row">
-                        <th class="govuk-table__header" scope="col">Title</th>
+                        <th class="govuk-table__header col-important" scope="col">Title</th>
                         <th class="govuk-table__header" scope="col">Slug</th>
                         <th class="govuk-table__header" scope="col">Type</th>
-                        <th class="govuk-table__header" scope="col">Status</th>
+                        <th class="govuk-table__header col-important" scope="col">Status</th>
                         <th class="govuk-table__header" scope="col">Created</th>
-                        <th class="govuk-table__header" scope="col">
+                        <th class="govuk-table__header col-important" scope="col">
                             <span class="govuk-visually-hidden">Actions</span>
                         </th>
                     </tr>
@@ -100,7 +100,7 @@ function articleRow(a) {
 
     return `
         <tr class="govuk-table__row">
-            <td class="govuk-table__cell">
+            <td class="govuk-table__cell col-important">
                 <a class="govuk-link govuk-link--no-visited-state"
                    href="/a/${escapeAttr(a.slug || '')}"
                    target="_blank" rel="noopener noreferrer">${titleText}</a>
@@ -109,9 +109,9 @@ function articleRow(a) {
                 <code class="admin-slug">${escapeHtml(a.slug || '—')}</code>
             </td>
             <td class="govuk-table__cell">${type}</td>
-            <td class="govuk-table__cell">${tag}</td>
+            <td class="govuk-table__cell col-important">${tag}</td>
             <td class="govuk-table__cell admin-nowrap">${date}</td>
-            <td class="govuk-table__cell">
+            <td class="govuk-table__cell col-important">
                 <div><a class="govuk-link govuk-link--no-visited-state" href="#" id="edit-${a.id}">Edit${visHidden}</a></div>
                 <div><a class="govuk-link govuk-link--no-visited-state" href="#" id="toggle-${a.id}">${toggleLabel}${visHidden}</a></div>
                 <div><a class="govuk-link admin-link--danger" href="#" id="delete-${a.id}">Delete${visHidden}</a></div>

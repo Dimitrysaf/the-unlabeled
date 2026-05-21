@@ -151,13 +151,13 @@ const renderer = {
     table({ header, rows }) {
         const headerHtml = header.map(cell => {
             const rendered = this.parser.parseInline(cell.tokens);
-            return `<th class="govuk-table__header" scope="col">${rendered}</th>`;
+            return `<th class="govuk-table__header col-important" scope="col">${rendered}</th>`;
         }).join('');
 
         const rowsHtml = rows.map(row => {
             const cells = row.map(cell => {
                 const rendered = this.parser.parseInline(cell.tokens);
-                return `<td class="govuk-table__cell">${rendered}</td>`;
+                return `<td class="govuk-table__cell col-important">${rendered}</td>`;
             }).join('');
             return `<tr class="govuk-table__row">${cells}</tr>\n`;
         }).join('');

@@ -47,12 +47,12 @@ export function renderUsersSection(result) {
                 <caption class="govuk-table__caption govuk-visually-hidden">All users</caption>
                 <thead class="govuk-table__head">
                     <tr class="govuk-table__row">
-                        <th class="govuk-table__header" scope="col">Email</th>
+                        <th class="govuk-table__header col-important" scope="col">Email</th>
                         <th class="govuk-table__header" scope="col">UID</th>
                         <th class="govuk-table__header" scope="col">Provider</th>
-                        <th class="govuk-table__header" scope="col">Status</th>
+                        <th class="govuk-table__header col-important" scope="col">Status</th>
                         <th class="govuk-table__header" scope="col">Created</th>
-                        <th class="govuk-table__header" scope="col">
+                        <th class="govuk-table__header col-important" scope="col">
                             <span class="govuk-visually-hidden">Actions</span>
                         </th>
                     </tr>
@@ -82,12 +82,12 @@ function userRow(u) {
         : `<strong class="govuk-tag govuk-tag--green">Active</strong>`;
     return `
         <tr class="govuk-table__row">
-            <td class="govuk-table__cell">${email}</td>
+            <td class="govuk-table__cell col-important">${email}</td>
             <td class="govuk-table__cell admin-nowrap"><code class="admin-slug">${uid}</code></td>
             <td class="govuk-table__cell">${provider}</td>
-            <td class="govuk-table__cell">${status}</td>
+            <td class="govuk-table__cell col-important">${status}</td>
             <td class="govuk-table__cell admin-nowrap">${date}</td>
-            <td class="govuk-table__cell">
+            <td class="govuk-table__cell col-important">
                 <a class="govuk-link govuk-link--no-visited-state" href="#" id="view-user-${u.id}">
                     View<span class="govuk-visually-hidden"> ${email}</span>
                 </a>

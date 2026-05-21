@@ -82,4 +82,12 @@
   .header-search__input:focus {
     width: 150px;
   }
+
+  /* Hide non-important table columns — apply col-important to headers + cells to keep them visible */
+  .table-scroll .govuk-table__header:not(.col-important),
+  .table-scroll .govuk-table__cell:not(.col-important),
+  .md-scroll-wrapper .govuk-table__header:not(.col-important),
+  .md-scroll-wrapper .govuk-table__cell:not(.col-important) {
+    display: none;
+  }
 }

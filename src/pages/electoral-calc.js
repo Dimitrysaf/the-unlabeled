@@ -404,7 +404,7 @@ function loadPolls() {
                 `<tr class="govuk-table__row">${headers.map(h => {
                     const color = partyColors[h];
                     const style = color ? `border-bottom:4px solid ${color};color:${color};` : '';
-                    return `<th scope="col" class="govuk-table__header" style="${style}">${h}</th>`;
+                    return `<th scope="col" class="govuk-table__header col-important" style="${style}">${h}</th>`;
                 }).join('')}</tr>`;
 
             document.getElementById('polls-tbody').innerHTML =
@@ -413,7 +413,7 @@ function loadPolls() {
                     const rowStyle = isElection ? 'background:#fff3cd;font-weight:700;' : '';
                     return `<tr class="govuk-table__row" style="${rowStyle}">${row.map((cell, i) => {
                         const align = partyColors[headers[i]] ? 'center' : 'left';
-                        return `<td class="govuk-table__cell" style="text-align:${align};">${cell}</td>`;
+                        return `<td class="govuk-table__cell col-important" style="text-align:${align};">${cell}</td>`;
                     }).join('')}</tr>`;
                 }).join('');
 

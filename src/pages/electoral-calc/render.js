@@ -367,19 +367,19 @@ export function renderHouseEffectsTable(houseEffects, partyIndices) {
     const theadCells = ['Firm', ...parties].map(h => {
         const color = partyColors[h];
         const style = color ? `color:${color};border-bottom:3px solid ${color};` : '';
-        return `<th scope="col" class="govuk-table__header" style="font-size:0.75rem;white-space:nowrap;${style}">${h}</th>`;
+        return `<th scope="col" class="govuk-table__header col-important" style="font-size:0.75rem;white-space:nowrap;${style}">${h}</th>`;
     }).join('');
 
     const tbody = firms.map(firm => {
         const cells = parties.map(party => {
             const e = houseEffects[firm]?.[party];
-            if (e === undefined) return `<td class="govuk-table__cell house-effects-cell">—</td>`;
+            if (e === undefined) return `<td class="govuk-table__cell house-effects-cell col-important">—</td>`;
             const color = Math.abs(e) < 0.5 ? '#505a5f' : e > 0 ? '#00703c' : '#d4351c';
             const bold = Math.abs(e) > 0.5 ? 'font-weight:700;' : '';
-            return `<td class="govuk-table__cell house-effects-cell" style="color:${color};${bold}">${e > 0 ? '+' : ''}${e.toFixed(1)}</td>`;
+            return `<td class="govuk-table__cell house-effects-cell col-important" style="color:${color};${bold}">${e > 0 ? '+' : ''}${e.toFixed(1)}</td>`;
         }).join('');
         return `<tr class="govuk-table__row">
-            <td class="govuk-table__cell" style="font-size:0.75rem;white-space:nowrap;">${firm}</td>
+            <td class="govuk-table__cell col-important" style="font-size:0.75rem;white-space:nowrap;">${firm}</td>
             ${cells}
         </tr>`;
     }).join('');

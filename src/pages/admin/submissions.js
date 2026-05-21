@@ -41,14 +41,14 @@ export function renderSubmissionsSection(submissions) {
                 <caption class="govuk-table__caption govuk-visually-hidden">All submissions</caption>
                 <thead class="govuk-table__head">
                     <tr class="govuk-table__row">
-                        <th class="govuk-table__header" scope="col">Title</th>
+                        <th class="govuk-table__header col-important" scope="col">Title</th>
                         <th class="govuk-table__header" scope="col">Category</th>
-                        <th class="govuk-table__header" scope="col">Status</th>
+                        <th class="govuk-table__header col-important" scope="col">Status</th>
                         <th class="govuk-table__header" scope="col">Description</th>
                         <th class="govuk-table__header" scope="col">Source</th>
                         <th class="govuk-table__header" scope="col">Contact</th>
                         <th class="govuk-table__header" scope="col">Date</th>
-                        <th class="govuk-table__header" scope="col">
+                        <th class="govuk-table__header col-important" scope="col">
                             <span class="govuk-visually-hidden">Actions</span>
                         </th>
                     </tr>
@@ -84,14 +84,14 @@ function submissionRow(s) {
 
     return `
         <tr class="govuk-table__row" id="sub-row-${s.id}" ${s.dismissed ? 'style="opacity:0.6"' : ''}>
-            <td class="govuk-table__cell admin-nowrap">${title}</td>
+            <td class="govuk-table__cell admin-nowrap col-important">${title}</td>
             <td class="govuk-table__cell admin-nowrap">${category}</td>
-            <td class="govuk-table__cell admin-nowrap">${statusTag}</td>
+            <td class="govuk-table__cell admin-nowrap col-important">${statusTag}</td>
             <td class="govuk-table__cell">${description}</td>
             <td class="govuk-table__cell">${source}</td>
             <td class="govuk-table__cell admin-nowrap">${contact}</td>
             <td class="govuk-table__cell admin-nowrap">${date}</td>
-            <td class="govuk-table__cell">
+            <td class="govuk-table__cell col-important">
                 <a class="govuk-link" href="#" id="sub-view-${s.id}">View<span class="govuk-visually-hidden"> submission: ${title}</span></a>
             </td>
         </tr>`;

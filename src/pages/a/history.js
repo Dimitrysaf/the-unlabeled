@@ -259,10 +259,10 @@ async function renderCodeModuleHistory(article, revisions) {
                     <thead class="govuk-table__head">
                         <tr class="govuk-table__row">
                             <th class="govuk-table__header" scope="col">SHA</th>
-                            <th class="govuk-table__header" scope="col">Message</th>
+                            <th class="govuk-table__header col-important" scope="col">Message</th>
                             <th class="govuk-table__header" scope="col">Author</th>
-                            <th class="govuk-table__header" scope="col">Date</th>
-                            <th class="govuk-table__header" scope="col"><span class="govuk-visually-hidden">Actions</span></th>
+                            <th class="govuk-table__header col-important" scope="col">Date</th>
+                            <th class="govuk-table__header col-important" scope="col"><span class="govuk-visually-hidden">Actions</span></th>
                         </tr>
                     </thead>
                     <tbody class="govuk-table__body" id="commits-body">
@@ -311,10 +311,10 @@ async function renderCodeModuleHistory(article, revisions) {
                 <td class="govuk-table__cell">
                     <code class="admin-slug">${sha}</code>
                 </td>
-                <td class="govuk-table__cell">${message}</td>
+                <td class="govuk-table__cell col-important">${message}</td>
                 <td class="govuk-table__cell">${author}</td>
-                <td class="govuk-table__cell">${escapeHtml(date)}</td>
-                <td class="govuk-table__cell">
+                <td class="govuk-table__cell col-important">${escapeHtml(date)}</td>
+                <td class="govuk-table__cell col-important">
                     <a class="govuk-link govuk-link--no-visited-state"
                        href="/a/${escapeHtml(article.slug)}/history?commit=${encodeURIComponent(c.sha)}"
                        id="commit-${sha}">View diff</a>
@@ -349,23 +349,23 @@ function buildMetaRevisionsTable(article, revisions) {
                 <caption class="govuk-table__caption govuk-visually-hidden">Metadata revisions</caption>
                 <thead class="govuk-table__head">
                     <tr class="govuk-table__row">
-                        <th class="govuk-table__header" scope="col">Rev</th>
-                        <th class="govuk-table__header" scope="col">Saved on</th>
-                        <th class="govuk-table__header" scope="col">Status</th>
-                        <th class="govuk-table__header" scope="col"><span class="govuk-visually-hidden">Actions</span></th>
+                        <th class="govuk-table__header col-important" scope="col">Rev</th>
+                        <th class="govuk-table__header col-important" scope="col">Saved on</th>
+                        <th class="govuk-table__header col-important" scope="col">Status</th>
+                        <th class="govuk-table__header col-important" scope="col"><span class="govuk-visually-hidden">Actions</span></th>
                     </tr>
                 </thead>
                 <tbody class="govuk-table__body">
                     ${revisions.map((rev, idx) => `
                         <tr class="govuk-table__row">
-                            <td class="govuk-table__cell">${revisions.length - idx}</td>
-                            <td class="govuk-table__cell">${escapeHtml(fmtDateTime(rev.revised_at))}</td>
-                            <td class="govuk-table__cell">
+                            <td class="govuk-table__cell col-important">${revisions.length - idx}</td>
+                            <td class="govuk-table__cell col-important">${escapeHtml(fmtDateTime(rev.revised_at))}</td>
+                            <td class="govuk-table__cell col-important">
                                 ${rev.is_draft
             ? `<strong class="govuk-tag govuk-tag--yellow">Draft</strong>`
             : `<strong class="govuk-tag govuk-tag--green">Published</strong>`}
                             </td>
-                            <td class="govuk-table__cell">
+                            <td class="govuk-table__cell col-important">
                                 <a class="govuk-link govuk-link--no-visited-state"
                                    href="/a/${escapeHtml(article.slug)}/history?v=${escapeHtml(rev.id)}"
                                    id="rev-${escapeHtml(rev.id)}">View changes</a>
@@ -517,11 +517,11 @@ function renderHistoryList(article, revisions) {
             : '';
         return `
             <tr class="govuk-table__row">
-                <td class="govuk-table__cell">${revNum}</td>
-                <td class="govuk-table__cell">${escapeHtml(date)}</td>
-                <td class="govuk-table__cell">${statusTag}</td>
+                <td class="govuk-table__cell col-important">${revNum}</td>
+                <td class="govuk-table__cell col-important">${escapeHtml(date)}</td>
+                <td class="govuk-table__cell col-important">${statusTag}</td>
                 <td class="govuk-table__cell">${latestTag}</td>
-                <td class="govuk-table__cell">
+                <td class="govuk-table__cell col-important">
                     <a class="govuk-link govuk-link--no-visited-state"
                        href="/a/${escapeHtml(article.slug)}/history?v=${escapeHtml(rev.id)}"
                        id="rev-${escapeHtml(rev.id)}">View changes</a>
@@ -541,11 +541,11 @@ function renderHistoryList(article, revisions) {
                     <caption class="govuk-table__caption govuk-visually-hidden">Revision history for ${titleText}</caption>
                     <thead class="govuk-table__head">
                         <tr class="govuk-table__row">
-                            <th class="govuk-table__header" scope="col">Rev</th>
-                            <th class="govuk-table__header" scope="col">Saved on</th>
-                            <th class="govuk-table__header" scope="col">Status at save</th>
+                            <th class="govuk-table__header col-important" scope="col">Rev</th>
+                            <th class="govuk-table__header col-important" scope="col">Saved on</th>
+                            <th class="govuk-table__header col-important" scope="col">Status at save</th>
                             <th class="govuk-table__header" scope="col"></th>
-                            <th class="govuk-table__header" scope="col"><span class="govuk-visually-hidden">Actions</span></th>
+                            <th class="govuk-table__header col-important" scope="col"><span class="govuk-visually-hidden">Actions</span></th>
                         </tr>
                     </thead>
                     <tbody class="govuk-table__body">${rowsHtml}</tbody>

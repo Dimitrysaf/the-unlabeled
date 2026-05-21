@@ -36,11 +36,11 @@ export function renderCommentsSection(comments) {
                 <caption class="govuk-table__caption govuk-visually-hidden">All comments</caption>
                 <thead class="govuk-table__head">
                     <tr class="govuk-table__row">
-                        <th class="govuk-table__header" scope="col">Content</th>
-                        <th class="govuk-table__header" scope="col">Author</th>
+                        <th class="govuk-table__header col-important" scope="col">Content</th>
+                        <th class="govuk-table__header col-important" scope="col">Author</th>
                         <th class="govuk-table__header" scope="col">Article</th>
                         <th class="govuk-table__header" scope="col">Date</th>
-                        <th class="govuk-table__header" scope="col">
+                        <th class="govuk-table__header col-important" scope="col">
                             <span class="govuk-visually-hidden">Actions</span>
                         </th>
                     </tr>
@@ -69,11 +69,11 @@ function commentRow(c) {
 
     return `
         <tr class="govuk-table__row" id="cmt-row-${c.id}">
-            <td class="govuk-table__cell">${content}</td>
-            <td class="govuk-table__cell admin-nowrap">${author}</td>
+            <td class="govuk-table__cell col-important">${content}</td>
+            <td class="govuk-table__cell admin-nowrap col-important">${author}</td>
             <td class="govuk-table__cell">${articleLink}</td>
             <td class="govuk-table__cell admin-nowrap">${date}</td>
-            <td class="govuk-table__cell">
+            <td class="govuk-table__cell col-important">
                 <a class="govuk-link admin-link--danger" href="#" id="cmt-delete-${c.id}">Delete<span class="govuk-visually-hidden"> comment by ${author}</span></a>
             </td>
         </tr>`;
