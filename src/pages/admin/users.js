@@ -220,7 +220,11 @@ export async function showUserDetail(userId) {
 
     checkIsAdmin(user.id)
         .then(targetIsAdmin => {
-            if (targetIsAdmin) document.getElementById('btn-delete-user')?.remove();
+            if (!targetIsAdmin) return;
+            const btn = document.getElementById('btn-delete-user');
+            if (!btn) return;
+            btn.disabled = true;
+            btn.title = 'Admin accounts cannot be deleted.';
         })
         .catch(err => logger.error('[users] checkIsAdmin failed', err));
 

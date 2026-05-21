@@ -240,9 +240,10 @@ export async function renderAccount() {
 
                     <h2 class="govuk-heading-m">Danger zone</h2>
                     <p class="govuk-body">Deleting your account is permanent and cannot be undone.</p>
-                    <a href="/account/delete" class="govuk-button govuk-button--warning" data-module="govuk-button">
-                        Delete account
-                    </a>
+                    ${isAdmin
+                        ? `<button class="govuk-button govuk-button--warning" disabled title="Admin accounts cannot be deleted.">Delete account</button>`
+                        : `<a href="/account/delete" class="govuk-button govuk-button--warning" data-module="govuk-button">Delete account</a>`
+                    }
                 </div>
             </div>
         </div>
