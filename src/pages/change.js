@@ -53,8 +53,9 @@ const FIELD_CONFIG = {
         autocomplete: 'new-password',
         submitLabel: 'Save new password',
         mode: 'direct',
+        requiresCurrentPassword: true,
         getCurrentValue: () => '',
-        save: (value) => updateUser({ password: value }),
+        save: (value, nonce) => updateUser({ password: value, nonce }),
         validator: validatePassword,
         updatedKey: 'password',
     },
@@ -108,6 +109,26 @@ function renderChangeForm(config, currentValue) {
                         </div>
                     </div>
 
+                    ${config.requiresCurrentPassword ? `
+                    <div class="govuk-form-group" id="change-current-field-group">
+                        <label class="govuk-label govuk-label--m" for="change-current-password">
+                            Current password
+                        </label>
+                        <p class="govuk-error-message" id="change-current-field-error" hidden>
+                            <span class="govuk-visually-hidden">Error:</span>
+                            <span id="change-current-field-error-text"></span>
+                        </p>
+                        <input
+                            class="govuk-input"
+                            id="change-current-password"
+                            name="current-password"
+                            type="password"
+                            autocomplete="current-password"
+                            aria-describedby="change-current-field-error"
+                        >
+                    </div>
+                    ` : ''}
+
                     <div class="govuk-form-group" id="change-field-group">
                         <label class="govuk-label govuk-label--m" for="change-field">
                             ${config.label}
@@ -157,6 +178,13 @@ function initChangeForm(config) {
     const errorSummary = document.getElementById('change-error-summary');
     const errorList = document.getElementById('change-error-list');
 
+    const currentPasswordInput = config.requiresCurrentPassword
+        ? document.getElementById('change-current-password')
+        : null;
+    const currentGroup = document.getElementById('change-current-field-group');
+    const currentErrorMsg = document.getElementById('change-current-field-error');
+    const currentErrorText = document.getElementById('change-current-field-error-text');
+
     function clearErrors() {
         group.classList.remove('govuk-form-group--error');
         input.classList.remove('govuk-input--error');
@@ -165,16 +193,30 @@ function initChangeForm(config) {
         errorText.textContent = '';
         errorSummary.hidden = true;
         errorList.innerHTML = '';
+
+        if (currentPasswordInput) {
+            currentGroup.classList.remove('govuk-form-group--error');
+            currentPasswordInput.classList.remove('govuk-input--error');
+            currentPasswordInput.removeAttribute('aria-invalid');
+            currentErrorMsg.hidden = true;
+            currentErrorText.textContent = '';
+        }
     }
 
-    function showError(message) {
-        group.classList.add('govuk-form-group--error');
-        input.classList.add('govuk-input--error');
-        input.setAttribute('aria-invalid', 'true');
-        errorText.textContent = message;
-        errorMsg.hidden = false;
+    function showError(message, targetId = 'change-field') {
+        const isCurrentField = targetId === 'change-current-password';
+        const targetGroup = isCurrentField ? currentGroup : group;
+        const targetInput = isCurrentField ? currentPasswordInput : input;
+        const targetErrorMsg = isCurrentField ? currentErrorMsg : errorMsg;
+        const targetErrorText = isCurrentField ? currentErrorText : errorText;
 
-        errorList.innerHTML = `<li><a href="#change-field">${escapeHtml(message)}</a></li>`;
+        targetGroup.classList.add('govuk-form-group--error');
+        targetInput.classList.add('govuk-input--error');
+        targetInput.setAttribute('aria-invalid', 'true');
+        targetErrorText.textContent = message;
+        targetErrorMsg.hidden = false;
+
+        errorList.innerHTML = `<li><a href="#${targetId}">${escapeHtml(message)}</a></li>`;
         errorSummary.hidden = false;
         errorSummary.setAttribute('tabindex', '-1');
         errorSummary.focus();
@@ -183,6 +225,11 @@ function initChangeForm(config) {
     form.addEventListener('submit', async (e) => {
         e.preventDefault();
         clearErrors();
+
+        if (currentPasswordInput && !currentPasswordInput.value) {
+            showError('Enter your current password', 'change-current-password');
+            return;
+        }
 
         const value = input.value;
         const validationError = config.validator(value);
@@ -194,7 +241,7 @@ function initChangeForm(config) {
         setButtonLoading(submitBtn, 'Saving…');
 
         try {
-            await config.save(value);
+            await config.save(value, currentPasswordInput?.value);
 
             if (config.mode === 'email-confirm') {
                 renderEmailSentPage(value);
@@ -203,7 +250,10 @@ function initChangeForm(config) {
             }
         } catch (err) {
             const msg = err?.message || 'Something went wrong. Please try again later.';
-            showError(msg);
+            // Supabase surfaces wrong current password as a credentials error
+            const isWrongCurrentPassword = currentPasswordInput &&
+                /invalid|credential|incorrect|wrong/i.test(msg);
+            showError(msg, isWrongCurrentPassword ? 'change-current-password' : 'change-field');
             resetButton(submitBtn, config.submitLabel);
         }
     });
