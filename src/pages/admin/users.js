@@ -52,9 +52,7 @@ export function renderUsersSection(result) {
                         <th class="govuk-table__header" scope="col">Provider</th>
                         <th class="govuk-table__header col-important" scope="col">Status</th>
                         <th class="govuk-table__header" scope="col">Created</th>
-                        <th class="govuk-table__header col-important" scope="col">
-                            <span class="govuk-visually-hidden">Actions</span>
-                        </th>
+                        <th class="govuk-table__header col-important" scope="col">Actions</th>
                     </tr>
                 </thead>
                 <tbody class="govuk-table__body">
@@ -209,7 +207,7 @@ export async function showUserDetail(userId) {
                     <button class="govuk-button govuk-button--secondary" id="btn-reset-pwd">Send password reset</button>
                     <button class="govuk-button govuk-button--secondary" id="btn-magic-link">Send magic link</button>
                     ${hasMfa ? `<button class="govuk-button govuk-button--secondary" id="btn-remove-mfa">Remove 2FA</button>` : ''}
-                    <span id="delete-user-action"></span>
+                    <button class="govuk-button govuk-button--warning" id="btn-delete-user">Delete user</button>
                 </div>
             </div>
         </div>
@@ -218,16 +216,11 @@ export async function showUserDetail(userId) {
     document.getElementById('user-back')?.addEventListener('click', e => { e.preventDefault(); go(''); });
     document.getElementById('btn-ban')?.addEventListener('click', () => go(`ban-user=${user.id}`));
 
+    document.getElementById('btn-delete-user')?.addEventListener('click', () => go(`delete-user=${user.id}`));
+
     checkIsAdmin(user.id)
         .then(targetIsAdmin => {
-            const el = document.getElementById('delete-user-action');
-            if (!el) return;
-            if (targetIsAdmin) {
-                el.innerHTML = `<span class="govuk-body govuk-hint govuk-!-margin-bottom-0">Admin accounts cannot be deleted.</span>`;
-            } else {
-                el.innerHTML = `<button class="govuk-button govuk-button--warning" id="btn-delete-user">Delete user</button>`;
-                document.getElementById('btn-delete-user')?.addEventListener('click', () => go(`delete-user=${user.id}`));
-            }
+            if (targetIsAdmin) document.getElementById('btn-delete-user')?.remove();
         })
         .catch(err => logger.error('[users] checkIsAdmin failed', err));
 

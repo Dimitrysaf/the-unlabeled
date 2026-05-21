@@ -50,9 +50,7 @@ export function renderArticlesSection(articles) {
                         <th class="govuk-table__header" scope="col">Type</th>
                         <th class="govuk-table__header col-important" scope="col">Status</th>
                         <th class="govuk-table__header" scope="col">Created</th>
-                        <th class="govuk-table__header col-important" scope="col">
-                            <span class="govuk-visually-hidden">Actions</span>
-                        </th>
+                        <th class="govuk-table__header col-important" scope="col">Actions</th>
                     </tr>
                 </thead>
                 <tbody class="govuk-table__body" id="admin-table-body">

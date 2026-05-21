@@ -40,9 +40,7 @@ export function renderCommentsSection(comments) {
                         <th class="govuk-table__header col-important" scope="col">Author</th>
                         <th class="govuk-table__header" scope="col">Article</th>
                         <th class="govuk-table__header" scope="col">Date</th>
-                        <th class="govuk-table__header col-important" scope="col">
-                            <span class="govuk-visually-hidden">Actions</span>
-                        </th>
+                        <th class="govuk-table__header col-important" scope="col">Actions</th>
                     </tr>
                 </thead>
                 <tbody class="govuk-table__body">

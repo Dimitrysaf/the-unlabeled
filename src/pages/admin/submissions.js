@@ -48,9 +48,7 @@ export function renderSubmissionsSection(submissions) {
                         <th class="govuk-table__header" scope="col">Source</th>
                         <th class="govuk-table__header" scope="col">Contact</th>
                         <th class="govuk-table__header" scope="col">Date</th>
-                        <th class="govuk-table__header col-important" scope="col">
-                            <span class="govuk-visually-hidden">Actions</span>
-                        </th>
+                        <th class="govuk-table__header col-important" scope="col">Actions</th>
                     </tr>
                 </thead>
                 <tbody class="govuk-table__body">
