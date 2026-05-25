@@ -18,26 +18,3 @@ if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
 }
 
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-const BASE = `${SUPABASE_URL}/rest/v1`;
-const HEADERS = {
-    apikey: SUPABASE_ANON_KEY,
-    Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
-    'Content-Type': 'application/json',
-};
-
-/**
- * Simple REST GET wrapper for PostgREST.
- * @param {string} table
- * @param {Record<string, string>} params PostgREST query params
- * @returns {Promise<any[]>}
- */
-export async function from(table, params = {}) {
-    const qs = new URLSearchParams({ select: '*', ...params }).toString();
-    const res = await fetch(`${BASE}/${table}?${qs}`, { headers: HEADERS });
-    if (!res.ok) {
-        const body = await res.text();
-        throw new Error(`Supabase error ${res.status}: ${body}`);
-    }
-    return res.json();
-}

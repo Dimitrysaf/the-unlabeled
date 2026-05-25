@@ -6,7 +6,7 @@
 //   date, link, code_module,
 //   published_at, created_at, updated_at }
 
-import { from, supabase } from '../lib/supabase.js';
+import { supabase } from '../lib/supabase.js';
 
 /** Fetches all saved revisions for an article, newest first. */
 export async function getArticleRevisions(articleId) {
@@ -30,7 +30,12 @@ function normalize(a) {
 export async function getArticles() {
     const now = Date.now();
     if (_cache && now - _cache.ts < CACHE_TTL) return _cache.data;
-    const articles = await from('articles', { is_draft: 'eq.false', order: 'published_at.desc' });
+    const { data: articles, error } = await supabase
+        .from('articles')
+        .select('*')
+        .eq('is_draft', false)
+        .order('published_at', { ascending: false });
+    if (error) throw error;
     const data = articles.map(normalize);
     _cache = { data, ts: now };
     return data;
@@ -38,8 +43,13 @@ export async function getArticles() {
 
 /** Fetches a single article by slug (any draft status). Returns null if not found. */
 export async function getArticleBySlug(slug) {
-    const rows = await from('articles', { slug: `eq.${slug}`, limit: '1' });
-    const article = rows[0] ?? null;
+    const { data, error } = await supabase
+        .from('articles')
+        .select('*')
+        .eq('slug', slug)
+        .maybeSingle();
+    if (error) throw error;
+    const article = data;
     return article ? normalize(article) : null;
 }
 
