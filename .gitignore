@@ -23,8 +23,8 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
-
 .*
+!.npmrc
 .vercel
 .env*.local
 
