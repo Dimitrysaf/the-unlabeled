@@ -58,7 +58,15 @@ export async function searchArticles(query) {
     const q = query.trim();
     if (!q) return [];
 
-    const tokens = q.toLowerCase().split(/\s+/).filter(Boolean);
+    const tokens = [...new Set(
+        q.toLowerCase()
+            .split(/\s+/)
+            .map(t => t.replace(/[^a-z0-9]/g, ''))
+            .filter(t => t.length >= 2)
+    )];
+
+    if (!tokens.length) return [];
+
     const articles = await getArticles();
 
     const scored = articles.map(a => {
@@ -75,7 +83,6 @@ export async function searchArticles(query) {
             if (excerpt.includes(token)) score += 2;
         }
 
-        // Bonus for exact phrase match in title
         if (tokens.length > 1 && title.includes(q.toLowerCase())) score += 15;
 
         return { article: a, score };
