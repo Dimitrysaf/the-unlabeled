@@ -1,18 +1,20 @@
 // src/pages/electoral-calc/constants.js
 
 export const partyColors = {
-    'ND': '#1d4e89',
-    'SYRIZA': '#ff4b4b',
-    'PASOK': '#00a14b',
-    'KKE': '#ed1c24',
-    'SP': '#c1a01b',
-    'EL': '#0d3b66',
-    'NIKI': '#5e4b3c',
-    'PE': '#8a2be2',
-    'M25': '#e20074',
-    'FL': '#0097a7',
-    'NA': '#ff1744',
-    'DPK': '#424242',
+    'ND': '#1b5cc7',
+    'SYRIZA': '#ee808f',
+    'PASOK': '#007934',
+    'KKE': '#e30301',
+    'SP': '#E9B460',
+    'EL': '#6BB6E6',
+    'NIKI': '#910048',
+    'PE': '#9F1897',
+    'M25': '#EF3F24',
+    'FL': '#020C6A',
+    'NA': '#E11B22',
+    'DPK': '#FF6600',
+    'ELPIDA': '#E0B959',
+    'ELAS': '#a40044',
 };
 
 // Baseline: Hellenic Parliament composition (Wikipedia, accessed 2026-04-28).
@@ -29,6 +31,8 @@ export const currentParliamentSeats = {
     FL: 0,
     NA: 0,
     DPK: 0,
+    ELPIDA: 0,
+    ELAS: 0,
 };
 
 export const forecastDefaults = {

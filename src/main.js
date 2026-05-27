@@ -177,6 +177,14 @@ async function _doRender(path, fullPath) {
         });
         const { renderAdmin } = await import('./pages/admin.js');
         await renderAdmin();
+    } else if (path === '/electoral-calc') {
+        setMetaTags({
+            title: 'Electoral Model 2027 - The Unlabeled',
+            description: 'Greek opinion poll tracker and seat allocation model.',
+            url: 'https://the-unlabeled.com/electoral-calc'
+        });
+        const { renderElectoralCalc } = await import('./pages/electoral-calc.js');
+        await renderElectoralCalc();
     } else {
         setMetaTags({
             title: 'Page Not Found - The Unlabeled',

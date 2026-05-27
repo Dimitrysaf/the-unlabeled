@@ -8,7 +8,9 @@ export function createLoessTrendChart(headers, rows) {
     const pollRows = rows.filter(r => !r[0].toLowerCase().includes('election'));
 
     const partyDefs = headers.reduce((acc, h, i) => {
-        if (partyColors[h]) acc.push({ name: h, idx: i, color: partyColors[h] });
+        if (i >= 5 && i < headers.length - 1) {
+            acc.push({ name: h, idx: i, color: partyColors[h] || '#b1b4b6' });
+        }
         return acc;
     }, []);
 
@@ -231,7 +233,9 @@ export function createPollsChart(headers, rows) {
     if (!n) return;
 
     const partyDefs = headers.reduce((acc, h, i) => {
-        if (partyColors[h]) acc.push({ name: h, idx: i });
+        if (i >= 5 && i < headers.length - 1) {
+            acc.push({ name: h, idx: i });
+        }
         return acc;
     }, []);
 
@@ -239,7 +243,7 @@ export function createPollsChart(headers, rows) {
         const values = pts.map(r => { const v = parseFloat(r[p.idx]); return isNaN(v) || v === 0 ? null : v; });
         const recent = values.slice(-20).filter(v => v !== null);
         const avg = recent.length ? recent.reduce((s, v) => s + v, 0) / recent.length : 0;
-        return { name: p.name, color: partyColors[p.name], values, avg };
+        return { name: p.name, color: partyColors[p.name] || '#b1b4b6', values, avg };
     }).filter(s => s.avg >= 2.5).sort((a, b) => b.avg - a.avg);
 
     let startIdx = 0;
