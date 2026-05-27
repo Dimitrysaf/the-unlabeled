@@ -27,22 +27,22 @@ let _houseEffects = {}, _longRunAvg = {};
 
 export function getCalcHTML() {
     const skeletonLegend = [
-        { c: '#1d4e89' },
-        { c: '#00a14b' },
-        { c: '#ff4b4b' },
-        { c: '#ed1c24' },
-        { c: '#0d3b66' },
-        { c: '#8a2be2' },
-        { c: '#e20074' },
-        { c: '#0097a7' },
+        { c: '#1b5cc7' }, // ND
+        { c: '#ee808f' }, // SYRIZA
+        { c: '#007934' }, // PASOK
+        { c: '#e30301' }, // KKE
+        { c: '#E9B460' }, // SP
+        { c: '#6BB6E6' }, // EL
+        { c: '#910048' }, // NIKI
+        { c: '#9F1897' }, // PE
     ].map(p => `<span class="ec-skeleton__legend-item" style="--c:${p.c}"></span>`).join('');
 
     const fakeLines = [
-        { pts: '0,215 60,190 130,170 200,182 280,145 360,130 440,138 520,115 620,105 720,98 824,88', c: '#1d4e89', o: 0.22 },
-        { pts: '0,148 60,155 130,140 200,152 280,158 360,145 440,150 520,143 620,148 720,140 824,145', c: '#00a14b', o: 0.18 },
-        { pts: '0,185 60,175 130,190 200,178 280,188 360,175 440,180 520,172 620,177 720,168 824,174', c: '#ff4b4b', o: 0.18 },
-        { pts: '0,228 60,222 130,230 200,220 280,226 360,218 440,224 520,215 620,222 720,214 824,220', c: '#ed1c24', o: 0.14 },
-        { pts: '0,240 60,235 130,242 200,234 280,238 360,230 440,236 520,228 620,234 720,226 824,232', c: '#0d3b66', o: 0.12 },
+        { pts: '0,215 60,190 130,170 200,182 280,145 360,130 440,138 520,115 620,105 720,98 824,88', c: '#1b5cc7', o: 0.22 },
+        { pts: '0,148 60,155 130,140 200,152 280,158 360,145 440,150 520,143 620,148 720,140 824,145', c: '#007934', o: 0.18 },
+        { pts: '0,185 60,175 130,190 200,178 280,188 360,175 440,180 520,172 620,177 720,168 824,174', c: '#ee808f', o: 0.18 },
+        { pts: '0,228 60,222 130,230 200,220 280,226 360,218 440,224 520,215 620,222 720,214 824,220', c: '#e30301', o: 0.14 },
+        { pts: '0,240 60,235 130,242 200,234 280,238 360,230 440,236 520,228 620,234 720,226 824,232', c: '#6BB6E6', o: 0.12 },
     ].map(l =>
         `<polyline points="${l.pts}" fill="none" stroke="${l.c}" stroke-width="2.5" opacity="${l.o}" stroke-linejoin="round" stroke-linecap="round"/>`
     ).join('');
@@ -240,7 +240,7 @@ export function getCalcHTML() {
                             <input class="govuk-checkboxes__input" id="nd-correction-checkbox" type="checkbox" checked>
                             <label class="govuk-label govuk-checkboxes__label" for="nd-correction-checkbox">
                                 ND historical bias
-                                <strong id="nd-bias-label" style="color:#1d4e89;margin-left:4px;"></strong>
+                                <strong id="nd-bias-label" style="color:#1b5cc7;margin-left:4px;"></strong>
                             </label>
                             <div class="govuk-hint govuk-checkboxes__hint">
                                 Corrects ND's systematic gap between polls and election results.
@@ -401,9 +401,10 @@ function loadPolls() {
             const { headers, rows } = parseCSV(text);
 
             document.getElementById('polls-thead').innerHTML =
-                `<tr class="govuk-table__row">${headers.map(h => {
+                `<tr class="govuk-table__row">${headers.map((h, i) => {
                     const color = partyColors[h];
-                    const style = color ? `border-bottom:4px solid ${color};color:${color};` : '';
+                    const isParty = i >= 5 && i < headers.length - 1;
+                    const style = isParty ? `border-bottom:4px solid ${color || '#b1b4b6'};color:${color || '#b1b4b6'};text-align:center;` : '';
                     return `<th scope="col" class="govuk-table__header col-important" style="${style}">${h}</th>`;
                 }).join('')}</tr>`;
 
@@ -412,7 +413,8 @@ function loadPolls() {
                     const isElection = row[0].toLowerCase().includes('election');
                     const rowStyle = isElection ? 'background:#fff3cd;font-weight:700;' : '';
                     return `<tr class="govuk-table__row" style="${rowStyle}">${row.map((cell, i) => {
-                        const align = partyColors[headers[i]] ? 'center' : 'left';
+                        const isParty = i >= 5 && i < headers.length - 1;
+                        const align = isParty ? 'center' : 'left';
                         return `<td class="govuk-table__cell col-important" style="text-align:${align};">${cell}</td>`;
                     }).join('')}</tr>`;
                 }).join('');
@@ -447,8 +449,11 @@ function loadPolls() {
 }
 
 function initPredictions(headers, rows) {
+    // Dynamic party column detection: index 5 to length-2 (Lead is usually last)
     _partyIndices = headers.reduce((acc, h, i) => {
-        if (partyColors[h]) acc[h] = i;
+        if (i >= 5 && i < headers.length - 1) {
+            acc[h] = i;
+        }
         return acc;
     }, {});
 

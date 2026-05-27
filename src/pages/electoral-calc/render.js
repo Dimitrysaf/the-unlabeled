@@ -13,7 +13,9 @@ const IDEOLOGICAL_ORDER = {
     DPK: 8,
     EL: 9,
     NIKI: 10,
-    SP: 11,
+    ELPIDA: 11,
+    ELAS: 12,
+    SP: 13,
 };
 
 const ARCS = [
