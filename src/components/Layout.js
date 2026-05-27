@@ -99,38 +99,41 @@ export function initLayout() {
             </div>
         </div>
 
-        <header style="background:#f3f2f1;color:#0b0c0c;padding:12px 0;border-bottom:1px solid #d4d2cf;">
+        <header class="site-header">
             <div class="govuk-width-container">
-                <div class="header-inner">
-                    ${renderLogo()}
-                    <form class="header-search" role="search" id="header-search-form" action="/search">
-                        <label class="govuk-visually-hidden" for="site-search">Search articles</label>
-                        <input
-                            class="header-search__input"
-                            type="search"
-                            id="site-search"
-                            name="q"
-                            placeholder="Search…"
-                            autocomplete="off"
-                            value="${new URLSearchParams(window.location.search).get('q') || ''}"
-                        >
-                        <button class="header-search__btn" type="submit" aria-label="Search">
+                <div class="header-wrapper">
+                    <div class="header-inner">
+                        ${renderLogo()}
+                    </div>
+                    <div class="header-actions">
+                        <button class="header-icon-button" type="button" id="header-search-btn" aria-label="Search">
                             <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true" focusable="false">
                                 <circle cx="7.5" cy="7.5" r="5.5" stroke="currentColor" stroke-width="2"/>
                                 <line x1="11.7" y1="11.7" x2="16" y2="16" stroke="currentColor" stroke-width="2" stroke-linecap="square"/>
                             </svg>
                         </button>
-                    </form>
+                        <button type="button"
+                                class="header-icon-button header-mobile-menu-btn govuk-js-service-navigation-toggle"
+                                id="header-mobile-menu-btn"
+                                aria-controls="service-navigation"
+                                aria-expanded="false"
+                                aria-label="Open menu"
+                                hidden>
+                            <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true" focusable="false">
+                                <line x1="3" y1="5" x2="17" y2="5" stroke="currentColor" stroke-width="2"/>
+                                <line x1="3" y1="10" x2="17" y2="10" stroke="currentColor" stroke-width="2"/>
+                                <line x1="3" y1="15" x2="17" y2="15" stroke="currentColor" stroke-width="2"/>
+                            </svg>
+                        </button>
+                    </div>
                 </div>
             </div>
         </header>
+
         <div class="govuk-service-navigation" data-module="govuk-service-navigation">
             <div class="govuk-width-container">
                 <div class="govuk-service-navigation__container">
                     <nav aria-label="Menu" class="govuk-service-navigation__wrapper">
-                        <button type="button"
-                                class="govuk-service-navigation__toggle govuk-js-service-navigation-toggle"
-                                aria-controls="service-navigation" hidden>Menu</button>
                         <ul class="govuk-service-navigation__list" id="service-navigation">
                             ${navItemsHtml}
                         </ul>
@@ -168,19 +171,15 @@ export function initLayout() {
         </footer>
     `;
 
-    _initSearchForm();
+    _initHeaderActions();
     _initServiceNavFallback();
     _initCookieBanner();
 }
 
-function _initSearchForm() {
-    const form = document.getElementById('header-search-form');
-    if (!form) return;
-    form.addEventListener('submit', e => {
-        e.preventDefault();
-        const q = form.querySelector('input[name="q"]').value.trim();
-        if (q) navigate('/search?q=' + encodeURIComponent(q));
-    });
+function _initHeaderActions() {
+    const searchBtn = document.getElementById('header-search-btn');
+    if (!searchBtn) return;
+    searchBtn.addEventListener('click', () => navigate('/search'));
 }
 
 function _hideCookieBannerPermanently(currentPrefs) {
@@ -234,17 +233,12 @@ function _initCookieBanner() {
 }
 
 function initAuth() {
-    // Rely solely on onAuthStateChange for session state — Supabase fires
-    // INITIAL_SESSION immediately on init. Calling getCurrentUser() separately
-    // causes concurrent Web Lock contention (both try to acquire the same
-    // auth token lock, leading to 5-second timeouts and AbortErrors).
     onAuthStateChange((_event, session) => {
         currentUser = session?.user || null;
         setSessionCookie(Boolean(currentUser));
         logger.auth(_event, currentUser ? { id: currentUser.id } : null);
 
         if (currentUser) {
-            // Pass userId so checkIsAdmin skips its own getUser() lock acquisition
             checkIsAdmin(currentUser.id)
                 .then(result => {
                     isAdmin = result;
@@ -296,7 +290,7 @@ export function updateNavigation() {
 const MOBILE_MQ = window.matchMedia('(max-width: 640px)');
 
 function _initServiceNavFallback() {
-    const btn = document.querySelector('.govuk-js-service-navigation-toggle');
+    const btn = document.getElementById('header-mobile-menu-btn');
     const list = document.getElementById('service-navigation');
     if (!btn || !list) return;
 
@@ -305,10 +299,14 @@ function _initServiceNavFallback() {
             btn.removeAttribute('hidden');
             list.setAttribute('hidden', '');
             btn.setAttribute('aria-expanded', 'false');
-            btn.textContent = 'Menu';
+            btn.setAttribute('aria-label', 'Open menu');
+            btn.classList.remove('header-icon-button--active');
         } else {
             btn.setAttribute('hidden', '');
             list.removeAttribute('hidden');
+            btn.setAttribute('aria-expanded', 'false');
+            btn.setAttribute('aria-label', 'Open menu');
+            btn.classList.remove('header-icon-button--active');
         }
     }
 
@@ -316,7 +314,8 @@ function _initServiceNavFallback() {
         const expanded = btn.getAttribute('aria-expanded') === 'true';
         list.toggleAttribute('hidden', expanded);
         btn.setAttribute('aria-expanded', String(!expanded));
-        btn.textContent = expanded ? 'Menu' : 'Close menu';
+        btn.setAttribute('aria-label', expanded ? 'Open menu' : 'Close menu');
+        btn.classList.toggle('header-icon-button--active', !expanded);
     });
 
     MOBILE_MQ.addEventListener('change', applyViewport);
@@ -340,4 +339,9 @@ export function updateContent(html, { final = true } = {}) {
     slot.innerHTML = `<div class="govuk-width-container">${html}</div>`;
     const top = slot.getBoundingClientRect().top + window.pageYOffset - 60;
     window.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
+
+    document.getElementById('header-search-btn')?.classList.toggle(
+        'header-icon-button--active',
+        window.location.pathname.startsWith('/search')
+    );
 }
