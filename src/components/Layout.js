@@ -310,12 +310,38 @@ function _initServiceNavFallback() {
         }
     }
 
+    function closeMenu() {
+        list.setAttribute('hidden', '');
+        btn.setAttribute('aria-expanded', 'false');
+        btn.setAttribute('aria-label', 'Open menu');
+        btn.classList.remove('header-icon-button--active');
+    }
+
     btn.addEventListener('click', () => {
         const expanded = btn.getAttribute('aria-expanded') === 'true';
         list.toggleAttribute('hidden', expanded);
         btn.setAttribute('aria-expanded', String(!expanded));
         btn.setAttribute('aria-label', expanded ? 'Open menu' : 'Close menu');
         btn.classList.toggle('header-icon-button--active', !expanded);
+    });
+
+    // Close when tapping any link or button inside the nav list
+    list.addEventListener('click', e => {
+        if (e.target.closest('a, button') && MOBILE_MQ.matches) {
+            closeMenu();
+        }
+    });
+
+    // Close when tapping anywhere outside the button or list
+    document.addEventListener('click', e => {
+        if (
+            MOBILE_MQ.matches &&
+            btn.getAttribute('aria-expanded') === 'true' &&
+            !list.contains(e.target) &&
+            !btn.contains(e.target)
+        ) {
+            closeMenu();
+        }
     });
 
     MOBILE_MQ.addEventListener('change', applyViewport);
