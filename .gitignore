@@ -26,6 +26,4 @@ dist-ssr
 .vercel
 .env*.local
 
-pnpm-workspace.yaml
-package-lock.json
 .env*
