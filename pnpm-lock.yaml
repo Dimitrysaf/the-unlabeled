@@ -26,9 +26,6 @@ importers:
       marked:
         specifier: ^18.0.4
         version: 18.0.4
-      pnpm:
-        specifier: ^11.3.0
-        version: 11.3.0
       web-push:
         specifier: ^3.6.7
         version: 3.6.7
@@ -1609,11 +1606,6 @@ packages:
   picomatch@4.0.4:
     resolution: {integrity: sha512-QP88BAKvMam/3NxH6vj2o21R6MjxZUAd6nlwAS/pnGvN9IVLocLHxGYIzFhg6fUQ+5th6P4dv4eW9jX3DSIj7A==}
     engines: {node: '>=12'}
-
-  pnpm@11.3.0:
-    resolution: {integrity: sha512-LEA9ZZRScodnKx9wVjQ6H3w2NANqZ/+r/MKz11ldhDdo+HhxSNG1fPeVbJBga70ZKFfDY68Z6W0tDsnsV0HSFQ==}
-    engines: {node: '>=22.13'}
-    hasBin: true
 
   postcss@8.5.15:
     resolution: {integrity: sha512-FfR8sjd4em2T6fb3I2MwAJU7HWVMr9zba+enmQeeWFfCbm+UOC/0X4DS8XtpUTMwWMGbjKYP7xjfNekzyGmB3A==}
@@ -3423,8 +3415,6 @@ snapshots:
   picomatch@2.3.2: {}
 
   picomatch@4.0.4: {}
-
-  pnpm@11.3.0: {}
 
   postcss@8.5.15:
     dependencies:
