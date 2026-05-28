@@ -123,9 +123,7 @@ export function getCalcHTML() {
                             href="https://en.wikipedia.org/wiki/Opinion_polling_for_the_next_Greek_parliamentary_election"
                             target="_blank" rel="noopener">Wikipedia</a>
                     </p>
-                    <button class="govuk-button govuk-button--secondary govuk-!-margin-bottom-0" id="download-btn">
-                        <i class="fa-solid fa-download" aria-hidden="true"></i> Download CSV
-                    </button>
+                    <a class="govuk-link" id="download-btn" style="cursor: pointer;">Download CSV</a>
                 </div>
             </div>
         </div>
@@ -136,7 +134,7 @@ export function getCalcHTML() {
             <p class="govuk-body govuk-!-colour-secondary">
                 Multi-variable model: weighted polling average, house effects,
                 momentum, mean reversion, threshold risk and historical bias correction.
-                Polls are <strong>Εκτίμηση Ψήφου</strong> — abstention is already removed
+                Polls are <strong>Vote Estimate</strong> — abstention is already removed
                 by pollsters. Only residual election-day dropout is applied here.
             </p>
 
@@ -153,7 +151,7 @@ export function getCalcHTML() {
                             min="0" max="15" value="5" step="1">
                         <div class="govuk-hint">
                             Voters who say they will vote but do not show up on election day.
-                            Polls are already Εκτίμηση Ψήφου — abstention is baked in.
+                            Polls are already Vote Estimate — abstention is baked in.
                             Typical range: 2–8%.
                         </div>
                     </div>
@@ -313,13 +311,8 @@ export function getCalcHTML() {
                     Reset to defaults
                 </button>
             </div>
-
-            <details class="govuk-details">
-                <summary class="govuk-details__summary">
-                    <span class="govuk-details__summary-text">House effects by polling firm</span>
-                </summary>
-                <div class="govuk-details__text" id="house-effects-table"></div>
-            </details>
+            <span class="govuk-heading-m govuk-!-margin-bottom-2">House effects by polling firm</span>
+            <div id="house-effects-table"></div>
 
             <h3 class="govuk-heading-m govuk-!-margin-bottom-2">Forecast by party</h3>
             <div class="prediction-cards" id="prediction-cards"></div>
@@ -339,7 +332,7 @@ export function getCalcHTML() {
                 <div class="govuk-details__text">
                     <h3 class="govuk-heading-s">Poll data</h3>
                     <p class="govuk-body-s">
-                        The CSV uses <strong>Εκτίμηση Ψήφου</strong> figures — pollsters have already
+                        The CSV uses <strong>Vote Estimate</strong> figures — pollsters have already
                         excluded undecided and absent respondents. Party shares sum to approximately
                         100% among decided, likely voters. Applying a standard abstention rate on top
                         of these figures would double-count abstention. Only a small residual
