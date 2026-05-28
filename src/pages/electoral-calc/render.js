@@ -54,15 +54,34 @@ let _lastSeats = {};
 const _hidden = new Set();
 
 function _buildSeatList(seatsObj) {
+    // Sort parties left-to-right by ideology.
     const sorted = Object.entries(seatsObj)
         .filter(([, c]) => c > 0)
         .sort(([a], [b]) => (IDEOLOGICAL_ORDER[a] ?? 50) - (IDEOLOGICAL_ORDER[b] ?? 50));
-    const list = [];
-    sorted.forEach(([party, count]) => {
-        for (let i = 0; i < count; i++) list.push(party);
+
+    // Build a flat ordered assignment list: exactly `count` entries per party,
+    // padded to 300 with '__other__'. Seat counts are always exact this way.
+    const assignment = [];
+    for (const [party, count] of sorted) {
+        for (let i = 0; i < count; i++) assignment.push(party);
+    }
+    while (assignment.length < 300) assignment.push('__other__');
+
+    // Sort the 300 position *indices* by angle (π → 0, left → right).
+    // Geometry: x = CX + r·cos(θ), y = CY − r·sin(θ)  →  atan2(CY−y, x−CX) = θ
+    const byAngle = SEAT_POSITIONS.slice(0, 300)
+        .map((pos, idx) => ({
+            idx,
+            angle: Math.atan2(CY - pos.y, pos.x - CX), // [0, π]
+        }))
+        .sort((a, b) => b.angle - a.angle); // descending: leftmost (π) first
+
+    // Place each party's seats into the angular slots they earned.
+    const result = new Array(300);
+    byAngle.forEach(({ idx }, i) => {
+        result[idx] = assignment[i];
     });
-    while (list.length < 300) list.push('__other__');
-    return list;
+    return result;
 }
 
 function _renderCircles(seatsObj, dotRadius) {
