@@ -102,7 +102,7 @@ export function initLayout() {
         <header class="site-header">
             <div class="govuk-width-container">
                 <div class="header-wrapper">
-                    <div class="header-inner">
+                    <div class="header-inner" aria-label="Unlabeled logo and title">
                         ${renderLogo()}
                     </div>
                     <div class="header-actions">
