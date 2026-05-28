@@ -627,7 +627,7 @@ function _doRenderPrediction() {
     renderWinProbabilityChart(summary);
     renderParliament(seats);
     renderCoalitions(seats);
-    renderCoalitionProbabilityChart(summary);
+    // renderCoalitionProbabilityChart(summary);
     renderPredictionStats(predicted, rawBase);
 } // end _doRenderPrediction
 
@@ -748,12 +748,20 @@ function runSimulation(recentPolls, options, iterations = 1000) {
         });
 
         const seatedParties = Object.entries(forecast.seats).filter(([, s]) => s > 0);
+        const minimalFound = [];
         for (let size = 2; size <= 3; size++) {
             for (const combo of getCombinations(seatedParties, size)) {
                 const total = combo.reduce((s, [, c]) => s + c, 0);
                 if (total >= 151) {
-                    const key = combo.map(([p]) => p).sort().join('+');
-                    coalitionCounts[key] = (coalitionCounts[key] || 0) + 1;
+                    // Minimality: don't count A+B+C if A+B already has a majority
+                    const isMinimal = !minimalFound.some(m =>
+                        m.length < combo.length && m.every(mp => combo.some(cp => cp[0] === mp[0]))
+                    );
+                    if (isMinimal) {
+                        const key = combo.map(([p]) => p).sort().join('+');
+                        coalitionCounts[key] = (coalitionCounts[key] || 0) + 1;
+                        minimalFound.push(combo);
+                    }
                 }
             }
         }

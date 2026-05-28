@@ -356,21 +356,38 @@ export function renderUncertaintySummary(summary) {
     if (!summary || !summary.iterations) { container.innerHTML = ''; return; }
 
     const winners = Object.entries(summary.winnerProbabilities)
-        .sort(([, a], [, b]) => b - a).slice(0, 3)
+        .sort(([, a], [, b]) => b - a)
+        .filter(([, pct]) => pct > 0);
+
+    const winnersHtml = winners.slice(0, 3)
         .map(([p, pct]) => `<strong style="color:${partyColors[p] || '#0b0c0c'};">${p}</strong> ${pct}%`)
         .join(' · ');
 
+    const coalitions = Object.entries(summary.coalitionProbabilities || {})
+        .sort(([, a], [, b]) => b - a)
+        .filter(([, pct]) => pct > 0);
+
+    const topCoalition = coalitions[0];
+    const coalitionInfo = topCoalition
+        ? `<p class="govuk-body-s govuk-!-margin-bottom-1">
+            <strong>Most likely coalition:</strong> ${topCoalition[0].split('+').map(p => `<span style="color:${partyColors[p] || '#0b0c0c'};font-weight:700;">${p}</span>`).join('+')} (${topCoalition[1]}%)
+           </p>`
+        : '';
+
     container.innerHTML = `
-        <details class="govuk-details govuk-!-margin-bottom-3">
-            <summary class="govuk-details__summary">
-                <span class="govuk-details__summary-text">Simulation uncertainty</span>
-            </summary>
-            <div class="govuk-details__text">
-                <p class="govuk-body-s">Based on ${summary.iterations} poll-noise runs.</p>
-                <p class="govuk-body-s">Largest party probabilities: ${winners}.</p>
-                <p class="govuk-body-s"><strong>Majority probability:</strong> ${summary.majorityProbability}%</p>
-            </div>
-        </details>`;
+        <div class="govuk-inset-text govuk-!-margin-top-0 govuk-!-margin-bottom-4" style="padding-top:10px;padding-bottom:10px;">
+            <h4 class="govuk-heading-s govuk-!-margin-bottom-1">Forecast summary</h4>
+            <p class="govuk-body-s govuk-!-margin-bottom-1">
+                <strong>Majority probability:</strong> ${summary.majorityProbability}%
+                <span class="govuk-hint" style="font-size: 0.8rem; margin-left: 5px;">(Likelihood of a government with ≥151 seats)</span>
+            </p>
+            <p class="govuk-body-s govuk-!-margin-bottom-1">
+                <strong>Largest party:</strong> ${winnersHtml || '—'}
+            </p>
+            ${coalitionInfo}
+            Calculated from ${summary.iterations.toLocaleString()} simulations with random polling noise (±2.5% per party).
+            "100%" indicates the outcome remained the same across all scenarios.
+        </div>`;
 }
 
 export function renderHouseEffectsTable(houseEffects, partyIndices) {
@@ -474,7 +491,11 @@ export function renderWinProbabilityChart(summary) {
         .filter(([, p]) => p >= 1)
         .sort(([, a], [, b]) => b - a);
 
-    if (!entries.length) { container.innerHTML = ''; return; }
+    // Hide if one party is dominant (>90%) and there's no real competition (less than 3 parties above 1%)
+    if (entries.length <= 1 || (entries[0][1] >= 90 && entries.length < 3)) {
+        container.innerHTML = '';
+        return;
+    }
 
     const rows = entries.map(([party, prob]) => {
         const color = partyColors[party] || '#b1b4b6';
@@ -492,7 +513,7 @@ export function renderWinProbabilityChart(summary) {
 
     container.innerHTML = `
         <div class="pred-stat-panel">
-            <h3 class="govuk-heading-s govuk-!-margin-bottom-1">Win probability</h3>
+            <h3 class="govuk-heading-s govuk-!-margin-bottom-1">Largest party probability</h3>
             <p class="govuk-body-s govuk-!-colour-secondary govuk-!-margin-bottom-3">
                 % of ${summary.iterations.toLocaleString()} simulations in which each party holds the most seats.
             </p>
@@ -509,7 +530,11 @@ export function renderCoalitionProbabilityChart(summary) {
         .sort(([, a], [, b]) => b - a)
         .slice(0, 10);
 
-    if (!entries.length) { container.innerHTML = ''; return; }
+    // Hide if one coalition is dominant (>90%) or if competition is minimal
+    if (entries.length <= 1 || (entries.length > 0 && entries[0][1] >= 90 && entries.length < 3)) {
+        container.innerHTML = '';
+        return;
+    }
 
     const rows = entries.map(([key, prob]) => {
         const parties = key.split('+');
