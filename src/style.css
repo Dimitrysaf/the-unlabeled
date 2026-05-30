@@ -470,6 +470,16 @@ body {
   overflow-wrap: anywhere;
 }
 
+/* Quill-authored HTML content — indent support */
+.article-body .ql-indent-1 { padding-left: 3em; }
+.article-body .ql-indent-2 { padding-left: 6em; }
+.article-body .ql-indent-3 { padding-left: 9em; }
+.article-body .ql-indent-4 { padding-left: 12em; }
+.article-body .ql-indent-5 { padding-left: 15em; }
+.article-body .ql-indent-6 { padding-left: 18em; }
+.article-body .ql-indent-7 { padding-left: 21em; }
+.article-body .ql-indent-8 { padding-left: 24em; }
+
 /* ── Empty state ── */
 .empty-state {
   padding: 2rem 0;

@@ -1,4 +1,6 @@
 // src/pages/admin.js
+import Quill from 'quill';
+import 'quill/dist/quill.snow.css';
 import EasyMDE from 'easymde';
 import 'easymde/dist/easymde.min.css';
 import './admin.css';
@@ -22,6 +24,48 @@ import { loadArticlesSection } from './admin/articles.js';
 import { loadCommentsSection } from './admin/comments.js';
 import { loadUsersSection, showUserDetail, showBanUserForm, showDeleteUserConfirm } from './admin/users.js';
 import { loadSubmissionsSection } from './admin/submissions.js';
+
+// ── Quill setup (runs once at module load) ────────────────────────────────
+
+const _AlignStyle = Quill.import('attributors/style/align');
+const _DirectionStyle = Quill.import('attributors/style/direction');
+const _FontStyle = Quill.import('attributors/style/font');
+const _SizeStyle = Quill.import('attributors/style/size');
+
+_FontStyle.whitelist = ['arial', 'courier-new', 'georgia', 'times-new-roman', 'verdana', 'trebuchet-ms', 'impact'];
+_SizeStyle.whitelist = ['10px', '12px', '14px', '16px', '18px', '20px', '24px', '28px', '32px', '36px', '48px'];
+
+Quill.register(_AlignStyle, true);
+Quill.register(_DirectionStyle, true);
+Quill.register(_FontStyle, true);
+Quill.register(_SizeStyle, true);
+
+// HR blot
+const _BlockEmbed = Quill.import('blots/block/embed');
+class HrBlot extends _BlockEmbed {
+    static create() { return document.createElement('hr'); }
+    static value() { return true; }
+}
+HrBlot.blotName = 'divider';
+HrBlot.tagName = 'hr';
+Quill.register(HrBlot, true);
+
+const QUILL_FONTS = _FontStyle.whitelist;
+const QUILL_SIZES = _SizeStyle.whitelist;
+
+const QUILL_TOOLBAR = [
+    ['undo', 'redo'],
+    [{ font: QUILL_FONTS }, { size: QUILL_SIZES }],
+    [{ header: [1, 2, 3, 4, false] }],
+    ['bold', 'italic', 'underline', 'strike'],
+    [{ color: [] }, { background: [] }],
+    [{ align: [] }, { direction: 'rtl' }],
+    [{ list: 'ordered' }, { list: 'bullet' }],
+    [{ indent: '-1' }, { indent: '+1' }],
+    ['blockquote', 'divider'],
+    ['link', 'image', 'video'],
+    ['clean'],
+];
 
 // ── Entry point ───────────────────────────────────────────────────────────
 
@@ -173,6 +217,11 @@ function renderAdminEditor(article) {
     const pageTitle = isNew ? 'New article' : 'Edit article';
     const type = isNew ? 'md' : contentTypeOf(article);
 
+    const todayIso = new Date().toISOString().slice(0, 10);
+    const todayDisplay = formatDisplayDate(todayIso);
+    const initialPublishedAt = (article?.published_at || '').slice(0, 10) || (isNew ? todayIso : '');
+    const initialDate = article?.date || (isNew ? todayDisplay : '');
+
     updateContent(`
         <div class="govuk-grid-row">
             <div class="govuk-grid-column-full">
@@ -230,11 +279,17 @@ function renderAdminEditor(article) {
                             </div>
 
                             <div id="panel-html" ${type !== 'html' ? 'hidden' : ''}>
-                                <label class="govuk-label govuk-label--s" for="html_content">HTML content</label>
-                                <div class="govuk-hint">Raw HTML rendered inside the article body.</div>
-                                <textarea class="govuk-textarea admin-md-textarea admin-code-textarea"
+                                <div class="wysiwyg-bar">
+                                    <button type="button" class="wysiwyg-mode-btn wysiwyg-mode-btn--active"
+                                            id="wysiwyg-compose-btn">Compose</button>
+                                    <button type="button" class="wysiwyg-mode-btn"
+                                            id="wysiwyg-html-btn">HTML source</button>
+                                </div>
+                                <div id="wysiwyg-editor"></div>
+                                <textarea class="admin-code-textarea wysiwyg-source-area"
                                     id="html_content" name="html_content"
-                                    rows="24" spellcheck="false">${escapeHtml(article?.html_content || '')}</textarea>
+                                    rows="24" spellcheck="false"
+                                    hidden>${escapeHtml(article?.html_content || '')}</textarea>
                             </div>
 
                             <div id="panel-code" ${type !== 'code' ? 'hidden' : ''}>
@@ -256,7 +311,7 @@ function renderAdminEditor(article) {
                                 <div class="govuk-grid-column-two-thirds">
 
                                     ${field('title', 'Title', 'text', article?.title || '', 'govuk-input')}
-                                    ${field('slug', 'Slug', 'text', article?.slug || '', 'govuk-input',
+                                    ${field('slug', 'Slug / Permalink', 'text', article?.slug || '', 'govuk-input',
             'Auto-generated from title. Edit if needed.')}
                                     ${field('subtitle', 'Subtitle', 'text', article?.subtitle || '', 'govuk-input',
                 'Optional. Shown below the title.')}
@@ -270,14 +325,15 @@ function renderAdminEditor(article) {
                                         <div class="govuk-details__text admin-optional-fields">
                                             ${field('image', 'Image URL', 'text', article?.image || '', 'govuk-input',
                         'A URL (https://…) or a path in public/ (e.g. /hero.jpg).')}
-                                            ${field('tags', 'Tags', 'text', tagsToString(article?.tags), 'govuk-input',
+                                            ${field('tags', 'Labels / Tags', 'text', tagsToString(article?.tags), 'govuk-input',
                             'Comma-separated, e.g. Politics, Economy')}
                                             ${field('author', 'Author name', 'text', article?.author?.name || '', 'govuk-input')}
-                                            ${field('date', 'Display date', 'text', article?.date || '', 'govuk-input',
-                                'Shown on the article, e.g. 29 April 2026')}
-                                            ${field('published_at', 'Publish date', 'date',
-                                    (article?.published_at || '').slice(0, 10), 'govuk-input',
-                                    'Controls ordering. Defaults to today on save.')}
+                                            ${field('published_at', 'Date', 'date',
+                                    initialPublishedAt, 'govuk-input',
+                                    'Publish date — controls ordering and auto-fills the display date.')}
+                                            ${field('date', 'Display date', 'text',
+                                    initialDate, 'govuk-input',
+                                    'Shown on the article page. Auto-filled from Date above — edit to override.')}
                                         </div>
                                     </details>
 
@@ -288,6 +344,13 @@ function renderAdminEditor(article) {
                                                     type="checkbox" ${(isNew || article?.is_draft) ? 'checked' : ''}>
                                                 <label class="govuk-label govuk-checkboxes__label" for="is_draft">
                                                     Save as draft
+                                                </label>
+                                            </div>
+                                            <div class="govuk-checkboxes__item">
+                                                <input class="govuk-checkboxes__input" id="allow_comments" name="allow_comments"
+                                                    type="checkbox" ${(article?.allow_comments !== false) ? 'checked' : ''}>
+                                                <label class="govuk-label govuk-checkboxes__label" for="allow_comments">
+                                                    Allow comments
                                                 </label>
                                             </div>
                                         </div>
@@ -359,13 +422,14 @@ function typeRadio(value, label, selected) {
 
 function initEditor(article) {
     const isNew = !article;
+    const type = isNew ? 'md' : contentTypeOf(article);
 
     document.getElementById('admin-back').addEventListener('click', e => { e.preventDefault(); go(''); });
     document.getElementById('admin-cancel').addEventListener('click', e => { e.preventDefault(); go(''); });
 
     // ── Tab switching ──────────────────────────────────────────────────────
     const DETAILS_FIELDS = new Set(['title', 'slug', 'subtitle', 'excerpt',
-        'image', 'tags', 'author', 'date', 'published_at']);
+        'image', 'tags', 'author', 'date', 'published_at', 'allow_comments']);
 
     function switchTab(tabId) {
         document.querySelectorAll('#admin-tabs .govuk-tabs__tab').forEach(tab => {
@@ -398,6 +462,18 @@ function initEditor(article) {
     });
     slugInput.addEventListener('input', () => { slugEdited = true; });
 
+    // ── Date auto-format ───────────────────────────────────────────────────
+    const publishedAtInput = document.getElementById('published_at');
+    const dateInput = document.getElementById('date');
+    let dateManuallyEdited = !!article?.date;
+
+    publishedAtInput?.addEventListener('change', () => {
+        if (!dateManuallyEdited) {
+            dateInput.value = formatDisplayDate(publishedAtInput.value);
+        }
+    });
+    dateInput?.addEventListener('input', () => { dateManuallyEdited = true; });
+
     // ── Rich markdown editor ───────────────────────────────────────────────
     const mdTextarea = document.getElementById('md_content');
     const easyMde = new EasyMDE({
@@ -416,6 +492,75 @@ function initEditor(article) {
         ],
     });
 
+    // ── HTML WYSIWYG editor ────────────────────────────────────────────────
+    let quillInst = null;
+    let wysiwygMode = 'compose';
+    const htmlTextarea = document.getElementById('html_content');
+
+    function initQuillOnce() {
+        if (quillInst) return quillInst;
+        const editorEl = document.getElementById('wysiwyg-editor');
+        if (!editorEl) return null;
+
+        quillInst = new Quill(editorEl, {
+            theme: 'snow',
+            modules: {
+                toolbar: {
+                    container: QUILL_TOOLBAR,
+                    handlers: {
+                        undo() { quillInst.getModule('history').undo(); },
+                        redo() { quillInst.getModule('history').redo(); },
+                        divider() {
+                            const range = quillInst.getSelection(true);
+                            if (!range) return;
+                            quillInst.insertEmbed(range.index, 'divider', true, Quill.sources.USER);
+                            quillInst.setSelection(range.index + 1, Quill.sources.SILENT);
+                        },
+                        image() {
+                            const url = prompt('Enter image URL:');
+                            if (!url?.trim()) return;
+                            const range = quillInst.getSelection(true);
+                            if (range) quillInst.insertEmbed(range.index, 'image', url.trim(), Quill.sources.USER);
+                        },
+                    },
+                },
+                history: { delay: 1000, maxStack: 100, userOnly: true },
+            },
+        });
+
+        const initial = htmlTextarea?.value || '';
+        if (initial.trim()) quillInst.clipboard.dangerouslyPasteHTML(initial);
+
+        return quillInst;
+    }
+
+    function setWysiwygMode(mode) {
+        wysiwygMode = mode;
+        const editorEl = document.getElementById('wysiwyg-editor');
+        const composeBtn = document.getElementById('wysiwyg-compose-btn');
+        const htmlBtn = document.getElementById('wysiwyg-html-btn');
+        if (!editorEl || !composeBtn || !htmlBtn) return;
+
+        if (mode === 'compose') {
+            initQuillOnce();
+            quillInst.clipboard.dangerouslyPasteHTML(htmlTextarea.value || '');
+            editorEl.hidden = false;
+            htmlTextarea.hidden = true;
+            composeBtn.classList.add('wysiwyg-mode-btn--active');
+            htmlBtn.classList.remove('wysiwyg-mode-btn--active');
+        } else {
+            if (quillInst) htmlTextarea.value = quillInst.root.innerHTML;
+            editorEl.hidden = true;
+            htmlTextarea.hidden = false;
+            htmlBtn.classList.add('wysiwyg-mode-btn--active');
+            composeBtn.classList.remove('wysiwyg-mode-btn--active');
+        }
+    }
+
+    document.getElementById('wysiwyg-compose-btn')?.addEventListener('click', () => setWysiwygMode('compose'));
+    document.getElementById('wysiwyg-html-btn')?.addEventListener('click', () => setWysiwygMode('source'));
+
+    // ── Content type panel switching ───────────────────────────────────────
     const panels = { md: 'panel-md', html: 'panel-html', code: 'panel-code' };
     document.getElementById('content-type-radios').addEventListener('change', e => {
         if (e.target.name !== 'content_type') return;
@@ -423,8 +568,12 @@ function initEditor(article) {
             document.getElementById(id).hidden = (key !== e.target.value);
         });
         if (e.target.value === 'md') easyMde.codemirror.refresh();
+        if (e.target.value === 'html') initQuillOnce();
     });
 
+    if (type === 'html') initQuillOnce();
+
+    // ── Form ───────────────────────────────────────────────────────────────
     const form = document.getElementById('admin-form');
     const saveBtn = document.getElementById('admin-save-btn');
     const saveTopBtn = document.getElementById('admin-save-top-btn');
@@ -433,16 +582,11 @@ function initEditor(article) {
     const errorList = document.getElementById('editor-error-list');
 
     if (saveTopBtn) {
-        saveTopBtn.addEventListener('click', () => {
-            form.requestSubmit();
-        });
+        saveTopBtn.addEventListener('click', () => { form.requestSubmit(); });
     }
 
     if (cancelTopBtn) {
-        cancelTopBtn.addEventListener('click', e => {
-            e.preventDefault();
-            go('');
-        });
+        cancelTopBtn.addEventListener('click', e => { e.preventDefault(); go(''); });
     }
 
     form.addEventListener('submit', async e => {
@@ -450,7 +594,11 @@ function initEditor(article) {
         errorSummary.hidden = true;
         errorList.innerHTML = '';
 
+        // Sync editors to their backing form fields
         mdTextarea.value = easyMde.value();
+        if (quillInst && wysiwygMode === 'compose') {
+            htmlTextarea.value = quillInst.root.innerHTML;
+        }
 
         const fd = new FormData(form);
         const contentType = fd.get('content_type');
@@ -505,6 +653,7 @@ function buildPayload(fd, contentType) {
         author: fd.get('author').trim() ? { name: fd.get('author').trim() } : null,
         date: fd.get('date').trim() || null,
         is_draft: fd.has('is_draft'),
+        allow_comments: fd.has('allow_comments'),
         md_content: null,
         html_content: null,
         code_module: null,
@@ -527,6 +676,12 @@ function buildPayload(fd, contentType) {
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────
+
+function formatDisplayDate(dateStr) {
+    if (!dateStr) return '';
+    const d = new Date(dateStr + 'T12:00:00');
+    return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+}
 
 function slugify(str) {
     return str

@@ -628,14 +628,10 @@ async function loadComments(articleId) {
 /**
  * Renders the engagement section (votes + comments) into containerEl.
  * Skeleton placeholders appear immediately; data loads asynchronously.
+ * Pass { allowComments: false } to suppress the comments section.
  */
-export async function renderEngagementSection(articleId, containerEl) {
-    containerEl.innerHTML = `
-        <div class="engagement-band engagement-band--vote">
-            <div class="govuk-width-container">
-                <div id="vote-container"></div>
-            </div>
-        </div>
+export async function renderEngagementSection(articleId, containerEl, { allowComments = true } = {}) {
+    const commentsHtml = allowComments ? `
         <div class="engagement-band engagement-band--comments">
             <div class="govuk-width-container">
                 <h2 class="govuk-heading-m govuk-!-margin-top-6" id="comments-heading">Comments</h2>
@@ -648,8 +644,16 @@ export async function renderEngagementSection(articleId, containerEl) {
                 </div>
                 <div id="comments-list" class="govuk-!-padding-bottom-8"></div>
             </div>
-        </div>`;
+        </div>` : '';
+
+    containerEl.innerHTML = `
+        <div class="engagement-band engagement-band--vote">
+            <div class="govuk-width-container">
+                <div id="vote-container"></div>
+            </div>
+        </div>
+        ${commentsHtml}`;
 
     loadVotes(articleId);
-    loadComments(articleId);
+    if (allowComments) loadComments(articleId);
 }

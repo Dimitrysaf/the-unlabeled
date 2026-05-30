@@ -164,13 +164,13 @@ function hoistArticleHeader() {
  * Kick off the engagement section (votes + comments) after the article is
  * in the DOM.  The engagement section loads independently of article content.
  */
-function loadEngagement(articleId) {
+function loadEngagement(articleId, allowComments = true) {
     const main = document.getElementById('main-content');
     if (!main) return;
     const el = document.createElement('div');
     el.id = 'article-engagement';
     main.appendChild(el);
-    renderEngagementSection(articleId, el);
+    renderEngagementSection(articleId, el, { allowComments });
 }
 
 function buildLoadingShell() {
@@ -251,7 +251,7 @@ export async function renderArticlePage(slug) {
             hoistArticleHeader();
             initArticleActions();
             mod.initCalc();
-            loadEngagement(articleMeta.id);
+            loadEngagement(articleMeta.id, articleMeta.allow_comments !== false);
         } catch (err) {
             logger.error('[article] module load failed', err);
             renderError('500');
