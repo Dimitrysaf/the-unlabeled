@@ -236,3 +236,131 @@
 .EasyMDEContainer .editor-statusbar {
   display: none;
 }
+
+/* ── Editor status bar (word count / autosave) ── */
+.editor-stats-bar {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  flex-wrap: wrap;
+  padding: 0.5rem 0;
+  font-size: 0.875rem;
+  color: var(--c-secondary);
+  border-top: 1px solid var(--c-border);
+  margin-top: 0.25rem;
+}
+
+.editor-stats-bar__item {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.editor-stats-bar__autosave {
+  margin-left: auto;
+}
+
+.editor-stats-bar__autosave--saved {
+  color: #00703c;
+}
+
+.editor-stats-bar__autosave--pending {
+  color: var(--c-secondary);
+}
+
+/* ── Excerpt character counter ── */
+.admin-char-counter {
+  font-size: 0.8125rem;
+  color: var(--c-secondary);
+  text-align: right;
+  margin-top: 0.25rem;
+}
+
+.admin-char-counter--warn {
+  color: #d4351c;
+  font-weight: bold;
+}
+
+/* ── Image preview ── */
+.admin-image-preview {
+  margin-top: 0.5rem;
+  display: none;
+}
+
+.admin-image-preview img {
+  max-width: 200px;
+  max-height: 120px;
+  object-fit: cover;
+  border: 2px solid var(--c-border);
+  display: block;
+}
+
+.admin-image-preview--visible {
+  display: block;
+}
+
+/* ── Revision history panel ── */
+.admin-revisions-panel {
+  border: 2px solid var(--c-border);
+  background: var(--c-light);
+  padding: 1rem;
+  margin-top: 1rem;
+}
+
+.admin-revisions-panel__list {
+  max-height: 300px;
+  overflow-y: auto;
+  margin: 0.5rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.admin-revisions-panel__item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid var(--c-border);
+  font-size: 0.875rem;
+}
+
+.admin-revisions-panel__item:last-child {
+  border-bottom: none;
+}
+
+.admin-revisions-panel__meta {
+  flex: 1;
+  color: var(--c-secondary);
+}
+
+/* ── Editor header row (stats + actions inline) ── */
+.admin-editor-toolbar-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.75rem;
+}
+
+.admin-editor-toolbar-row .govuk-button--secondary {
+  margin-bottom: 0;
+}
+
+/* ── Autosave restore banner ── */
+.admin-autosave-restore {
+  background: #fff7bf;
+  border-left: 5px solid #ffdd00;
+  padding: 0.75rem 1rem;
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+  font-size: 0.9375rem;
+}
+
+.admin-autosave-restore__actions {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+}
