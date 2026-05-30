@@ -517,10 +517,12 @@ function initEditor(article) {
                             quillInst.setSelection(range.index + 1, Quill.sources.SILENT);
                         },
                         image() {
+                            const range = quillInst.getSelection(); // capture before prompt steals focus
                             const url = prompt('Enter image URL:');
                             if (!url?.trim()) return;
-                            const range = quillInst.getSelection(true);
-                            if (range) quillInst.insertEmbed(range.index, 'image', url.trim(), Quill.sources.USER);
+                            const index = range ? range.index : quillInst.getLength();
+                            quillInst.insertEmbed(index, 'image', url.trim(), Quill.sources.USER);
+                            quillInst.setSelection(index + 1, Quill.sources.SILENT);
                         },
                     },
                 },
