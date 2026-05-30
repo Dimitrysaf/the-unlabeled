@@ -516,18 +516,21 @@ function initEditor(article) {
                             quillInst.insertEmbed(range.index, 'divider', true, Quill.sources.USER);
                             quillInst.setSelection(range.index + 1, Quill.sources.SILENT);
                         },
-                        image() {
-                            const range = quillInst.getSelection(); // capture before prompt steals focus
-                            const url = prompt('Enter image URL:');
-                            if (!url?.trim()) return;
-                            const index = range ? range.index : quillInst.getLength();
-                            quillInst.insertEmbed(index, 'image', url.trim(), Quill.sources.USER);
-                            quillInst.setSelection(index + 1, Quill.sources.SILENT);
-                        },
                     },
                 },
                 history: { delay: 1000, maxStack: 100, userOnly: true },
             },
+        });
+
+        // Register image handler after init so it reliably overrides Quill's
+        // default file-input behaviour (constructor-config handlers don't always win in v2)
+        quillInst.getModule('toolbar').addHandler('image', () => {
+            const range = quillInst.getSelection();
+            const url = prompt('Enter image URL:');
+            if (!url?.trim()) return;
+            const index = range ? range.index : quillInst.getLength();
+            quillInst.insertEmbed(index, 'image', url.trim(), Quill.sources.USER);
+            quillInst.setSelection(index + 1, Quill.sources.SILENT);
         });
 
         const initial = htmlTextarea?.value || '';
