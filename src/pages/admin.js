@@ -13,6 +13,7 @@ import {
     createArticle,
     updateArticle,
     clearAdminDataCache,
+    createPendingNotification,
 } from '../data/admin.js';
 import { getArticleRevisions } from '../data/articles.js';
 import { clearSubmissionsCache } from '../data/submissions.js';
@@ -187,6 +188,10 @@ function renderAdminEditor(article) {
 
                     ${editorErrorSummary()}
 
+                    <div class="admin-focus-exit-bar">
+                        <button class="govuk-button govuk-button--secondary govuk-!-margin-bottom-0" type="button" id="admin-focus-exit-btn">Exit focus mode</button>
+                    </div>
+
                     <div class="govuk-button-group govuk-!-margin-bottom-2 admin-button-group-top">
                         <button class="govuk-button" type="button" id="admin-save-top-btn">
                             ${isNew ? 'Create article' : 'Save changes'}
@@ -198,9 +203,12 @@ function renderAdminEditor(article) {
                         <button class="govuk-button govuk-button--secondary" type="button" id="admin-revisions-btn">
                             Revision history
                         </button>
+                        <button class="govuk-button govuk-button--secondary" type="button" id="admin-copy-url-btn">Copy URL</button>
+                        <button class="govuk-button govuk-button--secondary" type="button" id="admin-duplicate-btn">Duplicate</button>
                         ` : ''}
+                        <button class="govuk-button govuk-button--secondary" type="button" id="admin-focus-btn">Focus mode</button>
                         <a class="govuk-link" href="#" id="admin-cancel-top">Cancel</a>
-                        <span class="govuk-hint" style="margin:0;font-size:0.8125rem;" id="admin-save-hint">Ctrl+S to save</span>
+                        <span class="govuk-hint" style="margin:0;font-size:0.8125rem;">Ctrl+S to save</span>
                     </div>
                     <div id="admin-autosave-restore-banner"></div>
                     <div id="admin-revisions-panel-container"></div>
@@ -243,7 +251,21 @@ function renderAdminEditor(article) {
                                     <span class="editor-stats-bar__item" id="stats-words">0 words</span>
                                     <span class="editor-stats-bar__item" id="stats-reading">0 min read</span>
                                     <span class="editor-stats-bar__item" id="stats-chars">0 chars</span>
+                                    <span class="editor-stats-bar__item" id="stats-readability"></span>
+                                    <span class="editor-stats-bar__item" id="stats-wc-progress" hidden></span>
+                                    <button class="editor-stats-bar__btn" type="button" id="stats-target-btn">Target</button>
+                                    <button class="editor-stats-bar__btn" type="button" id="stats-outline-btn">Outline</button>
                                     <span class="editor-stats-bar__item editor-stats-bar__autosave editor-stats-bar__autosave--pending" id="stats-autosave">Not saved locally</span>
+                                </div>
+                                <div id="editor-target-row" class="editor-target-row" hidden>
+                                    <label class="govuk-label" for="stats-wc-input" style="display:inline;margin:0;">Target:</label>
+                                    <input class="govuk-input govuk-input--width-5" type="number" id="stats-wc-input" min="0" step="100" placeholder="e.g. 1500">
+                                    <span>words</span>
+                                    <button class="govuk-button govuk-button--secondary govuk-!-margin-bottom-0" type="button" id="stats-target-set-btn" style="padding:4px 10px;height:auto;">Set</button>
+                                    <button class="govuk-link" type="button" id="stats-target-clear-btn" style="background:none;border:none;cursor:pointer;padding:0;font:inherit;">Clear</button>
+                                </div>
+                                <div id="admin-outline-container" class="admin-outline-panel" hidden>
+                                    <div id="admin-outline-list"></div>
                                 </div>
                             </div>
 
@@ -282,6 +304,20 @@ function renderAdminEditor(article) {
                     'Optional short description shown on the article list.', 3)}
                                     <div class="admin-char-counter" id="excerpt-counter">${(article?.excerpt || '').length} / 250</div>
 
+                                    <details class="govuk-details govuk-!-margin-top-3 govuk-!-margin-bottom-2">
+                                        <summary class="govuk-details__summary">
+                                            <span class="govuk-details__summary-text">SEO preview</span>
+                                        </summary>
+                                        <div class="govuk-details__text" style="padding-bottom:0">
+                                            <div class="seo-preview">
+                                                <div class="seo-preview__url">the-unlabeled.com › a › <span id="seo-slug-preview">${escapeHtml(article?.slug || '…')}</span></div>
+                                                <div class="seo-preview__title" id="seo-title-preview">${escapeHtml(article?.title || 'Article title')}</div>
+                                                <div class="seo-preview__desc" id="seo-desc-preview">${escapeHtml((article?.excerpt || '').slice(0, 155) || 'No excerpt provided.')}</div>
+                                            </div>
+                                            <div id="seo-hints" class="seo-preview__hints"></div>
+                                        </div>
+                                    </details>
+
                                     <details class="govuk-details">
                                         <summary class="govuk-details__summary">
                                             <span class="govuk-details__summary-text">Optional fields</span>
@@ -311,6 +347,14 @@ function renderAdminEditor(article) {
                                                 <label class="govuk-label govuk-checkboxes__label" for="is_draft">
                                                     Save as draft
                                                 </label>
+                                            </div>
+                                            <div class="govuk-checkboxes__item">
+                                                <input class="govuk-checkboxes__input" id="notify_subscribers" name="notify_subscribers"
+                                                    type="checkbox">
+                                                <label class="govuk-label govuk-checkboxes__label" for="notify_subscribers">
+                                                    Notify subscribers on publish
+                                                </label>
+                                                <div class="govuk-hint govuk-checkboxes__hint">Only sends if not saved as draft</div>
                                             </div>
                                         </div>
                                     </div>
@@ -463,6 +507,35 @@ function initEditor(article) {
     };
     window.addEventListener('beforeunload', beforeUnloadHandler);
 
+    // ── Readability helpers (Flesch-Kincaid Reading Ease) ─────────────────
+    function countSyllables(word) {
+        word = word.toLowerCase().replace(/[^a-z]/g, '');
+        if (!word) return 0;
+        if (word.length <= 3) return 1;
+        word = word.replace(/(?:[^laeiouy]es|ed|[^laeiouy]e)$/, '');
+        const m = word.match(/[aeiouy]{1,2}/g);
+        return m ? m.length : 1;
+    }
+
+    function readabilityScore(text) {
+        const plain = text.replace(/```[\s\S]*?```/g, '').replace(/`[^`]+`/g, '').replace(/[#*_[\]()~>!-]/g, '').trim();
+        const wordList = plain.split(/\s+/).filter(w => /[a-zA-Z]/.test(w));
+        if (wordList.length < 15) return null;
+        const sentences = Math.max(1, (plain.match(/[.!?]+/g) || []).length);
+        const syllables = wordList.reduce((s, w) => s + countSyllables(w), 0);
+        const score = 206.835 - 1.015 * (wordList.length / sentences) - 84.6 * (syllables / wordList.length);
+        return Math.max(0, Math.min(100, Math.round(score)));
+    }
+
+    function readabilityLabel(score) {
+        if (score >= 90) return 'Very easy';
+        if (score >= 70) return 'Easy';
+        if (score >= 60) return 'Standard';
+        if (score >= 50) return 'Fairly hard';
+        if (score >= 30) return 'Hard';
+        return 'Very hard';
+    }
+
     // ── Live word count + reading time ─────────────────────────────────────
     function updateStats() {
         const text = easyMde.value();
@@ -473,9 +546,28 @@ function initEditor(article) {
         const wordsEl = document.getElementById('stats-words');
         const readingEl = document.getElementById('stats-reading');
         const charsEl = document.getElementById('stats-chars');
+        const readabilityEl = document.getElementById('stats-readability');
+        const wcProgressEl = document.getElementById('stats-wc-progress');
+
         if (wordsEl) wordsEl.textContent = `${words.toLocaleString()} word${words !== 1 ? 's' : ''}`;
         if (readingEl) readingEl.textContent = `${mins} min read`;
         if (charsEl) charsEl.textContent = `${chars.toLocaleString()} chars`;
+
+        if (readabilityEl) {
+            const score = readabilityScore(text);
+            readabilityEl.textContent = score !== null ? `${readabilityLabel(score)} (${score})` : '';
+        }
+
+        const target = parseInt(document.getElementById('stats-wc-input')?.value) || 0;
+        if (wcProgressEl) {
+            if (target > 0) {
+                const pct = Math.min(100, Math.round((words / target) * 100));
+                wcProgressEl.textContent = `${pct}% of ${target.toLocaleString()} word target`;
+                wcProgressEl.hidden = false;
+            } else {
+                wcProgressEl.hidden = true;
+            }
+        }
     }
 
     updateStats();
@@ -633,11 +725,182 @@ function initEditor(article) {
         });
     }
 
-    // ── Keyboard shortcut Ctrl+S / Cmd+S ──────────────────────────────────
+    // ── SEO preview ────────────────────────────────────────────────────────
+    function updateSeoPreview() {
+        const title = document.getElementById('title')?.value || '';
+        const slug = document.getElementById('slug')?.value || '';
+        const excerpt = document.getElementById('excerpt')?.value || '';
+
+        const titleEl = document.getElementById('seo-title-preview');
+        const slugEl = document.getElementById('seo-slug-preview');
+        const descEl = document.getElementById('seo-desc-preview');
+        const hintsEl = document.getElementById('seo-hints');
+        if (!titleEl) return;
+
+        titleEl.textContent = title || 'Article title';
+        titleEl.classList.toggle('seo-preview__title--long', title.length > 60);
+        slugEl.textContent = slug || '…';
+        descEl.textContent = excerpt
+            ? (excerpt.length > 155 ? excerpt.slice(0, 155) + '…' : excerpt)
+            : 'No excerpt provided.';
+
+        if (hintsEl) {
+            const hints = [];
+            if (title.length > 60) hints.push(`Title is ${title.length} chars — recommended max is 60`);
+            if (title.length > 0 && title.length < 20) hints.push('Title may be too short for SEO');
+            if (!excerpt) hints.push('Add an excerpt for better search visibility');
+            else if (excerpt.length < 50) hints.push('Excerpt is short — aim for 50–155 chars');
+            else if (excerpt.length > 155) hints.push(`Excerpt is ${excerpt.length} chars — recommended max is 155`);
+            hintsEl.innerHTML = hints.map(h => `<div class="seo-preview__hint">${escapeHtml(h)}</div>`).join('');
+        }
+    }
+
+    document.getElementById('title')?.addEventListener('input', updateSeoPreview);
+    slugInput.addEventListener('input', updateSeoPreview);
+    document.getElementById('excerpt')?.addEventListener('input', updateSeoPreview);
+    updateSeoPreview();
+
+    // ── Article outline ────────────────────────────────────────────────────
+    let outlineVisible = false;
+    const outlineBtn = document.getElementById('stats-outline-btn');
+    const outlineContainer = document.getElementById('admin-outline-container');
+    const outlineList = document.getElementById('admin-outline-list');
+
+    function updateOutline() {
+        if (!outlineVisible || !outlineList) return;
+        const lines = easyMde.value().split('\n');
+        const headings = [];
+        lines.forEach((line, i) => {
+            const m = line.match(/^(#{2,3})\s+(.+)/);
+            if (m) headings.push({ level: m[1].length, text: m[2].trim(), line: i });
+        });
+        if (!headings.length) {
+            outlineList.innerHTML = '<p style="color:var(--c-secondary);font-size:0.875rem;margin:0;">No H2/H3 headings found.</p>';
+            return;
+        }
+        outlineList.innerHTML = headings.map(h =>
+            `<div class="admin-outline-item admin-outline-item--h${h.level}" data-line="${h.line}">${escapeHtml(h.text)}</div>`
+        ).join('');
+        outlineList.querySelectorAll('[data-line]').forEach(item => {
+            item.addEventListener('click', () => {
+                const line = parseInt(item.dataset.line);
+                easyMde.codemirror.setCursor({ line, ch: 0 });
+                easyMde.codemirror.scrollIntoView({ line, ch: 0 }, 100);
+                easyMde.codemirror.focus();
+                switchTab('tab-content');
+            });
+        });
+    }
+
+    outlineBtn?.addEventListener('click', () => {
+        outlineVisible = !outlineVisible;
+        outlineContainer.hidden = !outlineVisible;
+        outlineBtn.classList.toggle('editor-stats-bar__btn--active', outlineVisible);
+        if (outlineVisible) updateOutline();
+    });
+
+    easyMde.codemirror.on('change', () => { if (outlineVisible) updateOutline(); });
+
+    // ── Word count target ──────────────────────────────────────────────────
+    const targetBtn = document.getElementById('stats-target-btn');
+    const targetRow = document.getElementById('editor-target-row');
+    const targetInput = document.getElementById('stats-wc-input');
+    const targetSetBtn = document.getElementById('stats-target-set-btn');
+    const targetClearBtn = document.getElementById('stats-target-clear-btn');
+
+    const WC_TARGET_KEY = `admin-wc-target-${article?.id || 'new'}`;
+    const savedTarget = localStorage.getItem(WC_TARGET_KEY);
+    if (savedTarget && targetInput) {
+        targetInput.value = savedTarget;
+        updateStats();
+    }
+
+    targetBtn?.addEventListener('click', () => {
+        const open = targetRow.hidden;
+        targetRow.hidden = !open;
+        targetBtn.classList.toggle('editor-stats-bar__btn--active', open);
+        if (open) targetInput?.focus();
+    });
+
+    targetSetBtn?.addEventListener('click', () => {
+        localStorage.setItem(WC_TARGET_KEY, targetInput?.value || '0');
+        updateStats();
+        targetRow.hidden = true;
+        targetBtn.classList.remove('editor-stats-bar__btn--active');
+    });
+
+    targetClearBtn?.addEventListener('click', () => {
+        if (targetInput) targetInput.value = '';
+        localStorage.removeItem(WC_TARGET_KEY);
+        updateStats();
+    });
+
+    // ── Focus mode ─────────────────────────────────────────────────────────
+    function toggleFocusMode(on) {
+        const active = on !== undefined ? on : !document.body.classList.contains('admin-focus-mode');
+        document.body.classList.toggle('admin-focus-mode', active);
+        const focusBtn = document.getElementById('admin-focus-btn');
+        if (focusBtn) focusBtn.textContent = active ? 'Exit focus' : 'Focus mode';
+        if (active) easyMde.codemirror.focus();
+    }
+
+    document.getElementById('admin-focus-btn')?.addEventListener('click', () => toggleFocusMode());
+    document.getElementById('admin-focus-exit-btn')?.addEventListener('click', () => toggleFocusMode(false));
+
+    // ── Copy public URL ────────────────────────────────────────────────────
+    document.getElementById('admin-copy-url-btn')?.addEventListener('click', async () => {
+        const slug = document.getElementById('slug')?.value?.trim();
+        if (!slug) { showBanner('error', 'Enter a slug first.'); return; }
+        const url = `${window.location.origin}/a/${slug}`;
+        try {
+            await navigator.clipboard.writeText(url);
+            const btn = document.getElementById('admin-copy-url-btn');
+            if (btn) { btn.textContent = 'Copied!'; setTimeout(() => { btn.textContent = 'Copy URL'; }, 2000); }
+        } catch {
+            showBanner('error', 'Could not copy URL — check browser permissions.');
+        }
+    });
+
+    // ── Duplicate article ──────────────────────────────────────────────────
+    document.getElementById('admin-duplicate-btn')?.addEventListener('click', async () => {
+        if (!confirm('Create a draft copy of this article?')) return;
+        const btn = document.getElementById('admin-duplicate-btn');
+        btn.disabled = true;
+        btn.textContent = 'Duplicating…';
+        try {
+            const newSlug = `copy-of-${article.slug}`;
+            await createArticle({
+                title: `Copy of ${article.title}`,
+                subtitle: article.subtitle,
+                excerpt: article.excerpt,
+                slug: newSlug,
+                link: newSlug,
+                image: article.image,
+                tags: article.tags,
+                author: article.author,
+                date: article.date,
+                is_draft: true,
+                md_content: article.md_content,
+                html_content: article.html_content,
+                code_module: article.code_module,
+                published_at: new Date().toISOString(),
+            });
+            showBanner('success', `Duplicate created as draft. Find it in the articles list.`);
+        } catch (err) {
+            showBanner('error', `Duplicate failed: ${err.message}`);
+        }
+        btn.disabled = false;
+        btn.textContent = 'Duplicate';
+    });
+
+    // ── Keyboard shortcut Ctrl+S / Cmd+S  +  Escape to exit focus ─────────
     const kbHandler = e => {
         if ((e.ctrlKey || e.metaKey) && e.key === 's') {
             e.preventDefault();
             form.requestSubmit();
+        }
+        if (e.key === 'Escape' && document.body.classList.contains('admin-focus-mode')) {
+            toggleFocusMode(false);
         }
     };
     document.addEventListener('keydown', kbHandler);
@@ -659,6 +922,7 @@ function initEditor(article) {
         clearInterval(autosaveTimer);
         window.removeEventListener('beforeunload', beforeUnloadHandler);
         document.removeEventListener('keydown', kbHandler);
+        document.body.classList.remove('admin-focus-mode');
     }
 
     document.getElementById('admin-back').addEventListener('click', e => { e.preventDefault(); cleanup(); go(''); });
@@ -698,11 +962,18 @@ function initEditor(article) {
         saveBtn.textContent = 'Saving…';
 
         try {
+            let savedArticle;
             if (isNew) {
-                await createArticle(payload);
+                savedArticle = await createArticle(payload);
             } else {
-                await updateArticle(article.id, payload);
+                savedArticle = await updateArticle(article.id, payload);
             }
+
+            const shouldNotify = fd.has('notify_subscribers') && !payload.is_draft;
+            if (shouldNotify && savedArticle?.id) {
+                try { await createPendingNotification(savedArticle.id); } catch { /* non-fatal */ }
+            }
+
             localStorage.removeItem(AUTOSAVE_KEY);
             markClean();
             cleanup();

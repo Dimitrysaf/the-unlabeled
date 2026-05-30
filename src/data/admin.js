@@ -93,6 +93,14 @@ export async function toggleDraft(id, isDraft) {
     return updateArticle(id, { is_draft: isDraft });
 }
 
+/** Queues a push notification for an article (the pg_cron job sends it within 5 min). */
+export async function createPendingNotification(articleId) {
+    const { error } = await supabase
+        .from('pending_notifications')
+        .insert([{ article_id: articleId, send_at: new Date().toISOString() }]);
+    if (error) throw error;
+}
+
 /** Fetches all non-deleted comments with their article info, newest first. Cached for 5 minutes. */
 export async function getAllComments() {
     const now = Date.now();

@@ -346,6 +346,162 @@
   margin-bottom: 0;
 }
 
+/* ── Stats bar buttons (outline / target toggles) ── */
+.editor-stats-bar__btn {
+  background: none;
+  border: 1px solid var(--c-border);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.8125rem;
+  padding: 1px 8px;
+  color: var(--c-secondary);
+  line-height: 1.4;
+}
+
+.editor-stats-bar__btn:hover {
+  background: var(--c-light);
+  color: var(--c-black);
+}
+
+.editor-stats-bar__btn--active {
+  background: var(--c-black);
+  color: #fff;
+  border-color: var(--c-black);
+}
+
+/* ── Word count target row ── */
+.editor-target-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.4rem 0;
+  font-size: 0.875rem;
+  flex-wrap: wrap;
+}
+
+.editor-target-row .govuk-input {
+  height: 2rem;
+  padding: 0 0.4rem;
+}
+
+/* ── Article outline panel ── */
+.admin-outline-panel {
+  border: 1px solid var(--c-border);
+  background: #fafafa;
+  padding: 0.75rem 1rem;
+  margin-top: 0.25rem;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.admin-outline-item {
+  padding: 3px 0;
+  cursor: pointer;
+  font-size: 0.875rem;
+  color: var(--c-black);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.admin-outline-item:hover {
+  color: #1d70b8;
+  text-decoration: underline;
+}
+
+.admin-outline-item--h2 {
+  padding-left: 0;
+  font-weight: bold;
+}
+
+.admin-outline-item--h3 {
+  padding-left: 1.25rem;
+  color: var(--c-secondary);
+}
+
+/* ── SEO preview ── */
+.seo-preview {
+  font-family: arial, sans-serif;
+  max-width: 600px;
+  padding: 0.75rem;
+  border: 1px solid var(--c-border);
+  background: #fff;
+}
+
+.seo-preview__url {
+  font-size: 0.875rem;
+  color: #006621;
+  margin-bottom: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.seo-preview__title {
+  font-size: 1.125rem;
+  color: #1a0dab;
+  margin-bottom: 4px;
+  cursor: pointer;
+}
+
+.seo-preview__title--long {
+  color: #d4351c;
+}
+
+.seo-preview__desc {
+  font-size: 0.875rem;
+  color: #545454;
+  line-height: 1.4;
+}
+
+.seo-preview__hints {
+  margin-top: 0.5rem;
+}
+
+.seo-preview__hint {
+  font-size: 0.8125rem;
+  color: #d4351c;
+  padding: 2px 0;
+}
+
+.seo-preview__hint::before {
+  content: '⚠ ';
+}
+
+/* ── Focus mode ── */
+body.admin-focus-mode .govuk-header,
+body.admin-focus-mode .govuk-back-link,
+body.admin-focus-mode .govuk-caption-xl,
+body.admin-focus-mode .govuk-heading-xl,
+body.admin-focus-mode #admin-banner,
+body.admin-focus-mode .admin-button-group-top,
+body.admin-focus-mode #admin-autosave-restore-banner,
+body.admin-focus-mode #admin-revisions-panel-container,
+body.admin-focus-mode .govuk-tabs__list,
+body.admin-focus-mode #tab-details,
+body.admin-focus-mode .govuk-button-group:last-of-type,
+body.admin-focus-mode #admin-form > .govuk-error-summary {
+  display: none !important;
+}
+
+body.admin-focus-mode {
+  background: #fff;
+}
+
+body.admin-focus-mode .govuk-main-wrapper {
+  padding-top: 0.5rem;
+}
+
+.admin-focus-exit-bar {
+  display: none;
+  justify-content: flex-end;
+  margin-bottom: 0.5rem;
+}
+
+body.admin-focus-mode .admin-focus-exit-bar {
+  display: flex;
+}
+
 /* ── Autosave restore banner ── */
 .admin-autosave-restore {
   background: #fff7bf;
