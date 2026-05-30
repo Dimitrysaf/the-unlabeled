@@ -10,7 +10,7 @@ export function sanitizeHtml(html) {
 
     doc.querySelectorAll('script, style').forEach(el => el.remove());
 
-    const walker = document.createTreeWalker(doc.body, NodeFilter.SHOW_ELEMENT);
+    const walker = doc.createTreeWalker(doc.body, NodeFilter.SHOW_ELEMENT);
     let node = walker.nextNode();
     while (node) {
         [...node.attributes].forEach(attr => {

@@ -3,6 +3,7 @@
 // Finds notifications due to send, pushes them to all subscribers,
 // then marks them as sent. Expired subscriptions (410) are auto-removed.
 
+import { createHash, timingSafeEqual } from 'crypto';
 import webpush from 'web-push';
 
 const SUPABASE_URL = process.env.VITE_SUPABASE_URL;
@@ -31,9 +32,17 @@ async function dbFetch(path, options = {}) {
   return text ? JSON.parse(text) : null;
 }
 
+function safeCompare(a, b) {
+  const ha = createHash('sha256').update(String(a)).digest();
+  const hb = createHash('sha256').update(String(b)).digest();
+  return timingSafeEqual(ha, hb);
+}
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).end();
-  if (req.headers['x-cron-secret'] !== CRON_SECRET) return res.status(401).end();
+  if (!CRON_SECRET || !safeCompare(req.headers['x-cron-secret'] ?? '', CRON_SECRET)) {
+    return res.status(401).end();
+  }
 
   const now = new Date().toISOString();
 
