@@ -33,7 +33,7 @@ describe('validateEmail', () => {
 
 describe('validatePassword', () => {
     it('accepts a strong password', () => {
-        expect(validatePassword('Passw0rd!')).toBe('');
+        expect(validatePassword('Passw0rd!')).toBe(''); // pragma: allowlist secret
     });
     it('rejects empty', () => {
         expect(validatePassword('')).not.toBe('');
@@ -42,19 +42,19 @@ describe('validatePassword', () => {
         expect(validatePassword(null)).not.toBe('');
     });
     it('rejects too short (< 8 chars)', () => {
-        expect(validatePassword('Ab1!')).not.toBe('');
+        expect(validatePassword('Ab1!')).not.toBe(''); // pragma: allowlist secret
     });
     it('rejects missing uppercase', () => {
-        expect(validatePassword('passw0rd!')).not.toBe('');
+        expect(validatePassword('passw0rd!')).not.toBe(''); // pragma: allowlist secret
     });
     it('rejects missing lowercase', () => {
-        expect(validatePassword('PASSW0RD!')).not.toBe('');
+        expect(validatePassword('PASSW0RD!')).not.toBe(''); // pragma: allowlist secret
     });
     it('rejects missing digit', () => {
-        expect(validatePassword('Password!')).not.toBe('');
+        expect(validatePassword('Password!')).not.toBe(''); // pragma: allowlist secret
     });
     it('rejects missing special character', () => {
-        expect(validatePassword('Passw0rd')).not.toBe('');
+        expect(validatePassword('Passw0rd')).not.toBe(''); // pragma: allowlist secret
     });
 });
 
