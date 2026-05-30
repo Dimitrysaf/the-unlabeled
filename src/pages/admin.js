@@ -522,16 +522,25 @@ function initEditor(article) {
             },
         });
 
-        // Register image handler after init so it reliably overrides Quill's
-        // default file-input behaviour (constructor-config handlers don't always win in v2)
-        quillInst.getModule('toolbar').addHandler('image', () => {
-            const range = quillInst.getSelection();
-            const url = prompt('Enter image URL:');
-            if (!url?.trim()) return;
-            const index = range ? range.index : quillInst.getLength();
-            quillInst.insertEmbed(index, 'image', url.trim(), Quill.sources.USER);
-            quillInst.setSelection(index + 1, Quill.sources.SILENT);
-        });
+        // Quill Snow v2 attaches its own file-picker click handler to .ql-image at
+        // construction time. addHandler() can't reliably override it because Snow may
+        // re-register after the toolbar module's handlers map is written.
+        // Intercept at the DOM level in capture phase so our listener fires first
+        // and stopImmediatePropagation() prevents Snow's handler from ever running.
+        const imageBtn = quillInst.getModule('toolbar').container.querySelector('.ql-image');
+        if (imageBtn) {
+            imageBtn.addEventListener('click', (e) => {
+                e.stopImmediatePropagation();
+                e.preventDefault();
+                quillInst.focus();
+                const range = quillInst.getSelection(true);
+                const url = prompt('Enter image URL:');
+                if (!url?.trim()) return;
+                const index = range ? range.index : quillInst.getLength();
+                quillInst.insertEmbed(index, 'image', url.trim(), Quill.sources.USER);
+                quillInst.setSelection(index + 1, Quill.sources.SILENT);
+            }, true); // capture phase — fires before Quill's bubble-phase handler
+        }
 
         const initial = htmlTextarea?.value || '';
         if (initial.trim()) quillInst.clipboard.dangerouslyPasteHTML(initial);
