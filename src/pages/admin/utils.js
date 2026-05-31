@@ -30,5 +30,6 @@ export function showBanner(type, message) {
                     <p class="govuk-notification-banner__heading">${escapeHtml(message)}</p>
                 </div>
             </div>`;
+        setTimeout(() => { if (el) el.innerHTML = ''; }, 3000);
     }
 }
