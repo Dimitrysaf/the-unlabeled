@@ -318,7 +318,7 @@
 #loessChart {
   background: #fff;
   border: 1px solid var(--c-border);
-  padding: 1rem 1.25rem 0.5rem;
+  padding: 0;
   margin-bottom: 1.5rem;
   overflow: visible;
 }
