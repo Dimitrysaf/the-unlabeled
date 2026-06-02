@@ -48,7 +48,7 @@ export function createLoessTrendChart(headers, rows) {
         const validIdx = vals.reduce((acc, v, i) => { if (v !== null) acc.push(i); return acc; }, []);
         const xs = validIdx.map(i => xNorm[i]);
         const ys = validIdx.map(i => vals[i]);
-        const smoothed = loess(xs, ys, 0.2);
+        const smoothed = loess(xs, ys, 0.1);
 
         const trendVals = new Array(pollData.length).fill(null);
         validIdx.forEach((origI, j) => { trendVals[origI] = smoothed[j]; });
@@ -174,7 +174,7 @@ export function createLoessTrendChart(headers, rows) {
                  min-width:130px;box-shadow:2px 2px 0 #0b0c0c;"></div>
         </div>
         <p class="govuk-body-s govuk-!-colour-secondary govuk-!-margin-top-1 govuk-!-margin-bottom-0">
-            Each dot = one poll. Smooth lines = LOESS trend (bandwidth 0.2). Red dashed = 3% threshold.
+            Each dot = one poll. Smooth lines = LOESS trend (bandwidth 0.1). Red dashed = 3% threshold.
         </p>
     `;
 
