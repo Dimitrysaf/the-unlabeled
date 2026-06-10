@@ -95,4 +95,14 @@
   @page {
     margin: 1.5cm;
   }
+
+  .print-section {
+    break-before: page;
+    page-break-before: always;
+  }
+
+  .print-keep {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
 }

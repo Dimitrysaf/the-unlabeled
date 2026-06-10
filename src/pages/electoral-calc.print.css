@@ -8,14 +8,17 @@
 
   .prediction-card {
     min-height: 0;
+    break-inside: avoid;
     page-break-inside: avoid;
   }
 
   .parliament-panel,
   .coalition-panel,
   .pred-stat-panel {
+    break-inside: avoid;
     page-break-inside: avoid;
     border: 1px solid #000 !important;
     box-shadow: none !important;
   }
+
 }

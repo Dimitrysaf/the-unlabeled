@@ -96,7 +96,7 @@ export function getCalcHTML() {
 
         </div>
 
-        <div id="polls-table-section" style="display:none;">
+        <div id="polls-table-section" class="print-section" style="display:none;">
             <div class="polls-table-header">
                 <h2 class="govuk-heading-m govuk-!-margin-bottom-0">Raw polling data</h2>
                 <button class="polls-table-toggle" id="polls-table-toggle"
@@ -128,7 +128,7 @@ export function getCalcHTML() {
             </div>
         </div>
 
-        <div id="prediction-section" style="display:none;">
+        <div id="prediction-section" class="print-section" style="display:none;">
             <hr class="section-rule">
             <h2 class="govuk-heading-l">2027 election forecast</h2>
             <p class="govuk-body govuk-!-colour-secondary">
@@ -312,18 +312,18 @@ export function getCalcHTML() {
                 </button>
             </div>
             <span class="govuk-heading-m govuk-!-margin-bottom-2">House effects by polling firm</span>
-            <div id="house-effects-table"></div>
+            <div id="house-effects-table" class="print-keep"></div>
 
-            <h3 class="govuk-heading-m govuk-!-margin-bottom-2">Forecast by party</h3>
+            <h3 class="govuk-heading-m govuk-!-margin-bottom-2 print-section">Forecast by party</h3>
             <div class="prediction-cards" id="prediction-cards"></div>
-            <div id="prediction-uncertainty"></div>
+            <div id="prediction-uncertainty" class="print-keep"></div>
 
-            <div id="seat-range-chart"></div>
+            <div id="seat-range-chart" class="print-section"></div>
             <div id="win-probability-chart"></div>
-            <div id="parliament-container" style="display:none;"></div>
+            <div id="parliament-container" class="print-section" style="display:none;"></div>
             <div id="coalition-container" style="display:none;"></div>
             <div id="coalition-probability-chart"></div>
-            <div id="prediction-stats"></div>
+            <div id="prediction-stats" class="print-section"></div>
 
             <details class="govuk-details govuk-!-margin-top-6">
                 <summary class="govuk-details__summary">
