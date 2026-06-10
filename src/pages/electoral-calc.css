@@ -310,8 +310,8 @@
   position: absolute;
   top: 50%;
   transform: translate(-50%, -50%);
-  font-size: 11px;
-  line-height: 1;
+  line-height: 0;
+  display: flex;
 }
 
 /* ── LOESS chart panel ── */

@@ -363,14 +363,55 @@ export function renderUncertaintySummary(summary) {
         .map(([p, pct]) => `<strong style="color:${partyColors[p] || '#0b0c0c'};">${p}</strong> ${pct}%`)
         .join(' · ');
 
-    const coalitions = Object.entries(summary.coalitionProbabilities || {})
-        .sort(([, a], [, b]) => b - a)
-        .filter(([, pct]) => pct > 0);
+    const fmtKey = key =>
+        key.split('+').map(p => `<span style="color:${partyColors[p] || '#0b0c0c'};font-weight:700;">${p}</span>`).join('+');
 
-    const topCoalition = coalitions[0];
-    const coalitionInfo = topCoalition
+    // ── Government formation scenarios ────────────────────────────────────
+    const solo  = summary.soloMajorityProbability   ?? null;
+    const two   = summary.twoPartyScenarioProbability  ?? null;
+    const three = summary.threePartyScenarioProbability ?? null;
+    const hung  = summary.hungProbability           ?? null;
+
+    const scenarioRow = (solo !== null)
         ? `<p class="govuk-body-s govuk-!-margin-bottom-1">
-            <strong>Most likely coalition:</strong> ${topCoalition[0].split('+').map(p => `<span style="color:${partyColors[p] || '#0b0c0c'};font-weight:700;">${p}</span>`).join('+')} (${topCoalition[1]}%)
+               <strong>Government scenarios:</strong>
+               <span title="A single party wins ≥151 seats">Solo&nbsp;${solo}%</span>
+               · <span title="No party has majority alone; a 2-party coalition reaches 151+">2-party&nbsp;needed&nbsp;${two}%</span>
+               · <span title="Neither solo nor any 2-party combo works; 3-party needed">3-party&nbsp;needed&nbsp;${three}%</span>
+               · <span title="Even 3-party combos cannot reach 151">Hung&nbsp;${hung}%</span>
+           </p>`
+        : '';
+
+    // Most likely coalition in each scenario (joint probability = % of all 1 000 sims)
+    const topTwo   = Object.entries(summary.twoPartyNeededProbs  || {}).sort(([, a], [, b]) => b - a)[0];
+    const topThree = Object.entries(summary.threePartyNeededProbs || {}).sort(([, a], [, b]) => b - a)[0];
+
+    const twoRow = topTwo
+        ? `<p class="govuk-body-s govuk-!-margin-bottom-1">
+               <strong>Most likely 2-party coalition:</strong>
+               ${fmtKey(topTwo[0])} (${topTwo[1]}%
+               <span class="govuk-hint" style="font-size:0.75rem;margin-left:2px;">of all simulations</span>)
+           </p>`
+        : '';
+
+    const threeRow = topThree
+        ? `<p class="govuk-body-s govuk-!-margin-bottom-1">
+               <strong>Most likely 3-party coalition:</strong>
+               ${fmtKey(topThree[0])} (${topThree[1]}%
+               <span class="govuk-hint" style="font-size:0.75rem;margin-left:2px;">of all simulations</span>)
+           </p>`
+        : '';
+
+    // ── Analytical 2-party feasibility (Normal CDF) ───────────────────────
+    // Show the top combos that aren't trivially 100% and have meaningful probability
+    const analyticalEntries = Object.entries(summary.analyticalTwoPartyProbs || {})
+        .sort(([, a], [, b]) => b - a)
+        .filter(([, p]) => p >= 5 && p < 100);
+    const analyticalRow = analyticalEntries.length >= 2
+        ? `<p class="govuk-body-s govuk-!-margin-bottom-1">
+               <strong>2-party majority feasibility (analytical):</strong>
+               ${analyticalEntries.slice(0, 4).map(([k, p]) => `${fmtKey(k)}&nbsp;${p}%`).join(' · ')}
+               <span class="govuk-hint" style="font-size:0.75rem;margin-left:4px;">P(A+B ≥ 151) via normal approximation</span>
            </p>`
         : '';
 
@@ -378,15 +419,21 @@ export function renderUncertaintySummary(summary) {
         <div class="govuk-inset-text govuk-!-margin-top-0 govuk-!-margin-bottom-4" style="padding-top:10px;padding-bottom:10px;">
             <h4 class="govuk-heading-s govuk-!-margin-bottom-1">Forecast summary</h4>
             <p class="govuk-body-s govuk-!-margin-bottom-1">
-                <strong>Majority probability:</strong> ${summary.majorityProbability}%
-                <span class="govuk-hint" style="font-size: 0.8rem; margin-left: 5px;">(Likelihood of a government with ≥151 seats)</span>
+                <strong>Solo majority probability:</strong> ${summary.majorityProbability}%
+                <span class="govuk-hint" style="font-size: 0.8rem; margin-left: 5px;">(Any single party ≥151 seats)</span>
             </p>
             <p class="govuk-body-s govuk-!-margin-bottom-1">
                 <strong>Largest party:</strong> ${winnersHtml || '—'}
             </p>
-            ${coalitionInfo}
-            Calculated from ${summary.iterations.toLocaleString()} simulations with random polling noise (±2.5% per party).
-            "100%" indicates the outcome remained the same across all scenarios.
+            ${scenarioRow}
+            ${twoRow}
+            ${threeRow}
+            ${analyticalRow}
+            <p class="govuk-body-s govuk-!-colour-secondary govuk-!-margin-bottom-0" style="font-size:0.75rem;">
+                Calculated from ${summary.iterations.toLocaleString()} simulations with random polling noise (±2.5% per party).
+                Scenario probabilities are mutually exclusive and sum to 100%.
+                Analytical feasibility uses P(A+B ≥ 151) via the normal distribution with empirical mean and covariance of seat counts.
+            </p>
         </div>`;
 }
 
@@ -462,7 +509,9 @@ export function renderSeatRangeChart(summary) {
             <div class="seat-range-bar-wrap">
                 <div class="seat-range-fill" style="left:${p10}%;width:${range}%;background:${color};"></div>
                 <div class="seat-range-median" style="left:${p50}%;background:${color};"></div>
-                ${curr > 0 ? `<div class="seat-range-current" style="left:${pct(curr)}%;color:${color};">◇</div>` : ''}
+                ${curr > 0 ? `<div class="seat-range-current" style="left:${pct(curr)}%;color:${color};">
+                    <svg viewBox="0 0 10 10" width="10" height="10" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" aria-hidden="true"><polygon points="5,0.5 9.5,5 5,9.5 0.5,5"/></svg>
+                </div>` : ''}
                 <div class="seat-range-majority" style="left:${majorityPct}%;"></div>
             </div>
             <div class="pred-stat-values">
@@ -477,7 +526,7 @@ export function renderSeatRangeChart(summary) {
             <h3 class="govuk-heading-s govuk-!-margin-bottom-1">Seat projection range</h3>
             <p class="govuk-body-s govuk-!-colour-secondary govuk-!-margin-bottom-3">
                 Median seat count with p10–p90 simulation range.
-                ◇ = current seats (2023). <span style="color:#d4351c;font-weight:700;">|</span> = majority (151 seats).
+                <svg viewBox="0 0 10 10" width="10" height="10" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" aria-hidden="true" style="vertical-align:middle;"><polygon points="5,0.5 9.5,5 5,9.5 0.5,5"/></svg> = current seats (2023). <span style="color:#d4351c;font-weight:700;">|</span> = majority (151 seats).
             </p>
             ${rows}
         </div>`;

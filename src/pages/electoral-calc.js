@@ -717,8 +717,16 @@ function runSimulation(recentPolls, options, iterations = 1000) {
     const partySeatResults = {};
     const partyVoteResults = {};
     const winnerCounts = {};
-    const coalitionCounts = {};
     let majorityCount = 0;
+
+    // Government formation scenario counters
+    let soloMajorityCount = 0;
+    let twoPartyScenarioCount = 0;
+    let threePartyScenarioCount = 0;
+    let hungCount = 0;
+    // Per-combo counts — only incremented when that size is genuinely needed
+    const neededTwoCounts = {};
+    const neededThreeCounts = {};
 
     parties.forEach(party => {
         partySeatResults[party] = [];
@@ -740,27 +748,45 @@ function runSimulation(recentPolls, options, iterations = 1000) {
             partyVoteResults[party].push(forecast.predicted[party] || 0);
         });
 
-        const seatedParties = Object.entries(forecast.seats).filter(([, s]) => s > 0);
-        const minimalFound = [];
-        for (let size = 2; size <= 3; size++) {
-            for (const combo of getCombinations(seatedParties, size)) {
-                const total = combo.reduce((s, [, c]) => s + c, 0);
-                if (total >= 151) {
-                    // Minimality: don't count A+B+C if A+B already has a majority
-                    const isMinimal = !minimalFound.some(m =>
-                        m.length < combo.length && m.every(mp => combo.some(cp => cp[0] === mp[0]))
-                    );
-                    if (isMinimal) {
+        // Government formation: determine which scenario applies this iteration
+        const seated = Object.entries(forecast.seats).filter(([, s]) => s > 0);
+
+        if (hasMajority) {
+            soloMajorityCount++;
+        } else {
+            // Check every 2-party combo; count all viable ones (they're all realistic options)
+            let twoFound = false;
+            for (const combo of getCombinations(seated, 2)) {
+                if (combo.reduce((s, [, c]) => s + c, 0) >= 151) {
+                    const key = combo.map(([p]) => p).sort().join('+');
+                    neededTwoCounts[key] = (neededTwoCounts[key] || 0) + 1;
+                    twoFound = true;
+                }
+            }
+
+            if (twoFound) {
+                twoPartyScenarioCount++;
+            } else {
+                // No 2-party combo works — all 3-party combos reaching 151 are automatically minimal
+                let threeFound = false;
+                for (const combo of getCombinations(seated, 3)) {
+                    if (combo.reduce((s, [, c]) => s + c, 0) >= 151) {
                         const key = combo.map(([p]) => p).sort().join('+');
-                        coalitionCounts[key] = (coalitionCounts[key] || 0) + 1;
-                        minimalFound.push(combo);
+                        neededThreeCounts[key] = (neededThreeCounts[key] || 0) + 1;
+                        threeFound = true;
                     }
                 }
+                if (threeFound) threePartyScenarioCount++;
+                else hungCount++;
             }
         }
     }
 
-    return { iterations, winnerCounts, majorityCount, partySeatResults, partyVoteResults, coalitionCounts };
+    return {
+        iterations, winnerCounts, majorityCount, partySeatResults, partyVoteResults,
+        soloMajorityCount, twoPartyScenarioCount, threePartyScenarioCount, hungCount,
+        neededTwoCounts, neededThreeCounts,
+    };
 }
 
 function addNoiseToPolls(pollRows) {

@@ -272,8 +272,22 @@ export function getLargestParty(seats) {
 }
 
 /**
- * Collapses raw simulation results into per-party summary stats.
- * Now also includes coalitionProbabilities derived from simulation.coalitionCounts.
+ * Abramowitz & Stegun approximation for the standard normal CDF.
+ * Maximum error < 7.5×10⁻⁸.
+ */
+function normalCDF(z) {
+    const sign = z >= 0 ? 1 : -1;
+    const az = Math.abs(z);
+    const t = 1 / (1 + 0.2316419 * az);
+    const poly = t * (0.319381530 + t * (-0.356563782 + t * (1.781477937 + t * (-1.821255978 + t * 1.330274429))));
+    const p = 1 - (Math.exp(-0.5 * az * az) / Math.sqrt(2 * Math.PI)) * poly;
+    return sign === 1 ? p : 1 - p;
+}
+
+/**
+ * Collapses raw simulation results into per-party summary stats plus
+ * government-formation scenario probabilities and analytical coalition
+ * feasibility via normal-distribution approximation.
  */
 export function summariseSimulation(simulation) {
     const partyStats = {};
@@ -290,12 +304,55 @@ export function summariseSimulation(simulation) {
         winnerProbabilities[party] = Math.round((count / simulation.iterations) * 100);
     }
 
-    // % of simulations in which each coalition combination reaches 151 seats
-    const coalitionProbabilities = {};
-    if (simulation.coalitionCounts) {
-        for (const [key, count] of Object.entries(simulation.coalitionCounts)) {
-            coalitionProbabilities[key] = Math.round((count / simulation.iterations) * 100);
-        }
+    // ── Analytical coalition feasibility (Normal CDF) ─────────────────────
+    // For each coalition combo: P(combined seats ≥ 151) using the normal
+    // approximation with empirical means, variances, and covariances.
+    const parties = Object.keys(simulation.partySeatResults);
+    const n = simulation.iterations;
+
+    const partyMeans = {};
+    const partyVars = {};
+    for (const p of parties) {
+        const arr = simulation.partySeatResults[p];
+        const mu = arr.reduce((a, b) => a + b, 0) / n;
+        partyMeans[p] = mu;
+        partyVars[p] = arr.reduce((a, b) => a + (b - mu) ** 2, 0) / n;
+    }
+
+    const getCov = (A, B) => {
+        const arrA = simulation.partySeatResults[A];
+        const arrB = simulation.partySeatResults[B];
+        let cov = 0;
+        for (let k = 0; k < n; k++) cov += (arrA[k] - partyMeans[A]) * (arrB[k] - partyMeans[B]);
+        return cov / n;
+    };
+
+    const analyticalTwoPartyProbs = {};
+    for (const [A, B] of getCombinations(parties, 2)) {
+        const mu = partyMeans[A] + partyMeans[B];
+        const variance = partyVars[A] + partyVars[B] + 2 * getCov(A, B);
+        const std = Math.sqrt(Math.max(variance, 1));
+        const key = [A, B].sort().join('+');
+        // Continuity correction: P(discrete ≥ 151) ≈ P(normal ≥ 150.5)
+        analyticalTwoPartyProbs[key] = Math.round((1 - normalCDF((150.5 - mu) / std)) * 100);
+    }
+
+    // ── Government formation scenario probabilities ───────────────────────
+    const N = simulation.iterations;
+    const soloMajorityProbability   = Math.round(((simulation.soloMajorityCount   ?? 0) / N) * 100);
+    const twoPartyScenarioProbability  = Math.round(((simulation.twoPartyScenarioCount  ?? 0) / N) * 100);
+    const threePartyScenarioProbability = Math.round(((simulation.threePartyScenarioCount ?? 0) / N) * 100);
+    const hungProbability           = Math.round(((simulation.hungCount           ?? 0) / N) * 100);
+
+    // Per-coalition: % of ALL iterations where this combo was a viable option
+    // in a 2-party (or 3-party) scenario — i.e., joint probability.
+    const twoPartyNeededProbs = {};
+    for (const [key, count] of Object.entries(simulation.neededTwoCounts ?? {})) {
+        twoPartyNeededProbs[key] = Math.round((count / N) * 100);
+    }
+    const threePartyNeededProbs = {};
+    for (const [key, count] of Object.entries(simulation.neededThreeCounts ?? {})) {
+        threePartyNeededProbs[key] = Math.round((count / N) * 100);
     }
 
     return {
@@ -303,7 +360,15 @@ export function summariseSimulation(simulation) {
         majorityProbability: Math.round((simulation.majorityCount / simulation.iterations) * 100),
         winnerProbabilities,
         partyStats,
-        coalitionProbabilities,
+        // Government formation scenarios
+        soloMajorityProbability,
+        twoPartyScenarioProbability,
+        threePartyScenarioProbability,
+        hungProbability,
+        twoPartyNeededProbs,
+        threePartyNeededProbs,
+        // Analytical (normal CDF) feasibility for all 2-party combos
+        analyticalTwoPartyProbs,
     };
 }
 
