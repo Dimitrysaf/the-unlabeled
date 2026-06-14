@@ -615,3 +615,163 @@ export function renderCoalitionProbabilityChart(summary) {
             ${rows}
         </div>`;
 }
+
+export function renderRepeatElections({ rounds, iterations }) {
+    const container = document.getElementById('repeat-elections-container');
+    if (!container) return;
+
+    // All parties sorted by round 1 vote share descending
+    const sortedParties = Object.keys(rounds[0].voteStats)
+        .sort((a, b) => rounds[0].voteStats[b].med - rounds[0].voteStats[a].med);
+
+    // ── Vote % table ──────────────────────────────────────────────────────
+    const pctRows = sortedParties.map(p => {
+        const color = partyColors[p] || '#0b0c0c';
+        const cells = rounds.map(rnd => {
+            const { lo, med, hi } = rnd.voteStats[p];
+            return `<td class="govuk-table__cell govuk-table__cell--numeric">
+                <strong style="color:${color}">${med.toFixed(1)}%</strong>
+                <span class="reps-range">${lo.toFixed(1)}–${hi.toFixed(1)}%</span>
+            </td>`;
+        }).join('');
+        return `<tr class="govuk-table__row">
+            <th scope="row" class="govuk-table__header" style="color:${color}">${p}</th>
+            ${cells}
+        </tr>`;
+    }).join('');
+
+    // ── Seat table ────────────────────────────────────────────────────────
+    const seatRows = sortedParties.map(p => {
+        const color = partyColors[p] || '#0b0c0c';
+        const cells = rounds.map(rnd => {
+            const { lo, med, hi } = rnd.seatStats[p];
+            if (med === 0 && hi === 0) {
+                return `<td class="govuk-table__cell govuk-table__cell--numeric" style="color:#6f777b">—</td>`;
+            }
+            return `<td class="govuk-table__cell govuk-table__cell--numeric">
+                <strong style="color:${color}">${med}</strong>
+                <span class="reps-range">${lo}–${hi}</span>
+            </td>`;
+        }).join('');
+        return `<tr class="govuk-table__row">
+            <th scope="row" class="govuk-table__header" style="color:${color}">${p}</th>
+            ${cells}
+        </tr>`;
+    }).join('');
+
+    // ── Governability section ─────────────────────────────────────────────
+    const roundLabels = ['Round 1', 'Round 2', 'Round 3'];
+    const roundSubtitles = [
+        'Initial election — based on current polling',
+        'Repeat election — uncertainty ±4% per party',
+        'Second repeat election — uncertainty ±6% per party',
+    ];
+
+    const comboRows = (combos, discount) => combos.filter(c => c.prob >= 3).map(c => {
+        const adj = Math.round(c.prob * discount);
+        const label = c.key.split('+').map(p =>
+            `<span style="color:${partyColors[p] || '#0b0c0c'};font-weight:700;">${p}</span>`
+        ).join(' <span style="color:#6f777b">+</span> ');
+        return `<div class="reps-combo-row">
+            <span class="reps-combo-label">${label}</span>
+            <span class="reps-combo-adj">
+                <span style="color:#6f777b">${c.prob}%</span>&nbsp;→&nbsp;<strong>${adj}%</strong>
+            </span>
+        </div>`;
+    }).join('');
+
+    const scenario = (label, pct, adj, discountLabel, combos, discount) => {
+        const rows = combos ? comboRows(combos, discount) : '';
+        return `
+        <div class="reps-scenario-block">
+            <h4 class="govuk-heading-s govuk-!-margin-bottom-1">${label}</h4>
+            <div class="reps-scenario-pct">${adj !== null ? adj : pct}%</div>
+            ${adj !== null ? `<p class="govuk-body-s govuk-!-colour-secondary govuk-!-margin-bottom-0">${pct}% mathematical ${discountLabel}</p>` : ''}
+            ${rows ? `<div class="reps-combos">${rows}</div>` : ''}
+        </div>`;
+    };
+
+    const govCards = rounds.map((rnd, ri) => {
+        const { soloP, twoP, threeP, hungP, topTwo, topThree } = rnd;
+        const twoAdj   = Math.round(twoP   * 0.50);
+        const threeAdj = Math.round(threeP * 0.33);
+        const govTotal = soloP + twoAdj + threeAdj;
+
+        return `
+        <div class="reps-round-block">
+            <h3 class="govuk-heading-m govuk-!-margin-bottom-1">${roundLabels[ri]}</h3>
+            <p class="govuk-body-s govuk-!-colour-secondary govuk-!-margin-bottom-4">${roundSubtitles[ri]}</p>
+            ${scenario('Single-party majority', soloP,  null,      '',   null,     1)}
+            ${scenario('Two-party coalition',   twoP,   twoAdj,   '×½', topTwo,   0.5)}
+            ${scenario('Three-party coalition', threeP, threeAdj, '×⅓', topThree, 0.33)}
+            ${scenario('Hung parliament',       hungP,  null,      '',   null,     1)}
+            <div class="reps-gov-total">
+                Overall probability of government formation: <strong>${govTotal}%</strong>
+            </div>
+        </div>`;
+    }).join('');
+
+    container.innerHTML = `
+        <hr class="section-rule">
+        <h2 class="govuk-heading-l">Exploratory mandate &amp; repeat elections</h2>
+
+        <div class="govuk-inset-text">
+            <p class="govuk-body govuk-!-margin-bottom-1">
+                If no government is formed, the President grants an exploratory mandate
+                to the three largest parties in sequence. If all fail, new elections are
+                called — with different results each time.
+            </p>
+            <p class="govuk-body govuk-!-margin-bottom-0">
+                <strong>Magic formula:</strong> the probability of government formation decreases
+                with each additional party required (solo ×1 · two-party ×½ · three-party ×⅓).
+                Adjusted % applies this cooperation discount to the mathematical probability.
+                ${iterations.toLocaleString()} simulations.
+            </p>
+        </div>
+
+        <h3 class="govuk-heading-m govuk-!-margin-top-6">Estimated vote share by round</h3>
+        <div class="table-scroll">
+            <table class="govuk-table">
+                <caption class="govuk-table__caption govuk-table__caption--s govuk-!-margin-bottom-3">
+                    Median (P50) with P10–P90 range · ${iterations.toLocaleString()} simulations
+                </caption>
+                <thead class="govuk-table__head">
+                    <tr class="govuk-table__row">
+                        <th scope="col" class="govuk-table__header">Party</th>
+                        <th scope="col" class="govuk-table__header govuk-table__header--numeric">Round 1</th>
+                        <th scope="col" class="govuk-table__header govuk-table__header--numeric">
+                            Round 2 <span class="reps-noise-badge">±4%</span>
+                        </th>
+                        <th scope="col" class="govuk-table__header govuk-table__header--numeric">
+                            Round 3 <span class="reps-noise-badge">±6%</span>
+                        </th>
+                    </tr>
+                </thead>
+                <tbody class="govuk-table__body">${pctRows}</tbody>
+            </table>
+        </div>
+
+        <h3 class="govuk-heading-m govuk-!-margin-top-6">Estimated seats by round</h3>
+        <div class="table-scroll">
+            <table class="govuk-table">
+                <caption class="govuk-table__caption govuk-table__caption--s govuk-!-margin-bottom-3">
+                    Median with P10–P90 range · majority threshold: 151 seats
+                </caption>
+                <thead class="govuk-table__head">
+                    <tr class="govuk-table__row">
+                        <th scope="col" class="govuk-table__header">Party</th>
+                        <th scope="col" class="govuk-table__header govuk-table__header--numeric">Round 1</th>
+                        <th scope="col" class="govuk-table__header govuk-table__header--numeric">Round 2</th>
+                        <th scope="col" class="govuk-table__header govuk-table__header--numeric">Round 3</th>
+                    </tr>
+                </thead>
+                <tbody class="govuk-table__body">${seatRows}</tbody>
+            </table>
+        </div>
+
+        <h3 class="govuk-heading-m govuk-!-margin-top-6">Governability probabilities by round</h3>
+        <div class="reps-rounds-list">
+            ${govCards}
+        </div>
+    `;
+}

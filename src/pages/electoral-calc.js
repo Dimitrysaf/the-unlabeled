@@ -13,13 +13,14 @@ import {
     getHorizonDaysFromRows, getMomentumHorizonScale, getReversionHorizonScale,
     getAutoMomentumPercent, getAutoReversionPercent,
     filterPollsByDateWindow, parseCSV,
-    randomNormal, getLargestParty, summariseSimulation, getCombinations,
+    randomNormal, getLargestParty, summariseSimulation, getCombinations, percentile,
 } from './electoral-calc/model.js';
 import { createPollsChart, createLoessTrendChart } from './electoral-calc/chart.js';
 import {
     renderParliament, renderCoalitions, renderPredictionCards,
     renderPredictionStats, renderUncertaintySummary, renderHouseEffectsTable,
     renderSeatRangeChart, renderWinProbabilityChart, renderCoalitionProbabilityChart,
+    renderRepeatElections,
 } from './electoral-calc/render.js';
 
 let _pollRows = [], _partyIndices = {}, _volatility = {}, _electionBiases = {};
@@ -316,14 +317,14 @@ export function getCalcHTML() {
 
             <h3 class="govuk-heading-m govuk-!-margin-bottom-2 print-section">Forecast by party</h3>
             <div class="prediction-cards" id="prediction-cards"></div>
-            <div id="prediction-uncertainty" class="print-keep"></div>
 
             <div id="seat-range-chart" class="print-section"></div>
             <div id="win-probability-chart"></div>
             <div id="parliament-container" class="print-section" style="display:none;"></div>
             <div id="coalition-container" style="display:none;"></div>
             <div id="coalition-probability-chart"></div>
-            <div id="prediction-stats" class="print-section"></div>
+
+            <div id="repeat-elections-container" class="print-section" style="display:none;"></div>
 
             <details class="govuk-details govuk-!-margin-top-6">
                 <summary class="govuk-details__summary">
@@ -552,6 +553,118 @@ function renderPrediction() {
     }, 0);
 }
 
+function simulateNextRound(votePct, options, volatilityStd = 4.0) {
+    const noisy = {};
+    for (const [party, pct] of Object.entries(votePct)) {
+        noisy[party] = Math.max(0, pct + randomNormal(0, volatilityStd));
+    }
+    const total = Object.values(noisy).reduce((a, b) => a + b, 0);
+    let predicted = {};
+    for (const [party, pct] of Object.entries(noisy)) {
+        predicted[party] = total > 0 ? (pct / total) * 100 : 0;
+    }
+    if (options.useThresholdRisk) predicted = applyThresholdRisk(predicted, _volatility);
+    const seats = allocateGreekSeats(predicted);
+    return { predicted, seats };
+}
+
+function runMultiRoundSimulation(recentPolls, options, iterations = 1000) {
+    const parties = Object.keys(_partyIndices);
+
+    function mkRound() {
+        return {
+            voteResults: Object.fromEntries(parties.map(p => [p, []])),
+            seatResults: Object.fromEntries(parties.map(p => [p, []])),
+            soloCount: 0, twoCount: 0, threeCount: 0, hungCount: 0,
+            neededTwo: {}, neededThree: {},
+        };
+    }
+
+    function pushResults(rnd, outcome) {
+        for (const p of parties) {
+            rnd.voteResults[p].push(outcome.predicted[p] || 0);
+            rnd.seatResults[p].push(outcome.seats[p] || 0);
+        }
+    }
+
+    function countGov(rnd, seats) {
+        const seated = Object.entries(seats).filter(([, s]) => s > 0);
+        const hasMajority = seated.some(([, s]) => s >= 151);
+        if (hasMajority) {
+            rnd.soloCount++;
+        } else {
+            let twoFound = false;
+            for (const combo of getCombinations(seated, 2)) {
+                if (combo.reduce((s, [, c]) => s + c, 0) >= 151) {
+                    const key = combo.map(([p]) => p).sort().join('+');
+                    rnd.neededTwo[key] = (rnd.neededTwo[key] || 0) + 1;
+                    twoFound = true;
+                }
+            }
+            if (twoFound) {
+                rnd.twoCount++;
+            } else {
+                let threeFound = false;
+                for (const combo of getCombinations(seated, 3)) {
+                    if (combo.reduce((s, [, c]) => s + c, 0) >= 151) {
+                        const key = combo.map(([p]) => p).sort().join('+');
+                        rnd.neededThree[key] = (rnd.neededThree[key] || 0) + 1;
+                        threeFound = true;
+                    }
+                }
+                if (threeFound) rnd.threeCount++;
+                else rnd.hungCount++;
+            }
+        }
+    }
+
+    const rounds = [mkRound(), mkRound(), mkRound()];
+
+    for (let i = 0; i < iterations; i++) {
+        const noisyPolls = addNoiseToPolls(recentPolls);
+        const r1 = getForecastOutcome(noisyPolls, options);
+        pushResults(rounds[0], r1);
+        countGov(rounds[0], r1.seats);
+
+        const r2 = simulateNextRound(r1.predicted, options, 4.0);
+        pushResults(rounds[1], r2);
+        countGov(rounds[1], r2.seats);
+
+        const r3 = simulateNextRound(r2.predicted, options, 6.0);
+        pushResults(rounds[2], r3);
+        countGov(rounds[2], r3.seats);
+    }
+
+    function summariseRound(rnd) {
+        const voteStats = {}, seatStats = {};
+        for (const p of parties) {
+            const va = rnd.voteResults[p];
+            const sa = rnd.seatResults[p];
+            voteStats[p] = { lo: percentile(va, 10), med: percentile(va, 50), hi: percentile(va, 90) };
+            seatStats[p] = {
+                lo: Math.round(percentile(sa, 10)),
+                med: Math.round(percentile(sa, 50)),
+                hi: Math.round(percentile(sa, 90)),
+            };
+        }
+        return {
+            voteStats, seatStats,
+            soloP: Math.round((rnd.soloCount / iterations) * 100),
+            twoP: Math.round((rnd.twoCount / iterations) * 100),
+            threeP: Math.round((rnd.threeCount / iterations) * 100),
+            hungP: Math.round((rnd.hungCount / iterations) * 100),
+            topTwo: Object.entries(rnd.neededTwo)
+                .sort(([, a], [, b]) => b - a).slice(0, 5)
+                .map(([key, count]) => ({ key, prob: Math.round((count / iterations) * 100) })),
+            topThree: Object.entries(rnd.neededThree)
+                .sort(([, a], [, b]) => b - a).slice(0, 5)
+                .map(([key, count]) => ({ key, prob: Math.round((count / iterations) * 100) })),
+        };
+    }
+
+    return { rounds: rounds.map(summariseRound), iterations };
+}
+
 function _doRenderPrediction() {
     const dropoutRate = parseInt(document.getElementById('dropout-slider').value) / 100;
     const pollsCountVal = document.getElementById('polls-count-select').value;
@@ -619,13 +732,15 @@ function _doRenderPrediction() {
     const confidenceScores = computeConfidenceScores(predicted, _volatility, total, Math.max(0, horizonDays));
 
     renderPredictionCards(predicted, rawBase, seats, momentum, acceleration, confidenceScores, total, summary, _volatility);
-    renderUncertaintySummary(summary);
     renderSeatRangeChart(summary);
     renderWinProbabilityChart(summary);
     renderParliament(seats);
     renderCoalitions(seats);
     // renderCoalitionProbabilityChart(summary);
-    renderPredictionStats(predicted, rawBase);
+
+    const multiRound = runMultiRoundSimulation(recentPolls, options);
+    renderRepeatElections(multiRound);
+    document.getElementById('repeat-elections-container').style.display = 'block';
 } // end _doRenderPrediction
 
 function getForecastOutcome(recentPolls, options) {

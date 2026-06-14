@@ -510,6 +510,97 @@ label:has(strong + .govuk-range:disabled) {
   white-space: nowrap;
 }
 
+/* ── Repeat elections section ── */
+.reps-range {
+  display: block;
+  font-size: 0.75rem;
+  color: #6f777b;
+  margin-top: 0.2rem;
+}
+
+.reps-noise-badge {
+  display: inline-block;
+  font-size: 0.6875rem;
+  font-weight: 400;
+  background: #f3f2f1;
+  border: 1px solid #b1b4b6;
+  padding: 0.05em 0.35em;
+  margin-left: 0.25em;
+  vertical-align: middle;
+}
+
+.reps-combo-meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2em;
+  margin-left: 0.5em;
+  white-space: nowrap;
+}
+
+.reps-combo-meta abbr {
+  color: #6f777b;
+  font-size: 0.75rem;
+  text-decoration: none;
+}
+
+.reps-rounds-list {
+  display: flex;
+  flex-direction: column;
+  gap: 3rem;
+}
+
+.reps-round-block {
+  border-top: 4px solid var(--c-black, #0b0c0c);
+  padding-top: 1.5rem;
+}
+
+.reps-scenario-block {
+  padding: 1.25rem 0;
+  border-bottom: 1px solid var(--c-border, #b1b4b6);
+}
+
+.reps-scenario-pct {
+  font-size: 2.5rem;
+  font-weight: 700;
+  line-height: 1.1;
+  margin-bottom: 0.25rem;
+}
+
+.reps-combos {
+  margin-top: 1rem;
+}
+
+.reps-combo-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 1rem;
+  padding: 0.625rem 0;
+  border-bottom: 1px solid #f3f2f1;
+  font-size: 0.875rem;
+}
+
+.reps-combo-row:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.reps-combo-label {
+  white-space: nowrap;
+}
+
+.reps-combo-adj {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.reps-gov-total {
+  background: #f3f2f1;
+  padding: 1rem 1.25rem;
+  margin-top: 1.5rem;
+  font-size: 1rem;
+}
+
 /* ── EC skeleton loader ── */
 .ec-skeleton {
   padding: 0 0 2.5rem;
