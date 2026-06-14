@@ -323,6 +323,7 @@ export function getCalcHTML() {
             <div id="parliament-container" class="print-section" style="display:none;"></div>
             <div id="coalition-container" style="display:none;"></div>
             <div id="coalition-probability-chart"></div>
+            <div id="prediction-stats" class="print-section"></div>
 
             <div id="repeat-elections-container" class="print-section" style="display:none;"></div>
 
@@ -737,6 +738,7 @@ function _doRenderPrediction() {
     renderParliament(seats);
     renderCoalitions(seats);
     // renderCoalitionProbabilityChart(summary);
+    renderPredictionStats(predicted, rawBase);
 
     const multiRound = runMultiRoundSimulation(recentPolls, options);
     renderRepeatElections(multiRound);
