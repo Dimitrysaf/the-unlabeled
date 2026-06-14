@@ -153,7 +153,7 @@ export function computeLongRunAverage(pollRows, partyIndices) {
  * bias. Now sorts newest-first and uses .slice(0, 10) to take the 10 most
  * recent polls before each election — the ones that should actually predict it.
  */
-export function computeNDBias(electionRows, pollRows, partyIndices, party) {
+export function computeElectionBias(electionRows, pollRows, partyIndices, party) {
     const idx = partyIndices[party];
     if (idx === undefined || !electionRows.length) return 0;
     const biases = [];

@@ -67,9 +67,26 @@ export async function searchArticles(query) {
 
     if (!tokens.length) return [];
 
-    const articles = await getArticles();
+    // Server-side pre-filter: only pull articles that match at least one token
+    // in title, subtitle, or excerpt. Tags are scored in-memory below.
+    const filterParts = tokens.flatMap(t => [
+        `title.ilike.%${t}%`,
+        `subtitle.ilike.%${t}%`,
+        `excerpt.ilike.%${t}%`,
+    ]);
 
-    const scored = articles.map(a => {
+    const { data, error } = await supabase
+        .from('articles')
+        .select('*')
+        .eq('is_draft', false)
+        .or(filterParts.join(','))
+        .order('published_at', { ascending: false });
+
+    if (error) throw error;
+
+    const candidates = (data ?? []).map(normalize);
+
+    const scored = candidates.map(a => {
         const title = (a.title ?? '').toLowerCase();
         const subtitle = (a.subtitle ?? '').toLowerCase();
         const excerpt = (a.excerpt ?? '').toLowerCase();

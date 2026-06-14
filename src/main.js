@@ -86,7 +86,7 @@ async function _doRender(path, fullPath) {
             url: 'https://the-unlabeled.com/request'
         });
         const { renderRequest } = await import('./pages/request.js');
-        renderRequest();
+        await renderRequest();
     } else if (path === '/donate') {
         setMetaTags({
             title: 'Support Us - The Unlabeled',
@@ -94,7 +94,7 @@ async function _doRender(path, fullPath) {
             url: 'https://the-unlabeled.com/donate'
         });
         const { renderDonate } = await import('./pages/donate.js');
-        renderDonate();
+        await renderDonate();
     } else if (path === '/about') {
         setMetaTags({
             title: 'About Us - The Unlabeled',
@@ -102,7 +102,7 @@ async function _doRender(path, fullPath) {
             url: 'https://the-unlabeled.com/about'
         });
         const { renderAbout } = await import('./pages/about.js');
-        renderAbout();
+        await renderAbout();
     } else if (path === '/legal') {
         setMetaTags({
             title: 'Legal Information - The Unlabeled',
@@ -110,7 +110,7 @@ async function _doRender(path, fullPath) {
             url: 'https://the-unlabeled.com/legal'
         });
         const { renderLegal } = await import('./pages/legal.js');
-        renderLegal();
+        await renderLegal();
     } else if (path === '/cookies') {
         setMetaTags({
             title: 'Cookie Policy - The Unlabeled',
@@ -118,7 +118,7 @@ async function _doRender(path, fullPath) {
             url: 'https://the-unlabeled.com/cookies'
         });
         const { renderCookies } = await import('./pages/cookies.js');
-        renderCookies();
+        await renderCookies();
     } else if (path === '/login') {
         setMetaTags({
             title: 'Login - The Unlabeled',
@@ -167,7 +167,7 @@ async function _doRender(path, fullPath) {
             url: 'https://the-unlabeled.com/auth/confirm'
         });
         const { renderAuthConfirm } = await import('./pages/auth-confirm.js');
-        renderAuthConfirm();
+        await renderAuthConfirm();
     } else if (path === '/admin') {
         setMetaTags({
             title: 'Admin Panel - The Unlabeled',

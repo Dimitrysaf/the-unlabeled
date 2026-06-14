@@ -8,7 +8,7 @@ import { partyColors, forecastDefaults } from './electoral-calc/constants.js';
 import {
     allocateGreekSeats, applyThresholdRisk,
     computeHouseEffects, computeMomentum, computeTrendAcceleration,
-    computeLongRunAverage, computeNDBias, computeVolatility, computeConfidenceScores,
+    computeLongRunAverage, computeElectionBias, computeVolatility, computeConfidenceScores,
     parseSampleSize, parseInputDate, parsePollDate,
     getHorizonDaysFromRows, getMomentumHorizonScale, getReversionHorizonScale,
     getAutoMomentumPercent, getAutoReversionPercent,
@@ -22,7 +22,7 @@ import {
     renderSeatRangeChart, renderWinProbabilityChart, renderCoalitionProbabilityChart,
 } from './electoral-calc/render.js';
 
-let _pollRows = [], _partyIndices = {}, _volatility = {}, _ndBias = 0;
+let _pollRows = [], _partyIndices = {}, _volatility = {}, _electionBiases = {};
 let _houseEffects = {}, _longRunAvg = {};
 
 export function getCalcHTML() {
@@ -237,11 +237,11 @@ export function getCalcHTML() {
                         <div class="govuk-checkboxes__item">
                             <input class="govuk-checkboxes__input" id="nd-correction-checkbox" type="checkbox" checked>
                             <label class="govuk-label govuk-checkboxes__label" for="nd-correction-checkbox">
-                                ND historical bias
+                                Historical election bias
                                 <strong id="nd-bias-label" style="color:#1b5cc7;margin-left:4px;"></strong>
                             </label>
                             <div class="govuk-hint govuk-checkboxes__hint">
-                                Corrects ND's systematic gap between polls and election results.
+                                Corrects each party's systematic gap between polls and election results.
                             </div>
                         </div>
                     </div>
@@ -343,7 +343,7 @@ export function getCalcHTML() {
                         <li><strong>Recency weighting:</strong> More recent polls receive up to 2× weight.</li>
                         <li><strong>Sample size weighting:</strong> Each poll weighted by √n of its sample size.</li>
                         <li><strong>House effects:</strong> Per-firm systematic deviation from the cross-firm mean, subtracted at poll level. Requires ≥3 polls per firm.</li>
-                        <li><strong>ND historical bias:</strong> ND's average underestimation in the 10 most recent polls before each past election vs. the actual result.</li>
+                        <li><strong>Historical election bias:</strong> Per-party average gap between the 10 most recent pre-election polls and the actual result, correcting for systematic over/underestimation.</li>
                         <li><strong>Election-day dropout:</strong> A small penalty (default 5%) for voters who indicate they will vote but ultimately do not show up. Applied as: dropout × (0.5 + 0.5 × volatility) per party.</li>
                         <li><strong>Momentum:</strong> Linear regression slope over the selected poll window, scaled by the momentum factor.</li>
                         <li><strong>Trend acceleration:</strong> Comparison of recent vs. earlier momentum, shown as an indicator on each forecast card.</li>
@@ -454,14 +454,18 @@ function initPredictions(headers, rows) {
     _pollRows = rows.filter(r => !r[0].toLowerCase().includes('election'));
 
     _volatility = computeVolatility(_pollRows, _partyIndices);
-    _ndBias = computeNDBias(electionRows, _pollRows, _partyIndices, 'ND');
+    _electionBiases = {};
+    for (const party of Object.keys(_partyIndices)) {
+        _electionBiases[party] = computeElectionBias(electionRows, _pollRows, _partyIndices, party);
+    }
     _houseEffects = computeHouseEffects(_pollRows, _partyIndices);
     _longRunAvg = computeLongRunAverage(_pollRows, _partyIndices);
 
     applyForecastDefaults();
 
-    const sign = _ndBias >= 0 ? '+' : '';
-    document.getElementById('nd-bias-label').textContent = `(${sign}${_ndBias.toFixed(2)}%)`;
+    const ndBias = _electionBiases['ND'] ?? 0;
+    const sign = ndBias >= 0 ? '+' : '';
+    document.getElementById('nd-bias-label').textContent = `(ND: ${sign}${ndBias.toFixed(2)}%)`;
 
     renderHouseEffectsTable(_houseEffects, _partyIndices);
 
@@ -676,8 +680,12 @@ function getForecastOutcome(recentPolls, options) {
         }
     }
 
-    if (useNDCorrection && base['ND'] !== undefined) {
-        base['ND'] = Math.max(0, base['ND'] + _ndBias);
+    if (useNDCorrection) {
+        for (const [party, bias] of Object.entries(_electionBiases)) {
+            if (base[party] !== undefined && bias !== 0) {
+                base[party] = Math.max(0, base[party] + bias);
+            }
+        }
     }
 
     if (useLeadCompress) {
