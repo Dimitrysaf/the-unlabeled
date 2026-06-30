@@ -15,15 +15,17 @@ export const partyColors = {
     'DPK': '#FF6600',
     'ELPIDA': '#E0B959',
     'ELAS': '#a40044',
+    'INDEPENDENTS': '#6c757d',
+    'VACANT': '#d1d5db',
 };
 
-// Baseline: Hellenic Parliament composition (Wikipedia, accessed 2026-04-28).
+// Baseline: Hellenic Parliament composition.
 export const currentParliamentSeats = {
     ND: 156,
-    SYRIZA: 25,
+    SYRIZA: 24,
     PASOK: 32,
     KKE: 21,
-    SP: 2,
+    SP: 0,
     EL: 11,
     NIKI: 8,
     PE: 5,
@@ -33,6 +35,8 @@ export const currentParliamentSeats = {
     DPK: 0,
     ELPIDA: 0,
     ELAS: 0,
+    INDEPENDENTS: 40,
+    VACANT: 3,
 };
 
 export const forecastDefaults = {
