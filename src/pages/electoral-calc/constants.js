@@ -42,7 +42,7 @@ export const currentParliamentSeats = {
 export const forecastDefaults = {
     dropoutPct: 5,
     pollBase: '180d',
-    electionDate: '2027-05-05',
+    electionDate: '2026-09-27',
     useSampleWeight: true,
     useNDCorrection: true,
     useHouseEffects: true,
